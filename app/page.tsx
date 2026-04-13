@@ -3,20 +3,20 @@
 import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const [apiMessage, setApiMessage] = useState('Carregando backend...');
-  const [healthMessage, setHealthMessage] = useState('Verificando saúde da API...');
+  const [apiMessage, setApiMessage] = useState('Carregando...');
+  const [healthMessage, setHealthMessage] = useState('Carregando...');
 
   useEffect(() => {
-    fetch('http://localhost:3001/')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/`)
       .then((res) => res.json())
       .then((data) => {
-        setApiMessage(data.message || 'Resposta recebida');
+        setApiMessage(data.message);
       })
       .catch(() => {
-        setApiMessage('Não foi possível conectar ao backend');
+        setApiMessage('Falha ao consultar backend');
       });
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`)
       .then((res) => res.json())
       .then((data) => {
         setHealthMessage(`${data.status} - ${data.service}`);
