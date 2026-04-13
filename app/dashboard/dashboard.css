@@ -1,14 +1,16 @@
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
 
 :root {
-  --saas-bg: #09090b;          /* Fundo quase preto */
-  --saas-surface: #121214;     /* Fundo dos cartões e menus */
-  --saas-border: #27272a;      /* Bordas ultra finas */
-  --saas-border-hover: #3f3f46;
-  --saas-text: #fafafa;        /* Texto principal branco */
-  --saas-muted: #a1a1aa;       /* Texto secundário cinza */
-  --saas-accent: #22c55e;      /* Verde néon futurista */
-  --saas-accent-glow: rgba(34, 197, 94, 0.15);
+  --saas-bg: #f8fafc;          /* Fundo geral (cinza ultra-claro) */
+  --saas-surface: #ffffff;     /* Fundo dos cartões e menu (branco puro) */
+  --saas-border: #e2e8f0;      /* Bordas suaves */
+  --saas-border-hover: #cbd5e1;
+  --saas-text: #0f172a;        /* Texto principal escuro (quase preto) */
+  --saas-muted: #64748b;       /* Texto secundário (cinza médio) */
+  --saas-accent: #1FA84A;      /* Verde Suporte Imagem */
+  --saas-accent-light: #f0fdf4;/* Fundo verde bem claro pro item ativo */
+  --saas-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --saas-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
 }
 
 * { box-sizing: border-box; }
@@ -22,100 +24,96 @@ body {
   display: flex;
   min-height: 100vh;
   font-family: 'Inter', -apple-system, sans-serif;
-  background-image: 
-    radial-gradient(circle at 50% 0%, var(--saas-accent-glow), transparent 40%);
+  background-color: var(--saas-bg);
 }
 
-/* Menu Lateral SaaS */
+/* Menu Lateral SaaS Clean */
 .dash-sidebar {
   width: 260px;
   background: var(--saas-surface);
   border-right: 1px solid var(--saas-border);
   display: flex;
   flex-direction: column;
-  padding: 32px 20px;
+  padding: 24px 16px;
   position: fixed;
   height: 100vh;
   z-index: 100;
 }
 
-.logo-container { margin-bottom: 48px; padding-left: 12px; }
+.logo-container { margin-bottom: 40px; padding-left: 12px; }
 
-.dash-nav { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
+.dash-nav { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
 
 .dash-nav-item {
   display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 6px;
   text-decoration: none;
   color: var(--saas-muted);
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
 }
 
-.dash-nav-item i { font-size: 16px; margin-right: 16px; opacity: 0.7; }
+.dash-nav-item i { font-size: 16px; margin-right: 12px; opacity: 0.8; }
 
 .dash-nav-item:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #f1f5f9;
   color: var(--saas-text);
 }
 
 .dash-nav-item.active {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--saas-text);
-  border: 1px solid var(--saas-border);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  background: var(--saas-accent-light);
+  color: var(--saas-accent);
+  font-weight: 600;
 }
 
-.dash-nav-item.active i { color: var(--saas-accent); opacity: 1; }
+.dash-nav-item.active i { opacity: 1; }
 
 .dash-main {
   flex-grow: 1;
   margin-left: 260px;
-  padding: 56px 64px;
+  padding: 48px 56px;
 }
 
-/* Botão de Logout Futurista */
+/* Botão de Logout */
 .logout-btn {
   background: transparent;
-  border: 1px solid var(--saas-border);
+  border: 1px solid transparent;
   color: var(--saas-muted);
-  height: 44px;
-  border-radius: 8px;
+  height: 40px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 12px;
   font-weight: 500;
   font-size: 14px;
   transition: 0.2s;
 }
 
 .logout-btn:hover {
-  border-color: #ef4444;
+  background: #fef2f2;
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.05);
 }
-.logout-btn i { margin-right: 16px; }
+.logout-btn i { margin-right: 12px; }
 
 /* Tipografia e Cartões */
 .page-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   color: var(--saas-text);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .saas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
-  margin-top: 40px;
+  margin-top: 32px;
 }
 
 .saas-card {
@@ -123,39 +121,28 @@ body {
   border: 1px solid var(--saas-border);
   border-radius: 12px;
   padding: 24px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.3s ease;
+  box-shadow: var(--saas-shadow);
+  transition: all 0.2s ease;
 }
 
-.saas-card:hover { border-color: var(--saas-border-hover); }
-
-/* Linha de brilho no topo do cartão */
-.saas-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--saas-accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.saas-card:hover { 
+  border-color: var(--saas-border-hover);
+  box-shadow: var(--saas-shadow-hover);
 }
-.saas-card:hover::before { opacity: 1; }
 
 .saas-card h3 {
   font-size: 13px;
   color: var(--saas-muted);
-  font-weight: 500;
-  margin-bottom: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .saas-card .value {
-  font-size: 36px;
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--saas-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

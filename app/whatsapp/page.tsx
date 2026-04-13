@@ -16,27 +16,27 @@ export default function WhatsAppPage() {
 
   return (
     <div className="dash-container">
-      {/* Sidebar SaaS */}
+      {/* Sidebar Clear SaaS */}
       <aside className="dash-sidebar">
         <div className="logo-container flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#22c55e] flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+          <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center">
             <span className="text-white font-bold text-sm">SI</span>
           </div>
-          <span className="font-bold text-lg tracking-tight">Suporte Imagem</span>
+          <span className="font-bold text-lg text-slate-800 tracking-tight">Suporte Imagem</span>
         </div>
         
         <nav className="dash-nav">
           <Link href="/dashboard" className="dash-nav-item">
-            <i className="bi bi-grid-fill"></i>
-            <span>Overview</span>
+            <i className="bi bi-grid"></i>
+            <span>Visão Geral</span>
           </Link>
           <Link href="/whatsapp" className="dash-nav-item active">
-            <i className="bi bi-chat-left-text-fill"></i>
+            <i className="bi bi-chat-left-text"></i>
             <span>WhatsApp</span>
           </Link>
         </nav>
         
-        <div className="mt-auto mb-4 px-2">
+        <div className="mt-auto mb-2 px-2">
           <button onClick={handleLogout} className="logout-btn w-full">
             <i className="bi bi-box-arrow-right"></i>
             <span>Terminar Sessão</span>
@@ -46,9 +46,9 @@ export default function WhatsAppPage() {
 
       {/* Conteúdo Principal */}
       <main className="dash-main">
-        <header className="mb-8">
-          <h1 className="page-title">Painel de Comunicação</h1>
-          <p className="text-[#a1a1aa] text-sm">Gestor de atendimento encriptado ponta-a-ponta.</p>
+        <header className="mb-6">
+          <h1 className="page-title">Atendimento</h1>
+          <p className="text-slate-500 text-sm">Gestão de mensagens e suporte aos clientes.</p>
         </header>
 
         <div className="wa-app-container">
@@ -56,31 +56,31 @@ export default function WhatsAppPage() {
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
-                <i className="bi bi-search text-[#a1a1aa]"></i>
-                <input type="text" placeholder="Procurar ID, Nome ou Ticket..." />
+                <i className="bi bi-search text-slate-400"></i>
+                <input type="text" placeholder="Procurar contatos..." />
               </div>
             </div>
             
             <div className="wa-chat-list">
               <div className="wa-chat-item active">
-                <div className="wa-avatar !bg-[#22c55e] !text-black">JS</div>
+                <div className="wa-avatar bg-green-100 text-green-700">JS</div>
                 <div className="wa-chat-info">
                   <div className="wa-chat-header">
                     <span className="wa-chat-name">João Silva</span>
-                    <span className="wa-chat-time text-[#22c55e]">10:45</span>
+                    <span className="wa-chat-time text-green-600 font-medium">10:45</span>
                   </div>
-                  <div className="wa-chat-preview">A imagem de sistema está finalizada?</div>
+                  <div className="wa-chat-preview">O processo já foi finalizado?</div>
                 </div>
               </div>
 
               <div className="wa-chat-item">
-                <div className="wa-avatar">MA</div>
+                <div className="wa-avatar bg-slate-100">MA</div>
                 <div className="wa-chat-info">
                   <div className="wa-chat-header">
-                    <span className="wa-chat-name text-[#a1a1aa]">Maria Almeida</span>
+                    <span className="wa-chat-name">Maria Almeida</span>
                     <span className="wa-chat-time">Ontem</span>
                   </div>
-                  <div className="wa-chat-preview">Obrigada pelo suporte de excelência.</div>
+                  <div className="wa-chat-preview">Muito obrigada pela agilidade!</div>
                 </div>
               </div>
             </div>
@@ -90,40 +90,37 @@ export default function WhatsAppPage() {
           <div className="wa-main">
             <div className="wa-header">
               <div className="flex items-center gap-3">
-                <div className="wa-avatar !w-8 !h-8 !text-xs !bg-[#22c55e] !text-black">JS</div>
+                <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">JS</div>
                 <div>
-                  <h2 className="text-sm font-semibold text-[#fafafa]">João Silva</h2>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></div>
-                    <span className="text-[10px] text-[#a1a1aa] uppercase tracking-wider font-mono">Sessão Ativa</span>
-                  </div>
+                  <h2 className="text-sm font-semibold text-slate-800">João Silva</h2>
+                  <p className="text-[11px] text-green-600 font-medium">Online agora</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <i className="bi bi-three-dots text-[#a1a1aa] cursor-pointer hover:text-[#fafafa]"></i>
+                <i className="bi bi-three-dots text-slate-400 cursor-pointer hover:text-slate-700"></i>
               </div>
             </div>
 
             <div className="wa-messages">
               <div className="wa-msg received">
-                Bom dia. Gostaria de verificar o status do ticket #4092.
+                Bom dia. Gostaria de verificar o status do meu pedido.
                 <span className="wa-time">09:30</span>
               </div>
               <div className="wa-msg sent">
-                Olá João. O processo está em compilação final. Estará pronto em 10 minutos.
+                Olá João! Estamos finalizando a compilação. Ficará pronto em 10 minutos.
                 <span className="wa-time">09:35</span>
               </div>
               <div className="wa-msg received">
-                Excelente. Fico a aguardar a aprovação do ficheiro.
+                Excelente, fico no aguardo. O processo já foi finalizado?
                 <span className="wa-time">10:45</span>
               </div>
             </div>
 
             <div className="wa-input-area">
               <i className="bi bi-paperclip"></i>
-              <input type="text" placeholder="Escreva um comando ou mensagem..." />
-              <button className="w-10 h-10 rounded bg-[#22c55e] text-black flex items-center justify-center hover:bg-[#16a34a] transition-colors">
-                <i className="bi bi-send-fill !text-black"></i>
+              <input type="text" placeholder="Escreva uma mensagem..." />
+              <button className="w-10 h-10 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer">
+                <i className="bi bi-send-fill !text-white !text-sm"></i>
               </button>
             </div>
           </div>
