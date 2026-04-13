@@ -33,7 +33,7 @@ export default function DashboardPage() {
             <i className="bi bi-grid-1x2-fill"></i>
             <span>Dashboard</span>
           </a>
-          <a href="#" className="dash-nav-item">
+          <a href="/whatsapp" className="dash-nav-item">
             <i className="bi bi-whatsapp"></i>
             <span>WhatsApp</span>
           </a>
