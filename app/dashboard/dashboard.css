@@ -1,0 +1,129 @@
+/* app/dashboard/dashboard.css */
+
+:root {
+  --dash-bg: #f8fafc;
+  --dash-sidebar: rgba(255, 255, 255, 0.85);
+  --dash-accent: #1FA84A;
+  --dash-yellow: #D4A900;
+  --dash-text: #1e293b;
+  --dash-muted: #64748b;
+  --dash-border: rgba(0, 0, 0, 0.05);
+}
+
+.dash-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--dash-bg);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Sidebar */
+.dash-sidebar {
+  width: 280px;
+  background: var(--dash-sidebar);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid var(--dash-border);
+  display: flex;
+  flex-direction: column;
+  padding: 40px 24px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.logo-container { padding: 0 8px; margin-bottom: 40px; }
+
+.dash-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  text-decoration: none;
+  color: var(--dash-muted);
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dash-nav-item .icon { margin-right: 12px; font-size: 18px; }
+
+.dash-nav-item:hover, .dash-nav-item.active {
+  background: white;
+  color: var(--dash-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transform: translateX(4px);
+}
+
+/* Header & User Badge */
+.dash-main { flex-grow: 1; padding: 50px; width: 100%; max-width: 1400px; margin: 0 auto; }
+.dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 8px 16px 8px 8px;
+  border-radius: 18px;
+  border: 1px solid var(--dash-border);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+}
+
+.avatar {
+  width: 44px; height: 44px; background: var(--dash-accent);
+  color: white; border-radius: 14px; display: flex;
+  align-items: center; justify-content: center; font-weight: 800;
+}
+
+.username { font-size: 14px; font-weight: 700; color: var(--dash-text); }
+.status-container { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+.status-text { font-size: 11px; font-weight: 700; color: var(--dash-muted); text-transform: uppercase; }
+
+/* Grid e Cards */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px; }
+
+.dash-card {
+  background: white; padding: 30px; border-radius: 24px;
+  border: 1px solid var(--dash-border); transition: 0.3s;
+}
+
+.dash-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.04); }
+.dash-card h3 { font-size: 13px; color: var(--dash-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 15px; }
+.dash-card .value { font-size: 34px; font-weight: 800; color: var(--dash-text); }
+.trend { font-size: 13px; margin-top: 10px; font-weight: 600; }
+.trend.positive { color: var(--dash-accent); }
+.trend.warning { color: var(--dash-yellow); }
+
+/* Banner Central */
+.welcome-banner {
+  background: white; padding: 60px; border-radius: 40px; text-align: center;
+  border: 1px solid var(--dash-border);
+}
+
+.welcome-icon { font-size: 40px; margin-bottom: 20px; }
+.welcome-banner h2 { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+.welcome-banner p { color: var(--dash-muted); line-height: 1.6; }
+.welcome-banner code { background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-top: 10px; display: inline-block; }
+
+.action-button {
+  margin-top: 30px; padding: 14px 32px; background: var(--dash-text);
+  color: white; border: none; border-radius: 14px; font-weight: 700;
+  cursor: pointer; transition: 0.2s;
+}
+
+.action-button:hover { background: #000; transform: scale(1.02); }
+
+/* Logout */
+.logout-btn {
+  margin-top: auto; padding: 14px; border-radius: 14px;
+  background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;
+  font-weight: 700; cursor: pointer; transition: 0.2s;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
