@@ -44,14 +44,10 @@ export default function WhatsAppPage() {
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
-      <main className="dash-main">
-        <header className="mb-6">
-          <h1 className="page-title">Atendimento</h1>
-          <p className="text-slate-500 text-sm">Gestão de mensagens e suporte aos clientes.</p>
-        </header>
-
+      {/* Conteúdo Principal Focado no Chat */}
+      <main className="wa-page-main">
         <div className="wa-app-container">
+          
           {/* Coluna Esquerda: Pesquisa e Lista */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
@@ -90,14 +86,14 @@ export default function WhatsAppPage() {
           <div className="wa-main">
             <div className="wa-header">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">JS</div>
+                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">JS</div>
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-800">João Silva</h2>
-                  <p className="text-[11px] text-green-600 font-medium">Online agora</p>
+                  <h2 className="text-[15px] font-semibold text-slate-800">João Silva</h2>
+                  <p className="text-[11px] text-green-600 font-medium mt-0.5">Online agora</p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <i className="bi bi-three-dots text-slate-400 cursor-pointer hover:text-slate-700"></i>
+                <i className="bi bi-three-dots text-slate-400 cursor-pointer hover:text-slate-700 text-xl"></i>
               </div>
             </div>
 
@@ -119,7 +115,7 @@ export default function WhatsAppPage() {
             <div className="wa-input-area">
               <i className="bi bi-paperclip"></i>
               <input type="text" placeholder="Escreva uma mensagem..." />
-              <button className="w-10 h-10 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer">
+              <button className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer">
                 <i className="bi bi-send-fill !text-white !text-sm"></i>
               </button>
             </div>
