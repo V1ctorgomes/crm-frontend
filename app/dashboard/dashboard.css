@@ -1,28 +1,32 @@
 /* app/dashboard/dashboard.css */
 
 :root {
-  --dash-bg: #f8fafc;
-  --dash-sidebar: rgba(255, 255, 255, 0.85);
+  /* Cores base ajustadas para o efeito de vidro */
+  --dash-bg: #eef3f8;
+  --dash-glass: rgba(255, 255, 255, 0.45);
+  --dash-border: rgba(255, 255, 255, 0.6);
   --dash-accent: #1FA84A;
   --dash-yellow: #D4A900;
   --dash-text: #1e293b;
   --dash-muted: #64748b;
-  --dash-border: rgba(0, 0, 0, 0.05);
 }
 
 .dash-container {
   display: flex;
   min-height: 100vh;
-  background: var(--dash-bg);
+  /* Gradiente para que o efeito 'glass' tenha o que refletir */
+  background: radial-gradient(circle at top left, rgba(31, 168, 74, 0.05), transparent 40%),
+              radial-gradient(circle at bottom right, rgba(212, 169, 0, 0.05), transparent 40%),
+              var(--dash-bg);
   font-family: 'Inter', sans-serif;
 }
 
-/* Sidebar */
+/* Sidebar Espelhada */
 .dash-sidebar {
   width: 280px;
-  background: var(--dash-sidebar);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--dash-glass);
+  backdrop-filter: blur(15px) saturate(160%);
+  -webkit-backdrop-filter: blur(15px) saturate(160%);
   border-right: 1px solid var(--dash-border);
   display: flex;
   flex-direction: column;
@@ -38,24 +42,24 @@
   display: flex;
   align-items: center;
   padding: 14px 18px;
-  border-radius: 14px;
+  border-radius: 16px;
   margin-bottom: 8px;
   text-decoration: none;
   color: var(--dash-muted);
   font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
 }
-
-.dash-nav-item .icon { margin-right: 12px; font-size: 18px; }
 
 .dash-nav-item:hover, .dash-nav-item.active {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   color: var(--dash-accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  transform: translateX(4px);
+  border-color: var(--dash-border);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.03);
+  transform: translateX(5px);
 }
 
-/* Header & User Badge */
+/* Conteúdo Principal */
 .dash-main { flex-grow: 1; padding: 50px; width: 100%; max-width: 1400px; margin: 0 auto; }
 .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
 
@@ -63,67 +67,75 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: white;
+  background: var(--dash-glass);
+  backdrop-filter: blur(8px);
   padding: 8px 16px 8px 8px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--dash-border);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
 }
 
-.avatar {
-  width: 44px; height: 44px; background: var(--dash-accent);
-  color: white; border-radius: 14px; display: flex;
-  align-items: center; justify-content: center; font-weight: 800;
-}
-
-.username { font-size: 14px; font-weight: 700; color: var(--dash-text); }
-.status-container { display: flex; align-items: center; gap: 6px; }
-.status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
-.status-text { font-size: 11px; font-weight: 700; color: var(--dash-muted); text-transform: uppercase; }
-
-/* Grid e Cards */
+/* Cartões com Efeito de Vidro e Reflexo */
 .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px; }
 
 .dash-card {
-  background: white; padding: 30px; border-radius: 24px;
-  border: 1px solid var(--dash-border); transition: 0.3s;
+  background: var(--dash-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 28px;
+  border: 1px solid var(--dash-border);
+  position: relative;
+  overflow: hidden;
+  transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.dash-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.04); }
+/* O "Espelhamento" - brilho que passa ao passar o mouse */
+.dash-card::after {
+  content: "";
+  position: absolute;
+  top: -50%; left: -60%;
+  width: 20%; height: 200%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: rotate(35deg);
+  transition: 0.8s;
+}
+
+.dash-card:hover::after { left: 120%; }
+.dash-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
+
 .dash-card h3 { font-size: 13px; color: var(--dash-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 15px; }
 .dash-card .value { font-size: 34px; font-weight: 800; color: var(--dash-text); }
-.trend { font-size: 13px; margin-top: 10px; font-weight: 600; }
-.trend.positive { color: var(--dash-accent); }
-.trend.warning { color: var(--dash-yellow); }
 
 /* Banner Central */
 .welcome-banner {
-  background: white; padding: 60px; border-radius: 40px; text-align: center;
+  background: var(--dash-glass);
+  backdrop-filter: blur(20px);
+  padding: 60px;
+  border-radius: 40px;
+  text-align: center;
   border: 1px solid var(--dash-border);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.04);
 }
-
-.welcome-icon { font-size: 40px; margin-bottom: 20px; }
-.welcome-banner h2 { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
-.welcome-banner p { color: var(--dash-muted); line-height: 1.6; }
-.welcome-banner code { background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 12px; margin-top: 10px; display: inline-block; }
 
 .action-button {
-  margin-top: 30px; padding: 14px 32px; background: var(--dash-text);
-  color: white; border: none; border-radius: 14px; font-weight: 700;
-  cursor: pointer; transition: 0.2s;
+  margin-top: 30px;
+  padding: 16px 36px;
+  background: linear-gradient(135deg, var(--dash-accent), #15803d);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 10px 20px rgba(31, 168, 74, 0.2);
 }
 
-.action-button:hover { background: #000; transform: scale(1.02); }
+.action-button:hover { transform: scale(1.05); box-shadow: 0 15px 25px rgba(31, 168, 74, 0.3); }
 
 /* Logout */
 .logout-btn {
-  margin-top: auto; padding: 14px; border-radius: 14px;
-  background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;
-  font-weight: 700; cursor: pointer; transition: 0.2s;
+  margin-top: auto; padding: 14px; border-radius: 16px;
+  background: rgba(239, 68, 68, 0.1); color: #e11d48; border: 1px solid rgba(239, 68, 68, 0.2);
+  font-weight: 700; cursor: pointer; transition: 0.3s;
 }
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
+.logout-btn:hover { background: rgba(239, 68, 68, 0.2); }

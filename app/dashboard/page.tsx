@@ -8,80 +8,54 @@ import './dashboard.css';
 export default function DashboardPage() {
   const router = useRouter();
 
-  // Função de Logout para Produção
   const handleLogout = () => {
-    // 1. Limpa o cookie do token (essencial para o Middleware barrar o acesso)
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-    
-    // 2. Limpa dados residuais se existirem
     localStorage.removeItem('user');
-    
-    // 3. Redireciona e limpa o cache do Next.js
     router.replace('/login');
     router.refresh();
   };
 
-  // URL da API vinda das variáveis de ambiente
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   return (
     <div className="dash-container">
-      {/* Sidebar Lateral */}
       <aside className="dash-sidebar">
         <div className="logo-container">
-          <Image 
-            src="/logo.png" 
-            alt="Suporte Imagem CRM" 
-            width={160} 
-            height={45} 
-            priority 
-          />
+          <Image src="/logo.png" alt="Suporte Imagem CRM" width={160} height={45} priority />
         </div>
         
         <nav className="dash-nav">
-          <a href="#" className="dash-nav-item active">
-            <span className="icon">🏠</span> Início
-          </a>
-          <a href="#" className="dash-nav-item">
-            <span className="icon">👥</span> Clientes
-          </a>
-          <a href="#" className="dash-nav-item">
-            <span className="icon">🎫</span> Chamados
-          </a>
-          <a href="#" className="dash-nav-item">
-            <span className="icon">📊</span> Relatórios
-          </a>
-          <a href="#" className="dash-nav-item">
-            <span className="icon">⚙️</span> Configurações
-          </a>
+          <a href="#" className="dash-nav-item active"><span className="icon">🏠</span> Início</a>
+          <a href="#" className="dash-nav-item"><span className="icon">👥</span> Clientes</a>
+          <a href="#" className="dash-nav-item"><span className="icon">🎫</span> Chamados</a>
+          <a href="#" className="dash-nav-item"><span className="icon">📊</span> Relatórios</a>
+          <a href="#" className="dash-nav-item"><span className="icon">⚙️</span> Configurações</a>
         </nav>
 
         <button onClick={handleLogout} className="logout-btn">
-          <span>🚪</span> Sair do Sistema
+          🚪 Sair do Sistema
         </button>
       </aside>
 
-      {/* Conteúdo Principal */}
       <main className="dash-main">
         <header className="dash-header">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight">Dashboard</h1>
-            <p className="text-slate-500 mt-1">Bem-vindo à Suporte Imagem</p>
+            <p className="text-slate-500 mt-1">Ambiente Seguro Suporte Imagem</p>
           </div>
           
           <div className="user-badge">
             <div className="avatar">A</div>
             <div className="user-info">
-              <p className="username">Administrador</p>
+              <p className="username font-bold">Administrador</p>
               <div className="status-container">
                 <span className="status-dot"></span>
-                <p className="status-text">Online</p>
+                <p className="status-text font-bold">Online</p>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Grid de Estatísticas Dinâmicas */}
         <div className="dash-grid">
           <div className="dash-card">
             <h3>Clientes Ativos</h3>
@@ -100,13 +74,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Área Central de Boas-vindas */}
         <section className="welcome-banner">
           <div className="welcome-icon">✨</div>
-          <h2>Ambiente de Produção Ativo</h2>
-          <p>
-            As rotas estão protegidas e a API configurada para: <br/>
-            <code>{API_URL}</code>
+          <h2 className="text-2xl font-black mb-2">Interface de Alta Performance</h2>
+          <p className="text-slate-500">
+            Conectado com sucesso à infraestrutura de produção: <br/>
+            <code className="mt-4 inline-block">{API_URL || 'api.suporteimagem.com'}</code>
           </p>
           <button className="action-button">
             Explorar Base de Dados
