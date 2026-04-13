@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import './dashboard.css';
 
@@ -9,73 +10,70 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     router.replace('/login');
-    router.refresh();
   };
 
   return (
     <div className="dash-container">
-      {/* Sidebar Retrátil com Hover */}
       <aside className="dash-sidebar">
-        <div className="logo-container">
-          <Image 
-            src="/logo.png" 
-            alt="Logo" 
-            width={40} 
-            height={40} 
-            className="object-contain"
-          />
+        <div className="logo-container flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-[#22c55e] flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+            <span className="text-white font-bold text-sm">SI</span>
+          </div>
+          <span className="font-bold text-lg tracking-tight">Suporte Imagem</span>
         </div>
         
         <nav className="dash-nav">
-          <a href="#" className="dash-nav-item active">
-            <i className="bi bi-grid-1x2-fill"></i>
-            <span>Dashboard</span>
-          </a>
-          <a href="/whatsapp" className="dash-nav-item">
-            <i className="bi bi-whatsapp"></i>
+          <Link href="/dashboard" className="dash-nav-item active">
+            <i className="bi bi-grid-fill"></i>
+            <span>Overview</span>
+          </Link>
+          <Link href="/whatsapp" className="dash-nav-item">
+            <i className="bi bi-chat-left-text-fill"></i>
             <span>WhatsApp</span>
-          </a>
+          </Link>
         </nav>
-
-        <button onClick={handleLogout} className="logout-btn">
-          <i className="bi bi-box-arrow-right"></i>
-          <span>Sair</span>
-        </button>
+        
+        <div className="mt-auto mb-4 px-2">
+          <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+             Sistema Operacional
+          </div>
+          <button onClick={handleLogout} className="logout-btn w-full">
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Terminar Sessão</span>
+          </button>
+        </div>
       </aside>
 
-      {/* Conteúdo Principal */}
       <main className="dash-main">
-        <header className="dash-header">
-          <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-800">Visão Geral</h1>
-            <p className="text-slate-400 mt-2 font-medium">CRM Suporte Imagem</p>
-          </div>
+        <header>
+          <h1 className="page-title">Métricas de Desempenho</h1>
+          <p className="text-[#a1a1aa] text-sm">Acompanhamento em tempo real da infraestrutura.</p>
         </header>
 
-        <div className="dash-grid">
-          <div className="dash-card">
-            <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Métricas de Hoje</h3>
-            <div className="text-3xl font-black text-slate-800">1.284</div>
-            <p className="text-green-500 text-sm font-bold mt-2">Atividade Estável</p>
+        <div className="saas-grid">
+          <div className="saas-card">
+            <h3><i className="bi bi-people text-[#22c55e]"></i> Clientes Ativos</h3>
+            <div className="value">1,284</div>
+            <div className="mt-4 text-xs text-[#22c55e] font-medium">+12% vs último mês</div>
           </div>
           
-          <div className="dash-card">
-            <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4">Status da API</h3>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xl font-bold text-slate-700">Conectado</span>
-            </div>
-            <p className="text-slate-400 text-sm mt-2">{process.env.NEXT_PUBLIC_API_URL}</p>
+          <div className="saas-card">
+            <h3><i className="bi bi-server text-[#22c55e]"></i> Status da API</h3>
+            <div className="value">99.9%</div>
+            <div className="mt-4 text-xs text-[#a1a1aa] font-medium font-mono">{process.env.NEXT_PUBLIC_API_URL}</div>
           </div>
         </div>
 
-        {/* Área Minimalista de Conteúdo */}
-        <section className="mt-12 p-10 bg-white/30 backdrop-blur-md rounded-[32px] border border-white/50 text-center min-h-[300px] flex flex-col justify-center">
-          <h2 className="text-2xl font-bold text-slate-800">Selecione uma ferramenta no menu lateral</h2>
-          <p className="text-slate-500 mt-4 max-w-md mx-auto">
-            Utilize o menu minimalista à esquerda para navegar entre o painel de controle e a gestão de WhatsApp.
+        <section className="mt-8 border border-[#27272a] bg-[#121214] rounded-xl p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
+          <div className="w-16 h-16 rounded-full border border-[#27272a] bg-[#09090b] flex items-center justify-center mb-6">
+            <i className="bi bi-rocket-takeoff text-2xl text-[#22c55e]"></i>
+          </div>
+          <h2 className="text-xl font-bold mb-2 text-[#fafafa]">Infraestrutura Conectada</h2>
+          <p className="text-[#a1a1aa] text-sm max-w-md">
+            O seu painel de controlo está agora otimizado para alta performance. Utilize o menu lateral para iniciar os atendimentos via WhatsApp.
           </p>
         </section>
       </main>

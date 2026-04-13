@@ -1,292 +1,161 @@
-/* app/dashboard/dashboard.css */
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
 
 :root {
-  --dash-bg: #eef2f7;
-  --dash-glass: rgba(255, 255, 255, 0.6);
-  --dash-border: rgba(255, 255, 255, 0.7);
-  --dash-accent: #1FA84A;
-  --dash-text: #0f172a;
-
-  --sidebar-width-collapsed: 80px;
-  --sidebar-width-expanded: 260px;
+  --saas-bg: #09090b;          /* Fundo quase preto */
+  --saas-surface: #121214;     /* Fundo dos cartões e menus */
+  --saas-border: #27272a;      /* Bordas ultra finas */
+  --saas-border-hover: #3f3f46;
+  --saas-text: #fafafa;        /* Texto principal branco */
+  --saas-muted: #a1a1aa;       /* Texto secundário cinza */
+  --saas-accent: #22c55e;      /* Verde néon futurista */
+  --saas-accent-glow: rgba(34, 197, 94, 0.15);
 }
 
-/* BACKGROUND PREMIUM */
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--saas-bg);
+  color: var(--saas-text);
+}
+
 .dash-container {
   display: flex;
   min-height: 100vh;
-
-  background:
-    radial-gradient(circle at 10% 10%, rgba(31,168,74,0.08), transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(0,0,0,0.06), transparent 50%),
-    linear-gradient(180deg, #f8fafc, #eef2f7);
-
-  font-family: 'Inter', sans-serif;
-  color: var(--dash-text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(circle at 50% 0%, var(--saas-accent-glow), transparent 40%);
 }
 
-/* SIDEBAR */
+/* Menu Lateral SaaS */
 .dash-sidebar {
-  width: var(--sidebar-width-collapsed);
-
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.75),
-    rgba(255,255,255,0.45)
-  );
-
-  backdrop-filter: blur(22px) saturate(180%);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-
-  border-right: 1px solid var(--dash-border);
-
+  width: 260px;
+  background: var(--saas-surface);
+  border-right: 1px solid var(--saas-border);
   display: flex;
   flex-direction: column;
-  padding: 25px 12px;
+  padding: 32px 20px;
   position: fixed;
   height: 100vh;
   z-index: 100;
-
-  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  overflow: hidden;
 }
 
-/* BORDA INTERNA (EFEITO PREMIUM) */
-.dash-sidebar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-right: 1px solid rgba(255,255,255,0.4);
-  pointer-events: none;
-}
+.logo-container { margin-bottom: 48px; padding-left: 12px; }
 
-/* EXPANSÃO */
-.dash-sidebar:hover {
-  width: var(--sidebar-width-expanded);
-  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.08);
-}
+.dash-nav { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
 
-/* LOGO */
-.logo-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 45px;
-}
-
-/* NAV */
-.dash-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-grow: 1;
-}
-
-/* ITEM */
 .dash-nav-item {
   display: flex;
   align-items: center;
-  height: 48px;
+  height: 44px;
   padding: 0 14px;
-  border-radius: 14px;
+  border-radius: 8px;
   text-decoration: none;
-
-  color: #64748b;
+  color: var(--saas-muted);
+  font-size: 14px;
   font-weight: 500;
-
-  position: relative;
-  overflow: hidden;
-
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
 }
 
-/* GLOW INTERNO */
-.dash-nav-item::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0.6),
-    transparent 60%
-  );
-  opacity: 0;
-  transition: 0.3s;
-}
+.dash-nav-item i { font-size: 16px; margin-right: 16px; opacity: 0.7; }
 
-/* ÍCONE */
-.dash-nav-item i {
-  font-size: 20px;
-  min-width: 20px;
-  margin-right: 20px;
-  transition: transform 0.2s ease;
-}
-
-/* TEXTO */
-.dash-nav-item span {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: all 0.25s ease;
-}
-
-/* EXPAND */
-.dash-sidebar:hover .dash-nav-item span {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* HOVER */
 .dash-nav-item:hover {
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--dash-accent);
-  transform: translateX(4px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--saas-text);
 }
 
-.dash-nav-item:hover i {
-  transform: scale(1.1);
-}
-
-.dash-nav-item:hover::before {
-  opacity: 1;
-}
-
-/* ACTIVE */
 .dash-nav-item.active {
-  background: linear-gradient(
-    135deg,
-    rgba(31,168,74,0.2),
-    rgba(31,168,74,0.05)
-  );
-  color: var(--dash-accent);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--saas-text);
+  border: 1px solid var(--saas-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* MAIN */
+.dash-nav-item.active i { color: var(--saas-accent); opacity: 1; }
+
 .dash-main {
   flex-grow: 1;
-  margin-left: var(--sidebar-width-collapsed);
-  padding: 60px;
-
-  transition: margin-left 0.4s ease;
+  margin-left: 260px;
+  padding: 56px 64px;
 }
 
-/* HEADER */
-.dash-header {
-  margin-bottom: 50px;
-}
-
-/* GRID */
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 30px;
-}
-
-/* CARD ULTRA PREMIUM */
-.dash-card {
-  position: relative;
-
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.75),
-    rgba(255,255,255,0.45)
-  );
-
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-
-  padding: 30px;
-  border-radius: 22px;
-
-  border: 1px solid var(--dash-border);
-
-  overflow: hidden;
-
-  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* REFLEXO DINÂMICO */
-.dash-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0.7) 0%,
-    transparent 40%
-  );
-
-  opacity: 0.5;
-}
-
-/* BORDA INTERNA SUAVE */
-.dash-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 22px;
-  border: 1px solid rgba(255,255,255,0.5);
-  pointer-events: none;
-}
-
-/* HOVER REALISTA */
-.dash-card:hover {
-  transform: translateY(-8px) scale(1.015);
-  box-shadow:
-    0 30px 80px rgba(0,0,0,0.12),
-    inset 0 1px 0 rgba(255,255,255,0.6);
-}
-
-/* BOTÃO */
+/* Botão de Logout Futurista */
 .logout-btn {
-  border: none;
-
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-
-  height: 48px;
-  border-radius: 14px;
-
+  background: transparent;
+  border: 1px solid var(--saas-border);
+  color: var(--saas-muted);
+  height: 44px;
+  border-radius: 8px;
   cursor: pointer;
-
   display: flex;
   align-items: center;
   padding: 0 14px;
-
-  font-weight: 600;
-
-  transition: all 0.25s ease;
+  font-weight: 500;
+  font-size: 14px;
+  transition: 0.2s;
 }
 
-.logout-btn i {
-  margin-right: 20px;
-  font-size: 18px;
-}
-
-/* HOVER BOTÃO */
 .logout-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(239,68,68,0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+.logout-btn i { margin-right: 16px; }
+
+/* Tipografia e Cartões */
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--saas-text);
+  margin-bottom: 8px;
 }
 
-/* SEÇÃO FINAL */
-section {
-  background: linear-gradient(
-    145deg,
-    rgba(255,255,255,0.7),
-    rgba(255,255,255,0.4)
-  ) !important;
+.saas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
 
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--dash-border);
+.saas-card {
+  background: var(--saas-surface);
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease;
+}
 
-  border-radius: 28px;
+.saas-card:hover { border-color: var(--saas-border-hover); }
 
-  box-shadow:
-    0 20px 60px rgba(0,0,0,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.6);
+/* Linha de brilho no topo do cartão */
+.saas-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--saas-accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.saas-card:hover::before { opacity: 1; }
+
+.saas-card h3 {
+  font-size: 13px;
+  color: var(--saas-muted);
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saas-card .value {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--saas-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
