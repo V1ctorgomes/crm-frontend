@@ -16,7 +16,7 @@ export default function Home() {
         setApiMessage('Não foi possível conectar ao backend');
       });
 
-    fetch('http://localhost:3001/health')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`)
       .then((res) => res.json())
       .then((data) => {
         setHealthMessage(`${data.status} - ${data.service}`);
