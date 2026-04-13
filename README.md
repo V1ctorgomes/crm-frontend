@@ -66,10 +66,32 @@ O deploy está sendo feito no EasyPanel.
 
 - `NEXT_PUBLIC_API_URL`
 
-## Estrutura inicial
 
-- `app/page.tsx`: página inicial
-- `app/layout.tsx`: layout principal
+## Estrutura de Pastas
+
+```
+crm-frontend/
+├── app/
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── public/
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── Dockerfile
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── postcss.config.mjs
+├── eslint.config.mjs
+├── AGENTS.md
+├── CLAUDE.md
+└── README.md
+```
 
 ## Status atual
 
