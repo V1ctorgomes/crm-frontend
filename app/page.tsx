@@ -9,23 +9,21 @@ export default function Home() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'SEM_VARIAVEL';
 
   useEffect(() => {
+    if (apiUrl === 'SEM_VARIAVEL') {
+      setApiMessage('Variável ausente');
+      setHealthMessage('Variável ausente');
+      return;
+    }
+
     fetch(`${apiUrl}/`)
       .then((res) => res.json())
-      .then((data) => {
-        setApiMessage(data.message);
-      })
-      .catch(() => {
-        setApiMessage('Falha ao consultar backend');
-      });
+      .then((data) => setApiMessage(data.message))
+      .catch(() => setApiMessage('Falha ao consultar backend'));
 
     fetch(`${apiUrl}/health`)
       .then((res) => res.json())
-      .then((data) => {
-        setHealthMessage(`${data.status} - ${data.service}`);
-      })
-      .catch(() => {
-        setHealthMessage('Falha ao consultar /health');
-      });
+      .then((data) => setHealthMessage(`${data.status} - ${data.service}`))
+      .catch(() => setHealthMessage('Falha ao consultar /health'));
   }, [apiUrl]);
 
   return (
