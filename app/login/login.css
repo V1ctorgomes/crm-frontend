@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f8fafc; /* Fundo cinza ultra-claro */
+  background-color: #f8fafc;
   font-family: 'Inter', -apple-system, sans-serif;
   padding: 20px;
 }
@@ -25,19 +25,12 @@
   margin-bottom: 32px;
 }
 
+/* Contenedor del logo actualizado (sin fondo verde) */
 .login-logo {
-  width: 56px;
-  height: 56px;
-  background: #1FA84A;
-  color: white;
-  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 20px;
-  margin: 0 auto 20px;
-  box-shadow: 0 4px 10px rgba(31, 168, 74, 0.2);
+  margin: 0 auto 24px auto;
 }
 
 .login-title {

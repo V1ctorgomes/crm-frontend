@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import './login.css';
 
@@ -30,21 +31,21 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Credenciais inválidas');
+        throw new Error(data.message || 'Credenciales inválidas');
       }
 
       if (data.access_token) {
-        // Salva o cookie de forma segura
+        // Guarda el cookie de forma segura
         document.cookie = `token=${data.access_token}; path=/; max-age=28800; SameSite=Lax`;
         
-        // Redireciona para o novo Dashboard limpo
+        // Redirige al Dashboard
         router.replace('/dashboard');
         router.refresh();
       } else {
-        throw new Error('Token não recebido');
+        throw new Error('Token no recibido');
       }
     } catch (err: any) {
-      setError(err.message || 'Erro ao conectar com o servidor');
+      setError(err.message || 'Error de conexión con el servidor');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +55,17 @@ export default function LoginPage() {
     <div className="login-wrapper">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-logo">SI</div>
+          {/* Aquí cargamos tu logo.png */}
+          <div className="login-logo">
+            <Image 
+              src="/logo.png" 
+              alt="Logo Suporte Imagem" 
+              width={180} 
+              height={50} 
+              priority 
+              className="object-contain" 
+            />
+          </div>
           <h1 className="login-title">Bem-vindo de volta</h1>
           <p className="login-subtitle">Insira as suas credenciais para aceder ao CRM</p>
         </div>
