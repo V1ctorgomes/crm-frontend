@@ -1,46 +1,192 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import '../dashboard/dashboard.css';
 import './whatsapp.css';
 
+// Interface para estruturar como uma mensagem é guardada no estado
+interface Message {
+  id: string | number;
+  text: string;
+  type: 'sent' | 'received';
+  time: string;
+  fromMe: boolean;
+  senderNumber: string;
+}
+
+// Interface para estruturar os contatos na barra lateral
+interface Contact {
+  number: string;
+  name: string;
+  profilePictureUrl?: string;
+  lastMessage: string;
+  lastMessageTime: string;
+}
+
 export default function WhatsAppPage() {
   const router = useRouter();
   
+  // ==========================================
+  // ESTADOS (STATE)
+  // ==========================================
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   
-  const [messages, setMessages] = useState([
-    { id: 1, text: 'Sessão de atendimento segura iniciada.', type: 'received', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  ]);
+  // 1. Estado para os Contatos
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  
+  // 2. Estado para o Contato Atualmente Selecionado (quem estamos a ver no ecrã)
+  const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  
+  // 3. Estado para todas as mensagens (um objeto onde a chave é o número e o valor é o array de mensagens)
+  const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
-  // ⚠️ ATENÇÃO: COLOQUE AQUI O SEU NÚMERO DE TESTE COM DDI E DDD (Ex: 5511999999999)
-  const DESTINATION_NUMBER = "558598475755"; 
+  // Ref para rolar o chat para o fim automaticamente
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-    router.replace('/login');
+  // Função auxiliar para rolar o ecrã para baixo
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory, activeContact]);
+
+  // ==========================================
+  // LISTENER: ESCUTAR MENSAGENS AO VIVO
+  // ==========================================
+  useEffect(() => {
+    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+    
+    // O Server-Sent Events escuta a rota 'stream' do nosso backend
+    const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        
+        // Verifica se é uma nova mensagem de WhatsApp
+        if (payload?.data?.event === 'messages.upsert') {
+          const msgData = payload.data.data.messages[0];
+          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Imagem/Áudio";
+          const senderJid = msgData.key.remoteJid;
+          const senderNumber = senderJid.split('@')[0]; // Extrai só o número (ex: 5511999999999)
+          const isFromMe = msgData.key.fromMe;
+          const pushName = msgData.pushName || senderNumber; // Nome do WhatsApp ou o número
+          const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          // Ignorar atualizações de status ou grupos (simplificação)
+          if (senderJid.includes('@g.us') || senderJid === 'status@broadcast') return;
+
+          // 1. Atualizar o Histórico de Mensagens
+          const newMessage: Message = {
+            id: msgData.key.id,
+            text: incomingText,
+            type: isFromMe ? 'sent' : 'received',
+            time: timeNow,
+            fromMe: isFromMe,
+            senderNumber: senderNumber
+          };
+
+          setChatHistory(prev => ({
+            ...prev,
+            [senderNumber]: [...(prev[senderNumber] || []), newMessage]
+          }));
+
+          // 2. Atualizar a Lista de Contatos
+          setContacts(prev => {
+            const existingContactIndex = prev.findIndex(c => c.number === senderNumber);
+            
+            // Tenta adivinhar uma URL de foto da Evolution se estiver presente no payload
+            // (Isto depende de como a sua Evolution envia a `profilePictureUrl`, mas como padrão usamos um fallback)
+            const picUrl = payload.data.data.profilePictureUrl || undefined;
+
+            const updatedContact: Contact = {
+              number: senderNumber,
+              name: pushName,
+              profilePictureUrl: picUrl,
+              lastMessage: incomingText,
+              lastMessageTime: timeNow
+            };
+
+            if (existingContactIndex >= 0) {
+              // Remove o contato antigo e coloca no topo (já atualizado)
+              const newContacts = [...prev];
+              newContacts.splice(existingContactIndex, 1);
+              return [updatedContact, ...newContacts];
+            } else {
+              // Contato novo
+              return [updatedContact, ...prev];
+            }
+          });
+
+          // Se for a primeira mensagem recebida e não houver ninguém ativo, ativa-o
+          if (!activeContact && !isFromMe) {
+             setActiveContact({
+                number: senderNumber,
+                name: pushName,
+                lastMessage: incomingText,
+                lastMessageTime: timeNow
+             });
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao ler mensagem SSE:", err);
+      }
+    };
+
+    return () => eventSource.close();
+  }, [activeContact]); // Dependência atualizada
+
+  // ==========================================
+  // FUNÇÃO: ENVIAR MENSAGEM
+  // ==========================================
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || isSending) return;
+    if (!inputText.trim() || isSending || !activeContact) return;
 
     setErrorBanner(null);
     const newMessageText = inputText;
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const targetNumber = activeContact.number;
 
-    // Atualiza a UI imediatamente (Optimistic Update - Padrão de Produção)
-    const newMsg = { id: Date.now(), text: newMessageText, type: 'sent', time: timeNow };
-    setMessages((prev) => [...prev, newMsg]);
+    // Atualiza a tela imediatamente (Optimistic UI)
+    const optimisticMsg: Message = { 
+      id: Date.now(), 
+      text: newMessageText, 
+      type: 'sent', 
+      time: timeNow,
+      fromMe: true,
+      senderNumber: targetNumber
+    };
+
+    setChatHistory(prev => ({
+      ...prev,
+      [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg]
+    }));
+    
     setInputText('');
     setIsSending(true);
 
+    // Atualiza o Contato na barra lateral com a mensagem que acabámos de enviar
+    setContacts(prev => {
+      const idx = prev.findIndex(c => c.number === targetNumber);
+      if (idx >= 0) {
+        const newArray = [...prev];
+        newArray[idx].lastMessage = newMessageText;
+        newArray[idx].lastMessageTime = timeNow;
+        // Move para o topo
+        const [moved] = newArray.splice(idx, 1);
+        return [moved, ...newArray];
+      }
+      return prev;
+    });
+
     try {
-      // Garante que a URL da API não tem barra no final para evitar erros 404 (ex: http://site.com//whatsapp)
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
       const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
 
@@ -48,28 +194,37 @@ export default function WhatsAppPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }) // Envia o token se existir
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
-          number: DESTINATION_NUMBER,
+          number: targetNumber, // Envia para o número do contato selecionado
           text: newMessageText
         })
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Erro do Servidor (${response.status})`);
+        throw new Error('Falha no envio (Erro da API)');
       }
 
     } catch (error: any) {
-      console.error('Erro de Envio:', error);
-      setErrorBanner(`Falha no envio: ${error.message}`);
+      setErrorBanner(`Erro ao enviar: ${error.message}`);
       // Remove a mensagem da tela se falhar
-      setMessages((prev) => prev.filter(msg => msg.id !== newMsg.id));
+      setChatHistory(prev => ({
+        ...prev,
+        [targetNumber]: prev[targetNumber].filter(msg => msg.id !== optimisticMsg.id)
+      }));
     } finally {
       setIsSending(false);
     }
   };
+
+  const handleLogout = () => {
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+    router.replace('/login');
+  };
+
+  // Obtém as mensagens apenas do contato ativo
+  const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
 
   return (
     <div className="dash-container">
@@ -101,7 +256,6 @@ export default function WhatsAppPage() {
       </aside>
 
       <main className="wa-page-main relative">
-        {/* Banner de Erro Flutuante Profissional */}
         {errorBanner && (
           <div className="absolute top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
             <i className="bi bi-exclamation-triangle-fill"></i>
@@ -113,73 +267,119 @@ export default function WhatsAppPage() {
         )}
 
         <div className="wa-app-container">
+          
+          {/* ======================================= */}
+          {/* BARRA LATERAL ESQUERDA: LISTA DE CONTATOS */}
+          {/* ======================================= */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
                 <i className="bi bi-search text-slate-400"></i>
-                <input type="text" placeholder="Procurar contatos..." disabled />
+                <input type="text" placeholder="Procurar contatos..." />
               </div>
             </div>
             
             <div className="wa-chat-list">
-              <div className="wa-chat-item active">
-                <div className="wa-avatar bg-green-100 text-green-700">SI</div>
-                <div className="wa-chat-info">
-                  <div className="wa-chat-header">
-                    <span className="wa-chat-name">Canal de Teste API</span>
-                    <span className="wa-chat-time text-green-600 font-medium">Agora</span>
-                  </div>
-                  <div className="wa-chat-preview">Ambiente de Produção</div>
+              {contacts.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 text-sm">
+                  Nenhuma conversa ativa. Envie uma mensagem para este número para começar.
                 </div>
-              </div>
+              ) : (
+                contacts.map((contact) => (
+                  <div 
+                    key={contact.number}
+                    className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`}
+                    onClick={() => setActiveContact(contact)}
+                  >
+                    {/* FOTO DE PERFIL OU INICIAIS */}
+                    {contact.profilePictureUrl ? (
+                      <img src={contact.profilePictureUrl} alt={contact.name} className="wa-avatar object-cover" />
+                    ) : (
+                      <div className="wa-avatar bg-slate-200 text-slate-600">
+                        {contact.name.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    
+                    <div className="wa-chat-info">
+                      <div className="wa-chat-header">
+                        <span className="wa-chat-name">{contact.name}</span>
+                        <span className="wa-chat-time text-slate-500 font-medium">{contact.lastMessageTime}</span>
+                      </div>
+                      <div className="wa-chat-preview">{contact.lastMessage}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
+          {/* ======================================= */}
+          {/* ÁREA PRINCIPAL: JANELA DE CHAT          */}
+          {/* ======================================= */}
           <div className="wa-main">
-            <div className="wa-header">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">SI</div>
-                <div>
-                  <h2 className="text-[15px] font-semibold text-slate-800">Conexão Evolution API</h2>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#1FA84A] animate-pulse"></div>
-                    <span className="text-[11px] text-slate-500 uppercase tracking-wider font-medium">Online</span>
+            {activeContact ? (
+              <>
+                <div className="wa-header">
+                  <div className="flex items-center gap-3">
+                    {activeContact.profilePictureUrl ? (
+                      <img src={activeContact.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">
+                        {activeContact.name.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-[15px] font-semibold text-slate-800">{activeContact.name}</h2>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] text-slate-500 font-medium">{activeContact.number}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="wa-messages">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`wa-msg ${msg.type}`}>
-                  {msg.text}
-                  <span className="wa-time">{msg.time}</span>
+                <div className="wa-messages">
+                  {activeMessages.map((msg) => (
+                    <div key={msg.id} className={`wa-msg ${msg.type}`}>
+                      {msg.text}
+                      <span className="wa-time">{msg.time}</span>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} /> {/* Referência para rolar para o fundo */}
                 </div>
-              ))}
-            </div>
 
-            <form className="wa-input-area" onSubmit={handleSendMessage}>
-              <i className="bi bi-paperclip cursor-not-allowed opacity-50"></i>
-              <input 
-                type="text" 
-                placeholder="Escreva uma mensagem..." 
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                disabled={isSending}
-                autoFocus
-              />
-              <button 
-                type="submit"
-                disabled={isSending || !inputText.trim()}
-                className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSending ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <i className="bi bi-send-fill !text-white !text-sm"></i>
-                )}
-              </button>
-            </form>
+                <form className="wa-input-area" onSubmit={handleSendMessage}>
+                  <i className="bi bi-paperclip cursor-not-allowed opacity-50"></i>
+                  <input 
+                    type="text" 
+                    placeholder="Escreva uma mensagem..." 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    disabled={isSending}
+                    autoFocus
+                  />
+                  <button 
+                    type="submit"
+                    disabled={isSending || !inputText.trim()}
+                    className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSending ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <i className="bi bi-send-fill !text-white !text-sm"></i>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              // TELA VAZIA (QUANDO NENHUM CONTATO ESTÁ SELECIONADO)
+              <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <i className="bi bi-whatsapp text-4xl text-[#1FA84A] opacity-50"></i>
+                </div>
+                <h2 className="text-xl font-bold text-slate-700">WhatsApp Integrado</h2>
+                <p className="text-slate-500 text-sm mt-2">Aguardando receber ou selecionar mensagens.</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
