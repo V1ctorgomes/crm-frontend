@@ -18,7 +18,7 @@ export default function WhatsAppPage() {
   ]);
 
   // ⚠️ ATENÇÃO: COLOQUE AQUI O SEU NÚMERO DE TESTE COM DDI E DDD (Ex: 5511999999999)
-  const DESTINATION_NUMBER = "5511999999999"; 
+  const DESTINATION_NUMBER = "558598475755"; 
 
   const handleLogout = () => {
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
