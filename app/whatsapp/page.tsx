@@ -28,6 +28,7 @@ export default function WhatsAppPage() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
@@ -42,9 +43,7 @@ export default function WhatsAppPage() {
     scrollToBottom();
   }, [chatHistory, activeContact]);
 
-  // ==========================================
-  // 1. CARREGAR CONTATOS DO BANCO DE DADOS
-  // ==========================================
+  // Carrega contatos
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -52,7 +51,6 @@ export default function WhatsAppPage() {
         const res = await fetch(`${baseUrl}/whatsapp/contacts`);
         if (res.ok) {
           const data = await res.json();
-          // Formata a hora que vem do banco
           const formattedContacts = data.map((c: any) => ({
             ...c,
             lastMessageTime: new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -66,9 +64,7 @@ export default function WhatsAppPage() {
     fetchContacts();
   }, []);
 
-  // ==========================================
-  // 2. CARREGAR HISTÓRICO AO CLICAR EM ALGUÉM
-  // ==========================================
+  // Carrega histórico
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
@@ -99,9 +95,7 @@ export default function WhatsAppPage() {
     }
   }, [activeContact]);
 
-  // ==========================================
-  // 3. ESCUTAR MENSAGENS AO VIVO (SSE)
-  // ==========================================
+  // SSE (Mensagens ao vivo)
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
@@ -109,7 +103,6 @@ export default function WhatsAppPage() {
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-
         if (payload?.event === 'messages.upsert' && payload?.data) {
           const msgData = payload.data;
           const remoteJid = msgData.key?.remoteJid;
@@ -161,9 +154,7 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, []);
 
-  // ==========================================
-  // 4. ENVIAR MENSAGEM
-  // ==========================================
+  // Enviar Mensagem
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || isSending || !activeContact) return;
@@ -173,12 +164,7 @@ export default function WhatsAppPage() {
     const targetNumber = activeContact.number;
 
     const optimisticMsg: Message = { 
-      id: Date.now(), 
-      text: newMessageText, 
-      type: 'sent', 
-      time: timeNow,
-      fromMe: true,
-      senderNumber: targetNumber
+      id: Date.now(), text: newMessageText, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
     };
 
     setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
@@ -226,33 +212,61 @@ export default function WhatsAppPage() {
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
 
   return (
-    <div className="dash-container">
-      <aside className="dash-sidebar">
-        <div className="logo-container flex items-center gap-3">
+    <div className="dash-container relative flex flex-col md:flex-row">
+      
+      {/* CABEÇALHO MOBILE */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600">
+            <i className="bi bi-list"></i>
+          </button>
           <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-sm">SI</span>
           </div>
-          <span className="font-bold text-lg text-slate-800 tracking-tight">Suporte Imagem</span>
         </div>
+      </div>
+
+      {/* OVERLAY ESCURO DO MENU MOBILE */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
+      {/* MENU LATERAL */}
+      <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="flex justify-between items-center mb-10">
+          <div className="logo-container mb-0 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">SI</span>
+            </div>
+            <span className="font-bold text-lg text-slate-800">Suporte Imagem</span>
+          </div>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-2xl text-slate-500">
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+        
         <nav className="dash-nav">
           <Link href="/dashboard" className="dash-nav-item"><i className="bi bi-grid"></i><span>Visão Geral</span></Link>
           <Link href="/whatsapp" className="dash-nav-item active"><i className="bi bi-chat-left-text"></i><span>WhatsApp</span></Link>
         </nav>
         <div className="mt-auto mb-2 px-2">
-          <button onClick={handleLogout} className="logout-btn w-full"><i className="bi bi-box-arrow-right"></i><span>Terminar Sessão</span></button>
+          <button onClick={handleLogout} className="logout-btn"><i className="bi bi-box-arrow-right"></i><span>Terminar Sessão</span></button>
         </div>
       </aside>
 
-      <main className="wa-page-main relative">
+      {/* CONTEÚDO PRINCIPAL (WHATSAPP) */}
+      <main className="wa-page-main relative w-full">
         {errorBanner && (
           <div className="absolute top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
             <i className="bi bi-exclamation-triangle-fill text-xl"></i>
             <span className="text-sm font-bold">{errorBanner}</span>
-            <button onClick={() => setErrorBanner(null)} className="ml-2 text-red-400 hover:text-red-700"><i className="bi bi-x-lg"></i></button>
+            <button onClick={() => setErrorBanner(null)} className="ml-2"><i className="bi bi-x-lg"></i></button>
           </div>
         )}
 
-        <div className="wa-app-container">
+        <div className={`wa-app-container ${activeContact ? 'chat-active' : ''}`}>
+          
+          {/* LISTA DE CONTATOS */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
@@ -265,11 +279,7 @@ export default function WhatsAppPage() {
                 <div className="p-6 text-center text-slate-400 text-sm">Nenhuma conversa ativa.</div>
               ) : (
                 contacts.map((contact) => (
-                  <div 
-                    key={contact.number}
-                    className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`}
-                    onClick={() => setActiveContact(contact)}
-                  >
+                  <div key={contact.number} className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} onClick={() => setActiveContact(contact)}>
                     {contact.profilePictureUrl ? (
                       <img src={contact.profilePictureUrl} alt={contact.name} className="wa-avatar object-cover" />
                     ) : (
@@ -280,7 +290,7 @@ export default function WhatsAppPage() {
                     <div className="wa-chat-info">
                       <div className="wa-chat-header">
                         <span className="wa-chat-name">{contact.name}</span>
-                        <span className="wa-chat-time text-slate-500 font-medium">{contact.lastMessageTime}</span>
+                        <span className="wa-chat-time">{contact.lastMessageTime}</span>
                       </div>
                       <div className="wa-chat-preview">{contact.lastMessage}</div>
                     </div>
@@ -290,11 +300,16 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
+          {/* TELA DE CONVERSA */}
           <div className="wa-main">
             {activeContact ? (
               <>
                 <div className="wa-header">
                   <div className="flex items-center gap-3">
+                    {/* Botão de Voltar para a lista (Só aparece no mobile) */}
+                    <button onClick={() => setActiveContact(null)} className="md:hidden mr-2 text-2xl text-slate-500 hover:text-slate-800">
+                      <i className="bi bi-arrow-left"></i>
+                    </button>
                     {activeContact.profilePictureUrl ? (
                       <img src={activeContact.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
@@ -323,21 +338,14 @@ export default function WhatsAppPage() {
 
                 <form className="wa-input-area" onSubmit={handleSendMessage}>
                   <i className="bi bi-paperclip cursor-not-allowed opacity-50"></i>
-                  <input 
-                    type="text" 
-                    placeholder="Escreva uma mensagem..." 
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    disabled={isSending}
-                    autoFocus
-                  />
-                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  <input type="text" placeholder="Escreva uma mensagem..." value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isSending} />
+                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 border-none cursor-pointer disabled:opacity-50">
                     {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill !text-white !text-sm"></i>}
                   </button>
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
+              <div className="flex-1 flex-col items-center justify-center bg-slate-50 hidden md:flex">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
                   <i className="bi bi-whatsapp text-4xl text-[#1FA84A] opacity-60"></i>
                 </div>

@@ -18,6 +18,7 @@
 body {
   background-color: var(--saas-bg);
   color: var(--saas-text);
+  margin: 0;
 }
 
 .dash-container {
@@ -27,7 +28,7 @@ body {
   background-color: var(--saas-bg);
 }
 
-/* Menu Lateral SaaS Clean */
+/* Menu Lateral SaaS Clean (Desktop) */
 .dash-sidebar {
   width: 260px;
   background: var(--saas-surface);
@@ -38,6 +39,7 @@ body {
   position: fixed;
   height: 100vh;
   z-index: 100;
+  transition: transform 0.3s ease;
 }
 
 .logo-container { margin-bottom: 40px; padding-left: 12px; }
@@ -92,6 +94,7 @@ body {
   font-weight: 500;
   font-size: 14px;
   transition: 0.2s;
+  width: 100%;
 }
 
 .logout-btn:hover {
@@ -145,4 +148,15 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--saas-text);
+}
+
+/* ==========================================
+   RESPONSIVIDADE GERAL (MOBILE)
+   ========================================== */
+@media (max-width: 768px) {
+  .dash-main {
+    margin-left: 0; /* Remove a margem lateral no mobile */
+    padding: 20px 16px;
+    margin-top: 60px; /* Espaço para o cabeçalho móvel */
+  }
 }

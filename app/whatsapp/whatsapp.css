@@ -1,33 +1,27 @@
 /* app/whatsapp/whatsapp.css */
 
-/* Novo container principal para focar apenas no Chat */
 .wa-page-main {
   flex-grow: 1;
-  margin-left: 260px; /* Respeita o menu lateral */
-  padding: 32px 40px; /* Reduzimos o padding para dar mais espaço */
+  margin-left: 260px;
+  padding: 32px 40px;
   display: flex;
-  align-items: center; /* Centraliza verticalmente */
-  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
 }
 
 .wa-app-container {
   display: flex;
   width: 100%;
-  max-width: 1500px; /* Permite ficar bem largo em monitores grandes */
-  height: calc(100vh - 64px); /* Ocupa quase toda a altura do ecrã */
+  max-width: 1500px;
+  height: calc(100vh - 64px);
   background: var(--saas-surface);
   border: 1px solid var(--saas-border);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); /* Sombra para destacar do fundo */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
-/* =========================================
-   O RESTO DO CÓDIGO CONTINUA IGUAL
-   ========================================= */
-
-/* Barra Lateral de Contatos */
 .wa-sidebar {
   width: 340px;
   border-right: 1px solid var(--saas-border);
@@ -89,6 +83,7 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--saas-text);
+  object-fit: cover;
 }
 
 .wa-chat-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;}
@@ -124,7 +119,6 @@
   gap: 12px;
 }
 
-/* Bolhas de Mensagem */
 .wa-msg {
   max-width: 60%;
   padding: 10px 16px;
@@ -182,3 +176,37 @@
 .wa-input-area input:focus { border-color: var(--saas-accent); background: var(--saas-surface); }
 .wa-input-area i { font-size: 22px; color: var(--saas-muted); cursor: pointer; transition: 0.2s; }
 .wa-input-area i:hover { color: var(--saas-text); }
+
+/* ==========================================
+   RESPONSIVIDADE WHATSAPP (MOBILE)
+   ========================================== */
+@media (max-width: 768px) {
+  .wa-page-main {
+    margin-left: 0;
+    padding: 0; /* Cola nas bordas no mobile */
+    margin-top: 60px; /* Abaixo do header móvel */
+    height: calc(100vh - 60px);
+    align-items: flex-start;
+  }
+
+  .wa-app-container {
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    flex-direction: column;
+  }
+
+  .wa-sidebar { width: 100%; border-right: none; }
+  .wa-main { width: 100%; }
+
+  /* Mágica do Mobile: Oculta a Lista ou a Conversa dependendo de onde estamos */
+  .wa-app-container.chat-active .wa-sidebar { display: none; }
+  .wa-app-container:not(.chat-active) .wa-main { display: none; }
+
+  /* Ajustes de espaçamento para caber no telemóvel */
+  .wa-header { padding: 0 16px; height: 60px; }
+  .wa-messages { padding: 16px; gap: 8px; }
+  .wa-input-area { padding: 10px 12px; gap: 8px; }
+  .wa-msg { max-width: 85%; font-size: 13px; }
+  .wa-avatar { width: 40px; height: 40px; }
+}
