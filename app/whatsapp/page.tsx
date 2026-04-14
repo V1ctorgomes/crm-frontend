@@ -38,6 +38,12 @@ export default function WhatsAppPage() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
+  // ==========================================
+  // ESTADOS PARA PRÉ-VISUALIZAÇÃO DE MÍDIA
+  // ==========================================
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +55,6 @@ export default function WhatsAppPage() {
     scrollToBottom();
   }, [chatHistory, activeContact]);
 
-  // Carrega contatos
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -63,14 +68,11 @@ export default function WhatsAppPage() {
           }));
           setContacts(formattedContacts);
         }
-      } catch (err) {
-        console.error("Erro ao carregar contatos:", err);
-      }
+      } catch (err) { console.error("Erro ao carregar contatos:", err); }
     };
     fetchContacts();
   }, []);
 
-  // Carrega histórico (Incluindo mídias)
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
@@ -92,20 +94,14 @@ export default function WhatsAppPage() {
               fileName: m.fileName
             }));
             
-            setChatHistory(prev => ({
-              ...prev,
-              [activeContact.number]: formattedMessages
-            }));
+            setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
           }
-        } catch (err) {
-          console.error("Erro ao carregar histórico:", err);
-        }
+        } catch (err) { console.error("Erro ao carregar histórico:", err); }
       };
       fetchHistory();
     }
   }, [activeContact]);
 
-  // Escuta mensagens em tempo real (SSE)
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
@@ -124,71 +120,71 @@ export default function WhatsAppPage() {
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const newMessage: Message = {
-            id: msgData.key?.id || Date.now(),
-            text: incomingText,
-            type: isFromMe ? 'sent' : 'received',
-            time: timeNow,
-            fromMe: isFromMe,
-            senderNumber: contactNumber
+            id: msgData.key?.id || Date.now(), text: incomingText, type: isFromMe ? 'sent' : 'received',
+            time: timeNow, fromMe: isFromMe, senderNumber: contactNumber
           };
 
-          setChatHistory(prev => ({
-            ...prev,
-            [contactNumber]: [...(prev[contactNumber] || []), newMessage]
-          }));
+          setChatHistory(prev => ({ ...prev, [contactNumber]: [...(prev[contactNumber] || []), newMessage] }));
         }
-      } catch (err) { console.error("Erro SSE:", err); }
+      } catch (err) {}
     };
     return () => eventSource.close();
   }, []);
 
-  // Enviar Texto
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputText.trim() || isSending || !activeContact) return;
-
-    const textToSend = inputText;
-    const targetNumber = activeContact.number;
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    const optimisticMsg: Message = { 
-      id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
-    };
-
-    setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
-    setInputText('');
-    setIsSending(true);
-
-    try {
-      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-      await fetch(`${baseUrl}/whatsapp/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: targetNumber, text: textToSend })
-      });
-    } catch (error) {
-      setErrorBanner("Erro ao enviar mensagem.");
-    } finally { setIsSending(false); }
-  };
-
-  // Enviar Mídia (Documentos, Imagens)
+  // Ao selecionar um arquivo, não envia de imediato. Apenas abre o painel de Preview.
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
 
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorBanner("O arquivo é muito grande (máximo 15MB).");
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result as string;
-      const targetNumber = activeContact.number;
-      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    reader.onloadend = () => {
+      setPreviewBase64(reader.result as string);
+      setPreviewFile(file);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const cancelPreview = () => {
+    setPreviewFile(null);
+    setPreviewBase64(null);
+    setInputText('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Função Unificada de Envio (Lida com Texto Normal E Arquivo com Legenda)
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (isSending || !activeContact) return;
+    if (!inputText.trim() && !previewFile) return;
+
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const targetNumber = activeContact.number;
+    const textToSend = inputText;
+
+    setIsSending(true);
+
+    if (previewFile && previewBase64) {
+      // ENVIANDO MÍDIA COM LEGENDA
+      const fileToSend = previewFile;
+      const base64ToSend = previewBase64;
 
       const optimisticMsg: Message = { 
-        id: Date.now(), text: file.name, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber,
-        isMedia: true, mediaData: base64Data, mimeType: file.type, fileName: file.name
+        id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber,
+        isMedia: true, mediaData: base64ToSend, mimeType: fileToSend.type, fileName: fileToSend.name
       };
 
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
-      setIsSending(true);
+      
+      // Limpa os estados de preview imediatamente para voltar ao chat
+      setInputText('');
+      setPreviewFile(null);
+      setPreviewBase64(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
 
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -197,19 +193,37 @@ export default function WhatsAppPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             number: targetNumber, 
-            base64Data: base64Data, 
-            fileName: file.name, 
-            mimeType: file.type 
+            base64Data: base64ToSend, 
+            fileName: fileToSend.name, 
+            mimeType: fileToSend.type,
+            caption: textToSend // Aqui enviamos a legenda para o backend
           })
         });
       } catch (error) {
         setErrorBanner("Erro ao enviar arquivo.");
       } finally {
         setIsSending(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    } else {
+      // ENVIANDO APENAS TEXTO
+      const optimisticMsg: Message = { 
+        id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
+      };
+
+      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      setInputText('');
+
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+        await fetch(`${baseUrl}/whatsapp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ number: targetNumber, text: textToSend })
+        });
+      } catch (error) {
+        setErrorBanner("Erro ao enviar mensagem.");
+      } finally { setIsSending(false); }
+    }
   };
 
   const handleLogout = () => {
@@ -221,14 +235,11 @@ export default function WhatsAppPage() {
 
   return (
     <div className="dash-container relative flex flex-col md:flex-row">
-      
-      {/* HEADER MOBILE */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600"><i className="bi bi-list"></i></button>
         <span className="font-bold text-[#1FA84A]">Suporte Imagem</span>
       </div>
 
-      {/* SIDEBAR */}
       <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300`}>
         <div className="flex justify-between items-center mb-10">
           <div className="logo-container mb-0 flex items-center gap-3">
@@ -244,8 +255,7 @@ export default function WhatsAppPage() {
         <button onClick={handleLogout} className="logout-btn mt-auto"><i className="bi bi-box-arrow-right"></i><span>Sair</span></button>
       </aside>
 
-      {/* WHATSAPP MAIN */}
-      <main className="wa-page-main w-full">
+      <main className="wa-page-main w-full relative">
         {errorBanner && (
           <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl z-[60] flex gap-2">
             <i className="bi bi-exclamation-circle"></i> {errorBanner}
@@ -253,9 +263,8 @@ export default function WhatsAppPage() {
           </div>
         )}
 
-        <div className={`wa-app-container ${activeContact ? 'chat-active' : ''}`}>
+        <div className={`wa-app-container relative ${activeContact ? 'chat-active' : ''}`}>
           
-          {/* LISTA DE CONTATOS */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
@@ -269,9 +278,7 @@ export default function WhatsAppPage() {
                   {contact.profilePictureUrl ? (
                     <img src={contact.profilePictureUrl} className="wa-avatar" alt="avatar" />
                   ) : (
-                    <div className="wa-avatar bg-slate-200 flex items-center justify-center font-bold">
-                      {contact.name.substring(0, 2).toUpperCase()}
-                    </div>
+                    <div className="wa-avatar bg-slate-200 flex items-center justify-center font-bold">{contact.name.substring(0, 2).toUpperCase()}</div>
                   )}
                   <div className="wa-chat-info">
                     <div className="wa-chat-header">
@@ -285,21 +292,16 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          {/* ÁREA DE MENSAGENS */}
-          <div className="wa-main">
+          <div className="wa-main relative">
             {activeContact ? (
               <>
-                <div className="wa-header">
+                <div className="wa-header z-10">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setActiveContact(null)} className="md:hidden text-2xl text-slate-500 mr-2">
-                      <i className="bi bi-arrow-left"></i>
-                    </button>
+                    <button onClick={() => setActiveContact(null)} className="md:hidden text-2xl text-slate-500 mr-2"><i className="bi bi-arrow-left"></i></button>
                     {activeContact.profilePictureUrl ? (
                       <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover" alt="" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold">
-                        {activeContact.name.substring(0,2)}
-                      </div>
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold">{activeContact.name.substring(0,2)}</div>
                     )}
                     <div>
                       <h2 className="text-[15px] font-semibold">{activeContact.name}</h2>
@@ -308,25 +310,113 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
 
+                {/* OVERLAY DE PRÉ-VISUALIZAÇÃO (SÓ APARECE SE TIVER ARQUIVO SELECIONADO) */}
+                {previewFile && previewBase64 && (
+                  <div className="absolute inset-0 top-[70px] bg-slate-100 z-30 flex flex-col items-center justify-between">
+                    {/* Botão de Fechar/Cancelar */}
+                    <div className="w-full flex justify-between p-4">
+                      <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+
+                    {/* Exibição do Arquivo a Enviar */}
+                    <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
+                      {previewFile.type.startsWith('image/') ? (
+                        <img src={previewBase64} alt="Preview" className="max-h-80 md:max-h-96 rounded-lg shadow-md object-contain" />
+                      ) : (
+                        <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center">
+                          <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+                             <i className="bi bi-file-earmark-pdf-fill text-5xl text-red-500"></i>
+                          </div>
+                          <h3 className="font-bold text-slate-800 text-lg text-center break-all">{previewFile.name}</h3>
+                          <span className="text-sm font-medium text-slate-400 mt-2">
+                            {previewFile.type.includes('pdf') ? 'Documento PDF' : 'Documento'} • {(previewFile.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Barra de Digitar Legenda (Baseada na interface nativa do app) */}
+                    <div className="w-full bg-[#f0f2f5] p-4 flex items-center justify-center shrink-0">
+                       <div className="w-full max-w-2xl flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="Adicione uma legenda..." 
+                            className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
+                            autoFocus
+                          />
+                          <button 
+                            onClick={handleSendMessage} 
+                            disabled={isSending}
+                            className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0"
+                          >
+                            {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
+                          </button>
+                       </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="wa-messages">
                   {activeMessages.map((msg) => (
-                    <div key={msg.id} className={`wa-msg ${msg.type}`}>
+                    <div key={msg.id} className={`wa-msg relative ${msg.type}`}>
+                      
+                      {/* LÓGICA DE RENDERIZAÇÃO DE MÍDIA ATUALIZADA (IGUAL À FOTO) */}
                       {msg.isMedia && msg.mediaData && (
-                        <div className="mb-2">
+                        <div className="mb-1 flex flex-col w-full">
                           {msg.mimeType?.startsWith('image/') ? (
-                            <img src={msg.mediaData} className="max-w-full rounded-md max-h-64 object-contain" alt="media" />
+                            <img src={msg.mediaData} className="max-w-full rounded-md max-h-64 object-contain mb-1" alt="media" />
                           ) : msg.mimeType?.startsWith('video/') ? (
-                            <video src={msg.mediaData} controls className="max-w-full rounded-md max-h-64" />
+                            <video src={msg.mediaData} controls className="max-w-full rounded-md max-h-64 mb-1" />
                           ) : (
-                            <a href={msg.mediaData} download={msg.fileName} className="flex items-center gap-2 p-2 bg-black/5 rounded no-underline text-current">
-                              <i className="bi bi-file-earmark-arrow-down text-2xl"></i>
-                              <span className="text-xs truncate w-32 font-bold">{msg.fileName || 'Doc'}</span>
-                            </a>
+                            /* CAIXA DO DOCUMENTO EXATAMENTE COMO NA FOTO */
+                            <>
+                              <div className={`flex items-center gap-3 p-3 rounded-lg ${msg.type === 'sent' ? 'bg-[#c6efc1]' : 'bg-black/5'} mb-2`}>
+                                <div className="w-11 h-11 bg-[#fce4e4] rounded-lg flex items-center justify-center shrink-0">
+                                  <i className="bi bi-file-earmark-pdf-fill text-red-500 text-2xl"></i>
+                                </div>
+                                <div className="flex flex-col overflow-hidden w-full">
+                                  <span className="text-[15px] font-bold text-slate-800 truncate leading-tight">{msg.fileName || 'Documento'}</span>
+                                  <span className="text-[13px] text-slate-500 font-medium mt-0.5">
+                                    {msg.mimeType?.includes('pdf') ? 'PDF' : 'DOCUMENTO'}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
-                      <span className="block">{msg.text}</span>
-                      <span className="wa-time">{msg.time}</span>
+
+                      {/* TEXTO / LEGENDA (A legenda aparece logo abaixo do quadro gris do doc) */}
+                      {msg.text && (
+                        <p className={`text-[14.5px] text-slate-800 leading-snug break-words ${msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/') ? 'mb-2' : ''}`}>
+                          {msg.text}
+                        </p>
+                      )}
+
+                      {/* BOTÕES ABRIR / BAIXAR E HORA (Aparecem no final do documento) */}
+                      {msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/') && (
+                        <div className={`flex items-center justify-between pt-2 mt-1 border-t ${msg.type === 'sent' ? 'border-[#b2dcb0]' : 'border-black/5'}`}>
+                           <div className="flex gap-2 text-[13.5px] font-bold text-[#14833b]">
+                             <a href={msg.mediaData} target="_blank" rel="noreferrer" className="hover:underline cursor-pointer">Abrir</a>
+                             <span className="text-slate-400 font-normal">/</span>
+                             <a href={msg.mediaData} download={msg.fileName} className="hover:underline cursor-pointer">baixar</a>
+                           </div>
+                           <span className="wa-time !mt-0">{msg.time} <i className="bi bi-check-all text-[#34B7F1] ml-0.5"></i></span>
+                        </div>
+                      )}
+                      
+                      {/* HORA NORMAL (Para textos e imagens simples) */}
+                      {!(msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/')) && (
+                        <span className="wa-time">
+                          {msg.time}
+                          {msg.fromMe && <i className="bi bi-check-all text-[#34B7F1] ml-1 text-[13px]"></i>}
+                        </span>
+                      )}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
@@ -354,4 +444,6 @@ export default function WhatsAppPage() {
       </main>
     </div>
   );
+
+  
 }
