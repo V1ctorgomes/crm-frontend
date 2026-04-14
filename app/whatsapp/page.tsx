@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import '../dashboard/dashboard.css';
 import './whatsapp.css';
 
-// Interface para estruturar como uma mensagem é guardada no estado
 interface Message {
   id: string | number;
   text: string;
@@ -16,7 +15,6 @@ interface Message {
   senderNumber: string;
 }
 
-// Interface para estruturar os contatos na barra lateral
 interface Contact {
   number: string;
   name: string;
@@ -28,9 +26,6 @@ interface Contact {
 export default function WhatsAppPage() {
   const router = useRouter();
   
-  // ==========================================
-  // ESTADOS (STATE) DO CHAT
-  // ==========================================
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -39,7 +34,6 @@ export default function WhatsAppPage() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
-  // Ref para rolar o chat para o fim automaticamente
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -51,74 +45,70 @@ export default function WhatsAppPage() {
   }, [chatHistory, activeContact]);
 
   // ==========================================
-  // LISTENER: ESCUTAR MENSAGENS AO VIVO (SSE - DIAGNÓSTICO EXTREMO)
+  // LISTENER: MAPEADO EXATAMENTE PARA O SEU JSON (EVOLUTION V2)
   // ==========================================
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
 
-    eventSource.onopen = () => {
-      console.log("✅ Conexão SSE aberta com sucesso!");
-    };
-
-    eventSource.onerror = (error) => {
-      console.error("❌ Erro na conexão SSE:", error);
-      setErrorBanner("A conexão em tempo real falhou. O servidor pode estar bloqueando Streaming.");
-    };
-
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
         console.log("🚨 CHEGOU NO FRONTEND:", payload);
-        
-        // --- DIAGNÓSTICO VISUAL ---
-        // Força um aviso no ecrã para sabermos que o sinal de facto chegou à página!
-        setErrorBanner(`Sinal recebido! Veja o F12. Evento: ${payload?.event || payload?.data?.event || 'Desconhecido'}`);
-        // --------------------------
 
-        // Tenta extrair a mensagem independentemente da versão da Evolution
-        const eventType = payload?.event || payload?.data?.event;
-        const msgData = payload?.data?.message || payload?.data?.messages?.[0] || payload?.data;
-
-        if (eventType === 'messages.upsert' && msgData) {
+        // Verifica se é o evento correto e se a chave 'data' existe
+        if (payload?.event === 'messages.upsert' && payload?.data) {
           
+          const msgData = payload.data;
+
+          // 1. Extrai o ID do cliente (remoteJid) - É AQUI O SEGREDO!
+          const remoteJid = msgData.key?.remoteJid;
+          if (!remoteJid) return;
+          
+          const contactNumber = remoteJid.split('@')[0]; // Ex: 558598475755
+
+          // 2. Extrai o texto
           const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Imagem/Áudio/Documento";
-          const senderJid = msgData.key?.remoteJid || msgData.remoteJid;
           
-          if (!senderJid) return;
+          // 3. Descobre se a mensagem foi enviada por nós (API) ou pelo cliente
+          const isFromMe = msgData.key?.fromMe || false;
           
-          const senderNumber = senderJid.split('@')[0]; // Extrai só o número
-          const isFromMe = msgData.key?.fromMe || msgData.fromMe;
-          const pushName = msgData.pushName || senderNumber;
+          // 4. Pega o nome do contato ('Victor')
+          const pushName = msgData.pushName || contactNumber;
+          
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          // Ignora atualizações de status ou grupos
-          if (senderJid.includes('@g.us') || senderJid === 'status@broadcast') return;
+          // Ignora grupos e mensagens de status
+          if (remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
 
-          // 1. Guarda a mensagem no histórico do contato
+          // Limpa o banner se a mensagem chegou perfeitamente
+          setErrorBanner(null);
+
+          // === ATUALIZA A TELA ===
+          
+          // A. Guarda no histórico
           const newMessage: Message = {
-            id: msgData.key?.id || msgData.id || Date.now(),
+            id: msgData.key?.id || Date.now(),
             text: incomingText,
             type: isFromMe ? 'sent' : 'received',
             time: timeNow,
-            fromMe: !!isFromMe,
-            senderNumber: senderNumber
+            fromMe: isFromMe,
+            senderNumber: contactNumber
           };
 
           setChatHistory(prev => ({
             ...prev,
-            [senderNumber]: [...(prev[senderNumber] || []), newMessage]
+            [contactNumber]: [...(prev[contactNumber] || []), newMessage]
           }));
 
-          // 2. Atualiza a lista lateral de contatos
+          // B. Atualiza a lista lateral
           setContacts(prev => {
-            const existingContactIndex = prev.findIndex(c => c.number === senderNumber);
-            const picUrl = payload?.data?.profilePictureUrl || undefined;
-
+            const existingContactIndex = prev.findIndex(c => c.number === contactNumber);
+            
             const updatedContact: Contact = {
-              number: senderNumber,
+              number: contactNumber,
               name: pushName,
-              profilePictureUrl: picUrl,
+              profilePictureUrl: msgData.profilePictureUrl || undefined,
               lastMessage: incomingText,
               lastMessageTime: timeNow
             };
@@ -126,18 +116,18 @@ export default function WhatsAppPage() {
             if (existingContactIndex >= 0) {
               const newContacts = [...prev];
               newContacts.splice(existingContactIndex, 1);
-              return [updatedContact, ...newContacts]; // Move para o topo
+              return [updatedContact, ...newContacts];
             } else {
-              return [updatedContact, ...prev]; // Adiciona no topo
+              return [updatedContact, ...prev];
             }
           });
 
-          // 3. Se for a primeira mensagem e a tela estiver vazia, abre o chat
+          // C. Abre o chat automaticamente se for mensagem nova
           if (!isFromMe) {
              setActiveContact(prev => {
                 if (!prev) {
                   return {
-                    number: senderNumber,
+                    number: contactNumber,
                     name: pushName,
                     lastMessage: incomingText,
                     lastMessageTime: timeNow
@@ -162,7 +152,6 @@ export default function WhatsAppPage() {
     if (e) e.preventDefault();
     if (!inputText.trim() || isSending || !activeContact) return;
 
-    setErrorBanner(null);
     const newMessageText = inputText;
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const targetNumber = activeContact.number;
@@ -213,7 +202,7 @@ export default function WhatsAppPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Falha no envio da mensagem.');
+        throw new Error('Falha no envio.');
       }
 
     } catch (error: any) {
@@ -377,7 +366,7 @@ export default function WhatsAppPage() {
                 </div>
                 <h2 className="text-xl font-bold text-slate-700">Aguardando Mensagens...</h2>
                 <p className="text-slate-500 text-sm mt-2 text-center max-w-sm">
-                  Envie uma mensagem para a API para testar a receção.
+                  O painel está pronto e a escutar.
                 </p>
               </div>
             )}
