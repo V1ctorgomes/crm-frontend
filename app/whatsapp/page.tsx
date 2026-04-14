@@ -157,7 +157,6 @@ export default function WhatsAppPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Abre o visualizador interno
   const openViewer = (msg: Message) => {
     setViewerMessage(msg);
   };
@@ -365,10 +364,8 @@ export default function WhatsAppPage() {
                   {activeMessages.map((msg) => (
                     <div key={msg.id} className={`wa-msg relative ${msg.type} shadow-sm !rounded-xl`}>
                       
-                      {/* LÓGICA UNIFICADA: TODOS OS ARQUIVOS SÃO MOSTRADOS COMO DOCUMENTO (FECHADOS) */}
                       {msg.isMedia && msg.mediaData && (
                         <div className="mb-1 flex flex-col w-full">
-                            {/* CAIXA DO DOCUMENTO EXATAMENTE COMO NA FOTO */}
                             <div className={`flex items-center gap-3 p-3 rounded-lg ${msg.type === 'sent' ? 'bg-[#c6efc1]' : 'bg-black/5'} mb-2`}>
                                 <div className={`w-11 h-11 ${msg.mimeType?.startsWith('image/') ? 'bg-blue-100' : msg.mimeType?.startsWith('video/') ? 'bg-yellow-100' : 'bg-[#fce4e4]'} rounded-lg flex items-center justify-center shrink-0`}>
                                     {msg.mimeType?.startsWith('image/') ? (
@@ -391,25 +388,21 @@ export default function WhatsAppPage() {
                         </div>
                       )}
 
-                      {/* TEXTO / LEGENDA */}
                       {msg.text && (
                         <p className={`text-[14.5px] text-slate-800 leading-snug break-words ${msg.isMedia ? 'mb-2' : ''}`}>
                           {msg.text}
                         </p>
                       )}
 
-                      {/* BOTÕES ABRIR E HORA (Aparecem no final do documento) */}
                       {msg.isMedia && (
                         <div className={`flex items-center justify-between pt-2 mt-1 border-t ${msg.type === 'sent' ? 'border-[#b2dcb0]' : 'border-black/5'}`}>
                            <div className="flex gap-2 text-[13.5px] font-bold text-[#14833b]">
-                             {/* BOTÃO ABRIR: AGORA ABRE O VISUALIZADOR INTERNO */}
                              <a onClick={() => openViewer(msg)} className="hover:underline cursor-pointer">Abrir</a>
                            </div>
                            <span className="wa-time !mt-0">{msg.time} {msg.fromMe && <i className="bi bi-check-all text-[#34B7F1] ml-0.5"></i>}</span>
                         </div>
                       )}
                       
-                      {/* HORA NORMAL (Para textos) */}
                       {!msg.isMedia && (
                         <span className="wa-time">
                           {msg.time}
@@ -443,48 +436,56 @@ export default function WhatsAppPage() {
       </main>
 
       {/* ==========================================
-          MODAL DO VISUALIZADOR INTERNO
+          MODAL DO VISUALIZADOR INTERNO (DESIGN CLEAN)
           ========================================== */}
       {viewerMessage && viewerMessage.mediaData && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4 md:p-8" onClick={closeViewer}>
-            {/* Header do Modal com controles */}
-            <div className="w-full flex justify-between items-center mb-6" onClick={e => e.stopPropagation() /* Impede fechar ao clicar nos controles */}>
-                <div className="flex flex-col text-white">
-                    <span className="font-bold text-lg truncate max-w-sm">{viewerMessage.fileName}</span>
-                    <span className="text-sm opacity-70">{viewerMessage.mimeType}</span>
-                </div>
-                <div className="flex gap-3">
-                    {/* Botão de Download */}
-                    <a href={viewerMessage.mediaData} download={viewerMessage.fileName} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 text-xl transition-colors">
-                        <i className="bi bi-download"></i>
-                    </a>
-                    {/* Botão de Fechar */}
-                    <button onClick={closeViewer} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 text-xl transition-colors">
-                        <i className="bi bi-x-lg"></i>
-                    </button>
-                </div>
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
+          <div 
+            className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" 
+            onClick={e => e.stopPropagation()} /* Impede que clicar dentro do modal feche ele */
+          >
+            {/* Header do Modal */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white z-10 shrink-0">
+              <span className="font-bold text-slate-800 text-[15px] truncate max-w-[80%]">
+                {viewerMessage.fileName || 'Documento'}
+              </span>
+              <button 
+                onClick={closeViewer} 
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+              >
+                <i className="bi bi-x-lg text-sm"></i>
+              </button>
             </div>
 
-            {/* Conteúdo do Visualizador */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden" onClick={e => e.stopPropagation()}>
-                {viewerMessage.mimeType?.startsWith('image/') ? (
-                    <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full rounded-md object-contain shadow-2xl" />
-                ) : viewerMessage.mimeType?.startsWith('video/') ? (
-                    <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded-md shadow-2xl" />
-                ) : viewerMessage.mimeType?.includes('pdf') ? (
-                    <embed src={`${viewerMessage.mediaData}#toolbar=0&navpanes=0&scrollbar=0`} type="application/pdf" className="w-full h-full rounded-md max-w-5xl" />
-                ) : (
-                    /* Para outros arquivos, mostra um aviso e botão de download */
-                    <div className="text-white text-center p-12 bg-white/5 rounded-xl flex flex-col items-center">
-                        <i className="bi bi-file-earmark-fill text-6xl mb-4 opacity-50"></i>
-                        <span className="font-bold">{viewerMessage.fileName}</span>
-                        <span className="opacity-70 mt-1 mb-6">Visualização não disponível para este tipo de arquivo.</span>
-                        <a href={viewerMessage.mediaData} download={viewerMessage.fileName} className="bg-[#1FA84A] text-white px-6 py-2 rounded-full font-bold no-underline hover:bg-green-600 transition-colors">
-                            Descarregar
-                        </a>
-                    </div>
-                )}
+            {/* Área de Visualização do Arquivo */}
+            <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative p-4">
+              {viewerMessage.mimeType?.startsWith('image/') ? (
+                <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain rounded-md" />
+              ) : viewerMessage.mimeType?.startsWith('video/') ? (
+                <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded-md shadow-sm outline-none" />
+              ) : viewerMessage.mimeType?.includes('pdf') ? (
+                <embed src={`${viewerMessage.mediaData}#toolbar=0&navpanes=0`} type="application/pdf" className="w-full h-full rounded-md" />
+              ) : (
+                /* Mensagem genérica se o navegador não conseguir exibir o arquivo na tela */
+                <div className="text-slate-400 flex flex-col items-center">
+                  <i className="bi bi-file-earmark-fill text-6xl mb-4 text-slate-200"></i>
+                  <span className="text-[15px] font-medium text-slate-500">Pré-visualização não disponível</span>
+                  <span className="text-sm mt-1">Faça o download para ver este arquivo.</span>
+                </div>
+              )}
             </div>
+
+            {/* Rodapé (Footer) com o botão de Baixar */}
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end bg-white shrink-0">
+              <a 
+                href={viewerMessage.mediaData} 
+                download={viewerMessage.fileName || 'download'} 
+                className="bg-[#1FA84A] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-600 transition-colors shadow-sm no-underline"
+              >
+                Baixar
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>
