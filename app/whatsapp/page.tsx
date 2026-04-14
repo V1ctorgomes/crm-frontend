@@ -42,9 +42,10 @@ export default function WhatsAppPage() {
   const [previewBase64, setPreviewBase64] = useState<string | null>(null);
 
   // ==========================================
-  // ESTADO PARA O VISUALIZADOR INTERNO (MODAL)
+  // ESTADOS DO VISUALIZADOR INTERNO
   // ==========================================
   const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +58,7 @@ export default function WhatsAppPage() {
     scrollToBottom();
   }, [chatHistory, activeContact]);
 
+  // Carregar Contatos
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -75,6 +77,7 @@ export default function WhatsAppPage() {
     fetchContacts();
   }, []);
 
+  // Carregar Histórico
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
@@ -104,6 +107,7 @@ export default function WhatsAppPage() {
     }
   }, [activeContact]);
 
+  // SSE (Mensagens ao vivo)
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
@@ -132,6 +136,34 @@ export default function WhatsAppPage() {
     };
     return () => eventSource.close();
   }, []);
+
+  // Conversão de Base64 para Blob URL (Para os PDFs não darem erro no Chrome)
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    
+    if (viewerMessage && viewerMessage.mimeType?.includes('pdf') && viewerMessage.mediaData) {
+      // Se não tiver o prefixo data:, adicionamos.
+      const dataUri = viewerMessage.mediaData.startsWith('data:') 
+        ? viewerMessage.mediaData 
+        : `data:application/pdf;base64,${viewerMessage.mediaData}`;
+      
+      // O Fetch converte magicamente o Base64 em um ficheiro local (Blob)
+      fetch(dataUri)
+        .then(res => res.blob())
+        .then(blob => {
+          objectUrl = URL.createObjectURL(blob);
+          setPdfBlobUrl(objectUrl);
+        })
+        .catch(err => console.error("Erro ao criar visualização do PDF", err));
+    } else {
+      setPdfBlobUrl(null);
+    }
+
+    // Limpa a memória quando fechar o modal
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [viewerMessage]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -436,13 +468,13 @@ export default function WhatsAppPage() {
       </main>
 
       {/* ==========================================
-          MODAL DO VISUALIZADOR INTERNO (DESIGN CLEAN)
+          MODAL DO VISUALIZADOR INTERNO (CORRIGIDO)
           ========================================== */}
       {viewerMessage && viewerMessage.mediaData && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
+        <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
           <div 
             className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" 
-            onClick={e => e.stopPropagation()} /* Impede que clicar dentro do modal feche ele */
+            onClick={e => e.stopPropagation()}
           >
             {/* Header do Modal */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white z-10 shrink-0">
@@ -458,16 +490,23 @@ export default function WhatsAppPage() {
             </div>
 
             {/* Área de Visualização do Arquivo */}
-            <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative p-4">
+            <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative">
               {viewerMessage.mimeType?.startsWith('image/') ? (
-                <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain rounded-md" />
+                <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain p-4" />
               ) : viewerMessage.mimeType?.startsWith('video/') ? (
-                <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded-md shadow-sm outline-none" />
+                <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full shadow-sm outline-none p-4" />
               ) : viewerMessage.mimeType?.includes('pdf') ? (
-                <embed src={`${viewerMessage.mediaData}#toolbar=0&navpanes=0`} type="application/pdf" className="w-full h-full rounded-md" />
+                pdfBlobUrl ? (
+                  /* O iframe agora carrega o URL real (Blob) gerado pelo fetch */
+                  <iframe src={`${pdfBlobUrl}#toolbar=0`} className="w-full h-full border-none" title="PDF Viewer" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400">
+                    <div className="w-8 h-8 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <span className="font-medium">Carregando PDF...</span>
+                  </div>
+                )
               ) : (
-                /* Mensagem genérica se o navegador não conseguir exibir o arquivo na tela */
-                <div className="text-slate-400 flex flex-col items-center">
+                <div className="text-slate-400 flex flex-col items-center p-4">
                   <i className="bi bi-file-earmark-fill text-6xl mb-4 text-slate-200"></i>
                   <span className="text-[15px] font-medium text-slate-500">Pré-visualização não disponível</span>
                   <span className="text-sm mt-1">Faça o download para ver este arquivo.</span>
@@ -475,7 +514,7 @@ export default function WhatsAppPage() {
               )}
             </div>
 
-            {/* Rodapé (Footer) com o botão de Baixar */}
+            {/* Rodapé */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end bg-white shrink-0">
               <a 
                 href={viewerMessage.mediaData} 
