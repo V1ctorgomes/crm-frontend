@@ -25,7 +25,6 @@ interface Contact {
 
 export default function WhatsAppPage() {
   const router = useRouter();
-  
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export default function WhatsAppPage() {
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -45,7 +43,64 @@ export default function WhatsAppPage() {
   }, [chatHistory, activeContact]);
 
   // ==========================================
-  // LISTENER: MAPEADO EXATAMENTE PARA O SEU JSON (EVOLUTION V2)
+  // 1. CARREGAR CONTATOS DO BANCO DE DADOS
+  // ==========================================
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+        const res = await fetch(`${baseUrl}/whatsapp/contacts`);
+        if (res.ok) {
+          const data = await res.json();
+          // Formata a hora que vem do banco
+          const formattedContacts = data.map((c: any) => ({
+            ...c,
+            lastMessageTime: new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }));
+          setContacts(formattedContacts);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar contatos:", err);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  // ==========================================
+  // 2. CARREGAR HISTÓRICO AO CLICAR EM ALGUÉM
+  // ==========================================
+  useEffect(() => {
+    if (activeContact && !chatHistory[activeContact.number]) {
+      const fetchHistory = async () => {
+        try {
+          const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+          const res = await fetch(`${baseUrl}/whatsapp/history/${activeContact.number}`);
+          if (res.ok) {
+            const data = await res.json();
+            const formattedMessages = data.map((m: any) => ({
+              id: m.id,
+              text: m.text,
+              type: m.type,
+              time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              fromMe: m.type === 'sent',
+              senderNumber: m.contactNumber
+            }));
+            
+            setChatHistory(prev => ({
+              ...prev,
+              [activeContact.number]: formattedMessages
+            }));
+          }
+        } catch (err) {
+          console.error("Erro ao carregar histórico:", err);
+        }
+      };
+      fetchHistory();
+    }
+  }, [activeContact]);
+
+  // ==========================================
+  // 3. ESCUTAR MENSAGENS AO VIVO (SSE)
   // ==========================================
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -54,39 +109,18 @@ export default function WhatsAppPage() {
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        console.log("🚨 CHEGOU NO FRONTEND:", payload);
 
-        // Verifica se é o evento correto e se a chave 'data' existe
         if (payload?.event === 'messages.upsert' && payload?.data) {
-          
           const msgData = payload.data;
-
-          // 1. Extrai o ID do cliente (remoteJid) - É AQUI O SEGREDO!
           const remoteJid = msgData.key?.remoteJid;
-          if (!remoteJid) return;
+          if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
           
-          const contactNumber = remoteJid.split('@')[0]; // Ex: 558598475755
-
-          // 2. Extrai o texto
-          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Imagem/Áudio/Documento";
-          
-          // 3. Descobre se a mensagem foi enviada por nós (API) ou pelo cliente
+          const contactNumber = remoteJid.split('@')[0];
+          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Mídia/Documento";
           const isFromMe = msgData.key?.fromMe || false;
-          
-          // 4. Pega o nome do contato ('Victor')
           const pushName = msgData.pushName || contactNumber;
-          
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          // Ignora grupos e mensagens de status
-          if (remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
-
-          // Limpa o banner se a mensagem chegou perfeitamente
-          setErrorBanner(null);
-
-          // === ATUALIZA A TELA ===
-          
-          // A. Guarda no histórico
           const newMessage: Message = {
             id: msgData.key?.id || Date.now(),
             text: incomingText,
@@ -101,52 +135,34 @@ export default function WhatsAppPage() {
             [contactNumber]: [...(prev[contactNumber] || []), newMessage]
           }));
 
-          // B. Atualiza a lista lateral
           setContacts(prev => {
-            const existingContactIndex = prev.findIndex(c => c.number === contactNumber);
-            
+            const existingIdx = prev.findIndex(c => c.number === contactNumber);
             const updatedContact: Contact = {
               number: contactNumber,
               name: pushName,
-              profilePictureUrl: msgData.profilePictureUrl || undefined,
+              profilePictureUrl: msgData.profilePictureUrl || (existingIdx >= 0 ? prev[existingIdx].profilePictureUrl : undefined),
               lastMessage: incomingText,
               lastMessageTime: timeNow
             };
 
-            if (existingContactIndex >= 0) {
+            if (existingIdx >= 0) {
               const newContacts = [...prev];
-              newContacts.splice(existingContactIndex, 1);
+              newContacts.splice(existingIdx, 1);
               return [updatedContact, ...newContacts];
             } else {
               return [updatedContact, ...prev];
             }
           });
-
-          // C. Abre o chat automaticamente se for mensagem nova
-          if (!isFromMe) {
-             setActiveContact(prev => {
-                if (!prev) {
-                  return {
-                    number: contactNumber,
-                    name: pushName,
-                    lastMessage: incomingText,
-                    lastMessageTime: timeNow
-                  };
-                }
-                return prev;
-             });
-          }
         }
       } catch (err) {
-        console.error("Erro ao processar a mensagem recebida:", err);
+        console.error("Erro no SSE:", err);
       }
     };
-
     return () => eventSource.close();
   }, []);
 
   // ==========================================
-  // FUNÇÃO: ENVIAR MENSAGEM
+  // 4. ENVIAR MENSAGEM
   // ==========================================
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -165,11 +181,7 @@ export default function WhatsAppPage() {
       senderNumber: targetNumber
     };
 
-    setChatHistory(prev => ({
-      ...prev,
-      [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg]
-    }));
-    
+    setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
     setInputText('');
     setIsSending(true);
 
@@ -187,23 +199,13 @@ export default function WhatsAppPage() {
 
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-
       const response = await fetch(`${baseUrl}/whatsapp/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          number: targetNumber,
-          text: newMessageText
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: targetNumber, text: newMessageText })
       });
 
-      if (!response.ok) {
-        throw new Error('Falha no envio.');
-      }
+      if (!response.ok) throw new Error('Falha no envio.');
 
     } catch (error: any) {
       setErrorBanner(`Erro ao enviar: ${error.message}`);
@@ -232,23 +234,12 @@ export default function WhatsAppPage() {
           </div>
           <span className="font-bold text-lg text-slate-800 tracking-tight">Suporte Imagem</span>
         </div>
-        
         <nav className="dash-nav">
-          <Link href="/dashboard" className="dash-nav-item">
-            <i className="bi bi-grid"></i>
-            <span>Visão Geral</span>
-          </Link>
-          <Link href="/whatsapp" className="dash-nav-item active">
-            <i className="bi bi-chat-left-text"></i>
-            <span>WhatsApp</span>
-          </Link>
+          <Link href="/dashboard" className="dash-nav-item"><i className="bi bi-grid"></i><span>Visão Geral</span></Link>
+          <Link href="/whatsapp" className="dash-nav-item active"><i className="bi bi-chat-left-text"></i><span>WhatsApp</span></Link>
         </nav>
-        
         <div className="mt-auto mb-2 px-2">
-          <button onClick={handleLogout} className="logout-btn w-full">
-            <i className="bi bi-box-arrow-right"></i>
-            <span>Terminar Sessão</span>
-          </button>
+          <button onClick={handleLogout} className="logout-btn w-full"><i className="bi bi-box-arrow-right"></i><span>Terminar Sessão</span></button>
         </div>
       </aside>
 
@@ -257,9 +248,7 @@ export default function WhatsAppPage() {
           <div className="absolute top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
             <i className="bi bi-exclamation-triangle-fill text-xl"></i>
             <span className="text-sm font-bold">{errorBanner}</span>
-            <button onClick={() => setErrorBanner(null)} className="ml-2 text-red-400 hover:text-red-700">
-              <i className="bi bi-x-lg"></i>
-            </button>
+            <button onClick={() => setErrorBanner(null)} className="ml-2 text-red-400 hover:text-red-700"><i className="bi bi-x-lg"></i></button>
           </div>
         )}
 
@@ -271,12 +260,9 @@ export default function WhatsAppPage() {
                 <input type="text" placeholder="Procurar contatos..." />
               </div>
             </div>
-            
             <div className="wa-chat-list">
               {contacts.length === 0 ? (
-                <div className="p-6 text-center text-slate-400 text-sm">
-                  Nenhuma conversa ativa. <br/><br/>Envie uma mensagem do seu telemóvel para a API.
-                </div>
+                <div className="p-6 text-center text-slate-400 text-sm">Nenhuma conversa ativa.</div>
               ) : (
                 contacts.map((contact) => (
                   <div 
@@ -291,7 +277,6 @@ export default function WhatsAppPage() {
                         {contact.name.substring(0, 2).toUpperCase()}
                       </div>
                     )}
-                    
                     <div className="wa-chat-info">
                       <div className="wa-chat-header">
                         <span className="wa-chat-name">{contact.name}</span>
@@ -346,16 +331,8 @@ export default function WhatsAppPage() {
                     disabled={isSending}
                     autoFocus
                   />
-                  <button 
-                    type="submit"
-                    disabled={isSending || !inputText.trim()}
-                    className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSending ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <i className="bi bi-send-fill !text-white !text-sm"></i>
-                    )}
+                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill !text-white !text-sm"></i>}
                   </button>
                 </form>
               </>
@@ -365,9 +342,6 @@ export default function WhatsAppPage() {
                   <i className="bi bi-whatsapp text-4xl text-[#1FA84A] opacity-60"></i>
                 </div>
                 <h2 className="text-xl font-bold text-slate-700">Aguardando Mensagens...</h2>
-                <p className="text-slate-500 text-sm mt-2 text-center max-w-sm">
-                  O painel está pronto e a escutar.
-                </p>
               </div>
             )}
           </div>
