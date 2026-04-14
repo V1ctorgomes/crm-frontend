@@ -14,7 +14,7 @@ interface Message {
   fromMe: boolean;
   senderNumber: string;
   isMedia?: boolean;
-  mediaData?: string;
+  mediaData?: string; // Agora sempre será uma URL rápida do seu Domínio Personalizado
   mimeType?: string;
   fileName?: string;
 }
@@ -38,16 +38,15 @@ export default function WhatsAppPage() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
+  // Usa URLs locais efêmeras em vez de Base64 para a tela de Preview
   const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função para memorizar o contato ativo (localStorage)
   const handleSelectContact = (contact: Contact | null) => {
     setActiveContact(contact);
     if (contact) {
@@ -65,7 +64,6 @@ export default function WhatsAppPage() {
     scrollToBottom();
   }, [chatHistory, activeContact]);
 
-  // 1. Carregar Contatos (e restaurar última conversa)
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -92,7 +90,6 @@ export default function WhatsAppPage() {
     fetchContacts();
   }, []);
 
-  // 2. Carregar Histórico
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
@@ -109,7 +106,7 @@ export default function WhatsAppPage() {
               fromMe: m.type === 'sent',
               senderNumber: m.contactNumber,
               isMedia: m.isMedia,
-              mediaData: m.mediaData,
+              mediaData: m.mediaData, // Já é a URL bonitinha do R2
               mimeType: m.mimeType,
               fileName: m.fileName
             }));
@@ -124,7 +121,6 @@ export default function WhatsAppPage() {
     }
   }, [activeContact]);
 
-  // 3. SSE (Mensagens ao vivo)
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
@@ -154,31 +150,6 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, []);
 
-  // 4. Conversão de PDF Base64 para Blob URL
-  useEffect(() => {
-    let objectUrl: string | null = null;
-    
-    if (viewerMessage && viewerMessage.mimeType?.includes('pdf') && viewerMessage.mediaData) {
-      const dataUri = viewerMessage.mediaData.startsWith('data:') 
-        ? viewerMessage.mediaData 
-        : `data:application/pdf;base64,${viewerMessage.mediaData}`;
-      
-      fetch(dataUri)
-        .then(res => res.blob())
-        .then(blob => {
-          objectUrl = URL.createObjectURL(blob);
-          setPdfBlobUrl(objectUrl);
-        })
-        .catch(err => console.error("Erro ao criar visualização do PDF", err));
-    } else {
-      setPdfBlobUrl(null);
-    }
-
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [viewerMessage]);
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
@@ -188,17 +159,16 @@ export default function WhatsAppPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewBase64(reader.result as string);
-      setPreviewFile(file);
-    };
-    reader.readAsDataURL(file);
+    // Cria a URL efêmera na hora (super leve)
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    setPreviewFile(file);
   };
 
   const cancelPreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewFile(null);
-    setPreviewBase64(null);
+    setPreviewUrl(null);
     setInputText('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -216,41 +186,48 @@ export default function WhatsAppPage() {
     if (isSending || !activeContact) return;
     if (!inputText.trim() && !previewFile) return;
 
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const targetNumber = activeContact.number;
     const textToSend = inputText;
 
     setIsSending(true);
 
-    if (previewFile && previewBase64) {
-      const fileToSend = previewFile;
-      const base64ToSend = previewBase64;
+    if (previewFile) {
+      // Usando FormData: a forma correta e rápida de enviar arquivos em Produção
+      const formData = new FormData();
+      formData.append('file', previewFile);
+      formData.append('number', targetNumber);
+      formData.append('caption', textToSend);
 
+      // Adiciona temporariamente na tela para parecer instantâneo
+      const tempId = Date.now();
       const optimisticMsg: Message = { 
-        id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber,
-        isMedia: true, mediaData: base64ToSend, mimeType: fileToSend.type, fileName: fileToSend.name
+        id: tempId, text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+        fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name
       };
 
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
       setInputText('');
       setPreviewFile(null);
-      setPreviewBase64(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
       try {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-        await fetch(`${baseUrl}/whatsapp/send-media`, {
+        const res = await fetch(`${baseUrl}/whatsapp/send-media`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            number: targetNumber, 
-            base64Data: base64ToSend, 
-            fileName: fileToSend.name, 
-            mimeType: fileToSend.type,
-            caption: textToSend 
-          })
+          body: formData, // Sem o Header 'Content-Type', o FormData faz isso sozinho!
         });
+
+        if (res.ok) {
+           const savedData = await res.json();
+           // Atualiza o ID e link temporário para o link definitivo que veio do R2
+           setChatHistory(prev => ({
+             ...prev,
+             [targetNumber]: prev[targetNumber].map(msg => 
+               msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg
+             )
+           }));
+        }
       } catch (error) {
         setErrorBanner("Erro ao enviar arquivo.");
       } finally {
@@ -258,7 +235,7 @@ export default function WhatsAppPage() {
       }
     } else {
       const optimisticMsg: Message = { 
-        id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
+        id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber
       };
 
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
@@ -287,13 +264,11 @@ export default function WhatsAppPage() {
 
   return (
     <div className="dash-container relative flex flex-col md:flex-row">
-      {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600"><i className="bi bi-list"></i></button>
         <span className="font-bold text-[#1FA84A]">Suporte Imagem</span>
       </div>
 
-      {/* Sidebar */}
       <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300`}>
         <div className="flex justify-between items-center mb-10">
           <div className="logo-container mb-0 flex items-center gap-3">
@@ -309,7 +284,6 @@ export default function WhatsAppPage() {
         <button onClick={handleLogout} className="logout-btn mt-auto"><i className="bi bi-box-arrow-right"></i><span>Sair</span></button>
       </aside>
 
-      {/* Main Content */}
       <main className="wa-page-main w-full relative">
         {errorBanner && (
           <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl z-[60] flex gap-2">
@@ -320,7 +294,6 @@ export default function WhatsAppPage() {
 
         <div className={`wa-app-container relative ${activeContact ? 'chat-active' : ''}`}>
           
-          {/* Contact List */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
@@ -330,11 +303,7 @@ export default function WhatsAppPage() {
             </div>
             <div className="wa-chat-list">
               {contacts.map((contact) => (
-                <div 
-                  key={contact.number} 
-                  className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} 
-                  onClick={() => handleSelectContact(contact)}
-                >
+                <div key={contact.number} className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} onClick={() => handleSelectContact(contact)}>
                   {contact.profilePictureUrl ? (
                     <img src={contact.profilePictureUrl} className="wa-avatar" alt="avatar" />
                   ) : (
@@ -352,7 +321,6 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          {/* Chat Area */}
           <div className="wa-main relative bg-[#efeae2]">
             {activeContact ? (
               <>
@@ -371,8 +339,7 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
 
-                {/* Preview de Envio de Arquivo */}
-                {previewFile && previewBase64 && (
+                {previewFile && previewUrl && (
                   <div className="absolute inset-0 top-[70px] bg-slate-100 z-30 flex flex-col items-center justify-between">
                     <div className="w-full flex justify-between p-4">
                       <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
@@ -417,7 +384,6 @@ export default function WhatsAppPage() {
                   </div>
                 )}
 
-                {/* Lista de Mensagens */}
                 <div className="wa-messages !bg-transparent flex-1 overflow-y-auto p-4 flex flex-col gap-2">
                   {activeMessages.map((msg) => (
                     <div key={msg.id} className={`wa-msg relative ${msg.type} shadow-sm !rounded-xl`}>
@@ -472,7 +438,6 @@ export default function WhatsAppPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Formulário de Envio */}
                 <form className="wa-input-area" onSubmit={handleSendMessage}>
                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
@@ -495,7 +460,7 @@ export default function WhatsAppPage() {
       </main>
 
       {/* ==========================================
-          MODAL DO VISUALIZADOR INTERNO (z-[999] FIX)
+          MODAL DO VISUALIZADOR INTERNO (Agora usa as URLs públicas da Cloudflare R2)
           ========================================== */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
@@ -503,7 +468,6 @@ export default function WhatsAppPage() {
             className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" 
             onClick={e => e.stopPropagation()}
           >
-            {/* Header do Modal */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white z-10 shrink-0">
               <span className="font-bold text-slate-800 text-[15px] truncate max-w-[80%]">
                 {viewerMessage.fileName || 'Documento'}
@@ -516,21 +480,13 @@ export default function WhatsAppPage() {
               </button>
             </div>
 
-            {/* Área de Visualização do Arquivo */}
             <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative">
               {viewerMessage.mimeType?.startsWith('image/') ? (
-                <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain p-4" />
+                <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain p-4 shadow-sm" />
               ) : viewerMessage.mimeType?.startsWith('video/') ? (
                 <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full shadow-sm outline-none p-4" />
               ) : viewerMessage.mimeType?.includes('pdf') ? (
-                pdfBlobUrl ? (
-                  <iframe src={`${pdfBlobUrl}#toolbar=0`} className="w-full h-full border-none" title="PDF Viewer" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <div className="w-8 h-8 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <span className="font-medium">A carregar PDF...</span>
-                  </div>
-                )
+                <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border-none shadow-sm bg-white" title="PDF Viewer" />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center p-4">
                   <i className="bi bi-file-earmark-fill text-6xl mb-4 text-slate-200"></i>
@@ -540,11 +496,11 @@ export default function WhatsAppPage() {
               )}
             </div>
 
-            {/* Rodapé */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end bg-white shrink-0">
               <a 
                 href={viewerMessage.mediaData} 
                 download={viewerMessage.fileName || 'download'} 
+                target="_blank" rel="noopener noreferrer"
                 className="bg-[#1FA84A] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-600 transition-colors shadow-sm no-underline"
               >
                 Descarregar
