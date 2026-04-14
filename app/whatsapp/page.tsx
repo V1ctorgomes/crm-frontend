@@ -49,6 +49,18 @@ export default function WhatsAppPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ==========================================
+  // FUNÇÃO PARA MEMORIZAR O CONTATO ATIVO
+  // ==========================================
+  const handleSelectContact = (contact: Contact | null) => {
+    setActiveContact(contact);
+    if (contact) {
+      localStorage.setItem('lastActiveContact', contact.number);
+    } else {
+      localStorage.removeItem('lastActiveContact');
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -59,7 +71,7 @@ export default function WhatsAppPage() {
     }
   }, [chatHistory, activeContact, isLoadingHistory]);
 
-  // 1. Carregar Contatos
+  // 1. Carregar Contatos (e restaurar última conversa)
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -72,6 +84,15 @@ export default function WhatsAppPage() {
             lastMessageTime: new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
           setContacts(formattedContacts);
+
+          // VERIFICA SE EXISTE UM CONTATO SALVO NA MEMÓRIA AO CARREGAR
+          const savedNumber = localStorage.getItem('lastActiveContact');
+          if (savedNumber) {
+            const foundContact = formattedContacts.find((c: Contact) => c.number === savedNumber);
+            if (foundContact) {
+              setActiveContact(foundContact);
+            }
+          }
         }
       } catch (err) { console.error("Erro ao carregar contatos:", err); }
     };
@@ -143,7 +164,7 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, []);
 
-  // 4. Conversão de PDF Base64 para Blob URL (Para o modal funcionar)
+  // 4. Conversão de PDF Base64 para Blob URL
   useEffect(() => {
     let objectUrl: string | null = null;
     
@@ -268,6 +289,7 @@ export default function WhatsAppPage() {
 
   const handleLogout = () => {
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    localStorage.removeItem('lastActiveContact'); // Limpa a memória ao sair
     router.replace('/login');
   };
 
@@ -318,7 +340,11 @@ export default function WhatsAppPage() {
             </div>
             <div className="wa-chat-list">
               {contacts.map((contact) => (
-                <div key={contact.number} className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} onClick={() => setActiveContact(contact)}>
+                <div 
+                  key={contact.number} 
+                  className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} 
+                  onClick={() => handleSelectContact(contact)} /* <--- USO DA NOVA FUNÇÃO AQUI */
+                >
                   {contact.profilePictureUrl ? (
                     <img src={contact.profilePictureUrl} className="wa-avatar" alt="avatar" />
                   ) : (
@@ -342,7 +368,7 @@ export default function WhatsAppPage() {
               <>
                 <div className="wa-header z-10 bg-white border-b border-slate-200">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setActiveContact(null)} className="md:hidden text-2xl text-slate-500 mr-2"><i className="bi bi-arrow-left"></i></button>
+                    <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-2"><i className="bi bi-arrow-left"></i></button>
                     {activeContact.profilePictureUrl ? (
                       <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover" alt="" />
                     ) : (
@@ -488,7 +514,7 @@ export default function WhatsAppPage() {
       </main>
 
       {/* ==========================================
-          MODAL DO VISUALIZADOR INTERNO (z-[999] FIX)
+          MODAL DO VISUALIZADOR INTERNO
           ========================================== */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
