@@ -51,32 +51,45 @@ export default function WhatsAppPage() {
   }, [chatHistory, activeContact]);
 
   // ==========================================
-  // LISTENER: ESCUTAR MENSAGENS AO VIVO (SSE)
+  // LISTENER: ESCUTAR MENSAGENS AO VIVO (SSE - DIAGNÓSTICO EXTREMO)
   // ==========================================
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
+
+    eventSource.onopen = () => {
+      console.log("✅ Conexão SSE aberta com sucesso!");
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("❌ Erro na conexão SSE:", error);
+      setErrorBanner("A conexão em tempo real falhou. O servidor pode estar bloqueando Streaming.");
+    };
 
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
         console.log("🚨 CHEGOU NO FRONTEND:", payload);
         
-        // Verifica se o evento é de nova mensagem (Suporta a nova estrutura da Evolution v2)
-        if (payload?.event === 'messages.upsert') {
+        // --- DIAGNÓSTICO VISUAL ---
+        // Força um aviso no ecrã para sabermos que o sinal de facto chegou à página!
+        setErrorBanner(`Sinal recebido! Veja o F12. Evento: ${payload?.event || payload?.data?.event || 'Desconhecido'}`);
+        // --------------------------
+
+        // Tenta extrair a mensagem independentemente da versão da Evolution
+        const eventType = payload?.event || payload?.data?.event;
+        const msgData = payload?.data?.message || payload?.data?.messages?.[0] || payload?.data;
+
+        if (eventType === 'messages.upsert' && msgData) {
           
-          const msgData = payload.data?.message || payload.data?.messages?.[0];
-
-          if (!msgData) return;
-
           const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Imagem/Áudio/Documento";
-          const senderJid = msgData.key?.remoteJid;
+          const senderJid = msgData.key?.remoteJid || msgData.remoteJid;
           
           if (!senderJid) return;
           
-          const senderNumber = senderJid.split('@')[0]; // Extrai só o número (ex: 5511999999999)
-          const isFromMe = msgData.key?.fromMe;
-          const pushName = msgData.pushName || senderNumber; // Pega o nome do contato ou o número
+          const senderNumber = senderJid.split('@')[0]; // Extrai só o número
+          const isFromMe = msgData.key?.fromMe || msgData.fromMe;
+          const pushName = msgData.pushName || senderNumber;
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           // Ignora atualizações de status ou grupos
@@ -84,11 +97,11 @@ export default function WhatsAppPage() {
 
           // 1. Guarda a mensagem no histórico do contato
           const newMessage: Message = {
-            id: msgData.key?.id || Date.now(),
+            id: msgData.key?.id || msgData.id || Date.now(),
             text: incomingText,
             type: isFromMe ? 'sent' : 'received',
             time: timeNow,
-            fromMe: isFromMe,
+            fromMe: !!isFromMe,
             senderNumber: senderNumber
           };
 
@@ -100,7 +113,7 @@ export default function WhatsAppPage() {
           // 2. Atualiza a lista lateral de contatos
           setContacts(prev => {
             const existingContactIndex = prev.findIndex(c => c.number === senderNumber);
-            const picUrl = payload.data?.profilePictureUrl || undefined;
+            const picUrl = payload?.data?.profilePictureUrl || undefined;
 
             const updatedContact: Contact = {
               number: senderNumber,
@@ -115,11 +128,11 @@ export default function WhatsAppPage() {
               newContacts.splice(existingContactIndex, 1);
               return [updatedContact, ...newContacts]; // Move para o topo
             } else {
-              return [updatedContact, ...prev]; // Adiciona novo contato no topo
+              return [updatedContact, ...prev]; // Adiciona no topo
             }
           });
 
-          // 3. Se for a primeira mensagem e não houver conversa aberta, abre automaticamente
+          // 3. Se for a primeira mensagem e a tela estiver vazia, abre o chat
           if (!isFromMe) {
              setActiveContact(prev => {
                 if (!prev) {
@@ -154,7 +167,6 @@ export default function WhatsAppPage() {
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const targetNumber = activeContact.number;
 
-    // Atualiza a tela imediatamente (Optimistic UI) para parecer super rápido
     const optimisticMsg: Message = { 
       id: Date.now(), 
       text: newMessageText, 
@@ -172,7 +184,6 @@ export default function WhatsAppPage() {
     setInputText('');
     setIsSending(true);
 
-    // Atualiza o resumo do Contato na barra lateral
     setContacts(prev => {
       const idx = prev.findIndex(c => c.number === targetNumber);
       if (idx >= 0) {
@@ -180,7 +191,7 @@ export default function WhatsAppPage() {
         newArray[idx].lastMessage = newMessageText;
         newArray[idx].lastMessageTime = timeNow;
         const [moved] = newArray.splice(idx, 1);
-        return [moved, ...newArray]; // Move para o topo
+        return [moved, ...newArray]; 
       }
       return prev;
     });
@@ -202,12 +213,11 @@ export default function WhatsAppPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Falha no envio (Erro da API). O número pode estar inválido.');
+        throw new Error('Falha no envio da mensagem.');
       }
 
     } catch (error: any) {
       setErrorBanner(`Erro ao enviar: ${error.message}`);
-      // Remove a mensagem da tela se falhar o envio real
       setChatHistory(prev => ({
         ...prev,
         [targetNumber]: prev[targetNumber].filter(msg => msg.id !== optimisticMsg.id)
@@ -222,7 +232,6 @@ export default function WhatsAppPage() {
     router.replace('/login');
   };
 
-  // Carrega as mensagens apenas da pessoa que está selecionada
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
 
   return (
@@ -257,8 +266,8 @@ export default function WhatsAppPage() {
       <main className="wa-page-main relative">
         {errorBanner && (
           <div className="absolute top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
-            <i className="bi bi-exclamation-triangle-fill"></i>
-            <span className="text-sm font-medium">{errorBanner}</span>
+            <i className="bi bi-exclamation-triangle-fill text-xl"></i>
+            <span className="text-sm font-bold">{errorBanner}</span>
             <button onClick={() => setErrorBanner(null)} className="ml-2 text-red-400 hover:text-red-700">
               <i className="bi bi-x-lg"></i>
             </button>
@@ -266,10 +275,6 @@ export default function WhatsAppPage() {
         )}
 
         <div className="wa-app-container">
-          
-          {/* ======================================= */}
-          {/* BARRA LATERAL: LISTA DE CONTATOS        */}
-          {/* ======================================= */}
           <div className="wa-sidebar">
             <div className="wa-search-container">
               <div className="wa-search-box">
@@ -281,7 +286,7 @@ export default function WhatsAppPage() {
             <div className="wa-chat-list">
               {contacts.length === 0 ? (
                 <div className="p-6 text-center text-slate-400 text-sm">
-                  Nenhuma conversa ativa. <br/><br/>Envie uma mensagem do seu telemóvel para a API para iniciar um chat.
+                  Nenhuma conversa ativa. <br/><br/>Envie uma mensagem do seu telemóvel para a API.
                 </div>
               ) : (
                 contacts.map((contact) => (
@@ -311,9 +316,6 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          {/* ======================================= */}
-          {/* JANELA DE CHAT PRINCIPAL                */}
-          {/* ======================================= */}
           <div className="wa-main">
             {activeContact ? (
               <>
@@ -373,9 +375,9 @@ export default function WhatsAppPage() {
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
                   <i className="bi bi-whatsapp text-4xl text-[#1FA84A] opacity-60"></i>
                 </div>
-                <h2 className="text-xl font-bold text-slate-700">Bem-vindo ao Atendimento</h2>
+                <h2 className="text-xl font-bold text-slate-700">Aguardando Mensagens...</h2>
                 <p className="text-slate-500 text-sm mt-2 text-center max-w-sm">
-                  O sistema está conectado e pronto. <br/>As mensagens recebidas aparecerão no menu lateral esquerdo.
+                  Envie uma mensagem para a API para testar a receção.
                 </p>
               </div>
             )}
