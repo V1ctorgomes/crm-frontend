@@ -13,6 +13,10 @@ interface Message {
   time: string;
   fromMe: boolean;
   senderNumber: string;
+  isMedia?: boolean;
+  mediaData?: string;
+  mimeType?: string;
+  fileName?: string;
 }
 
 interface Contact {
@@ -35,6 +39,8 @@ export default function WhatsAppPage() {
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -64,7 +70,7 @@ export default function WhatsAppPage() {
     fetchContacts();
   }, []);
 
-  // Carrega histórico
+  // Carrega histórico (Incluindo mídias)
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
@@ -79,7 +85,11 @@ export default function WhatsAppPage() {
               type: m.type,
               time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               fromMe: m.type === 'sent',
-              senderNumber: m.contactNumber
+              senderNumber: m.contactNumber,
+              isMedia: m.isMedia,
+              mediaData: m.mediaData,
+              mimeType: m.mimeType,
+              fileName: m.fileName
             }));
             
             setChatHistory(prev => ({
@@ -95,7 +105,7 @@ export default function WhatsAppPage() {
     }
   }, [activeContact]);
 
-  // SSE (Mensagens ao vivo)
+  // Escuta mensagens em tempo real (SSE)
   useEffect(() => {
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
@@ -109,9 +119,8 @@ export default function WhatsAppPage() {
           if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
           
           const contactNumber = remoteJid.split('@')[0];
-          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Mídia/Documento";
+          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Mídia recebida";
           const isFromMe = msgData.key?.fromMe || false;
-          const pushName = msgData.pushName || contactNumber;
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const newMessage: Message = {
@@ -127,85 +136,84 @@ export default function WhatsAppPage() {
             ...prev,
             [contactNumber]: [...(prev[contactNumber] || []), newMessage]
           }));
-
-          setContacts(prev => {
-            const existingIdx = prev.findIndex(c => c.number === contactNumber);
-            const updatedContact: Contact = {
-              number: contactNumber,
-              name: pushName,
-              profilePictureUrl: msgData.profilePictureUrl || (existingIdx >= 0 ? prev[existingIdx].profilePictureUrl : undefined),
-              lastMessage: incomingText,
-              lastMessageTime: timeNow
-            };
-
-            if (existingIdx >= 0) {
-              const newContacts = [...prev];
-              newContacts.splice(existingIdx, 1);
-              return [updatedContact, ...newContacts];
-            } else {
-              return [updatedContact, ...prev];
-            }
-          });
         }
-      } catch (err) {
-        console.error("Erro no SSE:", err);
-      }
+      } catch (err) { console.error("Erro SSE:", err); }
     };
     return () => eventSource.close();
   }, []);
 
-  // Enviar Mensagem
+  // Enviar Texto
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || isSending || !activeContact) return;
 
-    const newMessageText = inputText;
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const textToSend = inputText;
     const targetNumber = activeContact.number;
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const optimisticMsg: Message = { 
-      id: Date.now(), text: newMessageText, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
+      id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
     };
 
     setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
     setInputText('');
     setIsSending(true);
 
-    setContacts(prev => {
-      const idx = prev.findIndex(c => c.number === targetNumber);
-      if (idx >= 0) {
-        const newArray = [...prev];
-        newArray[idx].lastMessage = newMessageText;
-        newArray[idx].lastMessageTime = timeNow;
-        const [moved] = newArray.splice(idx, 1);
-        return [moved, ...newArray]; 
-      }
-      return prev;
-    });
-
     try {
       const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/whatsapp/send`, {
+      await fetch(`${baseUrl}/whatsapp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number: targetNumber, text: newMessageText })
+        body: JSON.stringify({ number: targetNumber, text: textToSend })
       });
+    } catch (error) {
+      setErrorBanner("Erro ao enviar mensagem.");
+    } finally { setIsSending(false); }
+  };
 
-      if (!response.ok) throw new Error('Falha no envio.');
+  // Enviar Mídia (Documentos, Imagens)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeContact) return;
 
-    } catch (error: any) {
-      setErrorBanner(`Erro ao enviar: ${error.message}`);
-      setChatHistory(prev => ({
-        ...prev,
-        [targetNumber]: prev[targetNumber].filter(msg => msg.id !== optimisticMsg.id)
-      }));
-    } finally {
-      setIsSending(false);
-    }
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result as string;
+      const targetNumber = activeContact.number;
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const optimisticMsg: Message = { 
+        id: Date.now(), text: file.name, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber,
+        isMedia: true, mediaData: base64Data, mimeType: file.type, fileName: file.name
+      };
+
+      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      setIsSending(true);
+
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+        await fetch(`${baseUrl}/whatsapp/send-media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            number: targetNumber, 
+            base64Data: base64Data, 
+            fileName: file.name, 
+            mimeType: file.type 
+          })
+        });
+      } catch (error) {
+        setErrorBanner("Erro ao enviar arquivo.");
+      } finally {
+        setIsSending(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     router.replace('/login');
   };
 
@@ -214,53 +222,34 @@ export default function WhatsAppPage() {
   return (
     <div className="dash-container relative flex flex-col md:flex-row">
       
-      {/* CABEÇALHO MOBILE */}
+      {/* HEADER MOBILE */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600">
-            <i className="bi bi-list"></i>
-          </button>
-          <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-sm">SI</span>
-          </div>
-        </div>
+        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600"><i className="bi bi-list"></i></button>
+        <span className="font-bold text-[#1FA84A]">Suporte Imagem</span>
       </div>
 
-      {/* OVERLAY ESCURO DO MENU MOBILE */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)}></div>
-      )}
-
-      {/* MENU LATERAL */}
-      <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+      {/* SIDEBAR */}
+      <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300`}>
         <div className="flex justify-between items-center mb-10">
           <div className="logo-container mb-0 flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">SI</span>
-            </div>
+            <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center text-white font-bold text-sm">SI</div>
             <span className="font-bold text-lg text-slate-800">Suporte Imagem</span>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-2xl text-slate-500">
-            <i className="bi bi-x-lg"></i>
-          </button>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-2xl text-slate-500"><i className="bi bi-x-lg"></i></button>
         </div>
-        
         <nav className="dash-nav">
           <Link href="/dashboard" className="dash-nav-item"><i className="bi bi-grid"></i><span>Visão Geral</span></Link>
           <Link href="/whatsapp" className="dash-nav-item active"><i className="bi bi-chat-left-text"></i><span>WhatsApp</span></Link>
         </nav>
-        <div className="mt-auto mb-2 px-2">
-          <button onClick={handleLogout} className="logout-btn"><i className="bi bi-box-arrow-right"></i><span>Terminar Sessão</span></button>
-        </div>
+        <button onClick={handleLogout} className="logout-btn mt-auto"><i className="bi bi-box-arrow-right"></i><span>Sair</span></button>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL (WHATSAPP) */}
-      <main className="wa-page-main relative w-full">
+      {/* WHATSAPP MAIN */}
+      <main className="wa-page-main w-full">
         {errorBanner && (
-          <div className="absolute top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3">
-            <i className="bi bi-exclamation-triangle-fill text-xl"></i>
-            <span className="text-sm font-bold">{errorBanner}</span>
-            <button onClick={() => setErrorBanner(null)} className="ml-2"><i className="bi bi-x-lg"></i></button>
+          <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl z-[60] flex gap-2">
+            <i className="bi bi-exclamation-circle"></i> {errorBanner}
+            <button onClick={() => setErrorBanner(null)} className="ml-2 font-bold">X</button>
           </div>
         )}
 
@@ -271,57 +260,50 @@ export default function WhatsAppPage() {
             <div className="wa-search-container">
               <div className="wa-search-box">
                 <i className="bi bi-search text-slate-400"></i>
-                <input type="text" placeholder="Procurar contatos..." />
+                <input type="text" placeholder="Procurar ou iniciar conversa" />
               </div>
             </div>
             <div className="wa-chat-list">
-              {contacts.length === 0 ? (
-                <div className="p-6 text-center text-slate-400 text-sm">Nenhuma conversa ativa.</div>
-              ) : (
-                contacts.map((contact) => (
-                  <div key={contact.number} className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} onClick={() => setActiveContact(contact)}>
-                    {contact.profilePictureUrl ? (
-                      <img src={contact.profilePictureUrl} alt={contact.name} className="wa-avatar object-cover" />
-                    ) : (
-                      <div className="wa-avatar bg-slate-200 text-slate-600 font-bold text-sm">
-                        {contact.name.substring(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="wa-chat-info">
-                      <div className="wa-chat-header">
-                        <span className="wa-chat-name">{contact.name}</span>
-                        <span className="wa-chat-time">{contact.lastMessageTime}</span>
-                      </div>
-                      <div className="wa-chat-preview">{contact.lastMessage}</div>
+              {contacts.map((contact) => (
+                <div key={contact.number} className={`wa-chat-item ${activeContact?.number === contact.number ? 'active' : ''}`} onClick={() => setActiveContact(contact)}>
+                  {contact.profilePictureUrl ? (
+                    <img src={contact.profilePictureUrl} className="wa-avatar" alt="avatar" />
+                  ) : (
+                    <div className="wa-avatar bg-slate-200 flex items-center justify-center font-bold">
+                      {contact.name.substring(0, 2).toUpperCase()}
                     </div>
+                  )}
+                  <div className="wa-chat-info">
+                    <div className="wa-chat-header">
+                      <span className="wa-chat-name">{contact.name}</span>
+                      <span className="wa-chat-time">{contact.lastMessageTime}</span>
+                    </div>
+                    <div className="wa-chat-preview">{contact.lastMessage}</div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* TELA DE CONVERSA */}
+          {/* ÁREA DE MENSAGENS */}
           <div className="wa-main">
             {activeContact ? (
               <>
                 <div className="wa-header">
                   <div className="flex items-center gap-3">
-                    {/* Botão de Voltar para a lista (Só aparece no mobile) */}
-                    <button onClick={() => setActiveContact(null)} className="md:hidden mr-2 text-2xl text-slate-500 hover:text-slate-800">
+                    <button onClick={() => setActiveContact(null)} className="md:hidden text-2xl text-slate-500 mr-2">
                       <i className="bi bi-arrow-left"></i>
                     </button>
                     {activeContact.profilePictureUrl ? (
-                      <img src={activeContact.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                      <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover" alt="" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm">
-                        {activeContact.name.substring(0, 2).toUpperCase()}
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold">
+                        {activeContact.name.substring(0,2)}
                       </div>
                     )}
                     <div>
-                      <h2 className="text-[15px] font-semibold text-slate-800">{activeContact.name}</h2>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] text-slate-500 font-medium">{activeContact.number}</span>
-                      </div>
+                      <h2 className="text-[15px] font-semibold">{activeContact.name}</h2>
+                      <span className="text-[11px] text-slate-500">{activeContact.number}</span>
                     </div>
                   </div>
                 </div>
@@ -329,7 +311,21 @@ export default function WhatsAppPage() {
                 <div className="wa-messages">
                   {activeMessages.map((msg) => (
                     <div key={msg.id} className={`wa-msg ${msg.type}`}>
-                      {msg.text}
+                      {msg.isMedia && msg.mediaData && (
+                        <div className="mb-2">
+                          {msg.mimeType?.startsWith('image/') ? (
+                            <img src={msg.mediaData} className="max-w-full rounded-md max-h-64 object-contain" alt="media" />
+                          ) : msg.mimeType?.startsWith('video/') ? (
+                            <video src={msg.mediaData} controls className="max-w-full rounded-md max-h-64" />
+                          ) : (
+                            <a href={msg.mediaData} download={msg.fileName} className="flex items-center gap-2 p-2 bg-black/5 rounded no-underline text-current">
+                              <i className="bi bi-file-earmark-arrow-down text-2xl"></i>
+                              <span className="text-xs truncate w-32 font-bold">{msg.fileName || 'Doc'}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      <span className="block">{msg.text}</span>
                       <span className="wa-time">{msg.time}</span>
                     </div>
                   ))}
@@ -337,19 +333,20 @@ export default function WhatsAppPage() {
                 </div>
 
                 <form className="wa-input-area" onSubmit={handleSendMessage}>
-                  <i className="bi bi-paperclip cursor-not-allowed opacity-50"></i>
+                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
+                    <i className="bi bi-paperclip text-2xl"></i>
+                  </button>
                   <input type="text" placeholder="Escreva uma mensagem..." value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isSending} />
-                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 border-none cursor-pointer disabled:opacity-50">
-                    {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill !text-white !text-sm"></i>}
+                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50">
+                    {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
                   </button>
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex-col items-center justify-center bg-slate-50 hidden md:flex">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                  <i className="bi bi-whatsapp text-4xl text-[#1FA84A] opacity-60"></i>
-                </div>
-                <h2 className="text-xl font-bold text-slate-700">Aguardando Mensagens...</h2>
+              <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-slate-50">
+                <i className="bi bi-whatsapp text-6xl text-slate-200 mb-4"></i>
+                <h2 className="text-xl font-bold text-slate-400">Selecione uma conversa</h2>
               </div>
             )}
           </div>
