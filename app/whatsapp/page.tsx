@@ -38,11 +38,13 @@ export default function WhatsAppPage() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
-  // ==========================================
-  // ESTADOS PARA PRÉ-VISUALIZAÇÃO DE MÍDIA
-  // ==========================================
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+
+  // ==========================================
+  // ESTADO PARA O VISUALIZADOR INTERNO (MODAL)
+  // ==========================================
+  const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,7 +117,7 @@ export default function WhatsAppPage() {
           if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
           
           const contactNumber = remoteJid.split('@')[0];
-          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "📷 Mídia recebida";
+          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : "📷 Mídia recebida");
           const isFromMe = msgData.key?.fromMe || false;
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -131,7 +133,6 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, []);
 
-  // Ao selecionar um arquivo, não envia de imediato. Apenas abre o painel de Preview.
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
@@ -156,7 +157,15 @@ export default function WhatsAppPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Função Unificada de Envio (Lida com Texto Normal E Arquivo com Legenda)
+  // Abre o visualizador interno
+  const openViewer = (msg: Message) => {
+    setViewerMessage(msg);
+  };
+
+  const closeViewer = () => {
+    setViewerMessage(null);
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isSending || !activeContact) return;
@@ -169,7 +178,6 @@ export default function WhatsAppPage() {
     setIsSending(true);
 
     if (previewFile && previewBase64) {
-      // ENVIANDO MÍDIA COM LEGENDA
       const fileToSend = previewFile;
       const base64ToSend = previewBase64;
 
@@ -180,7 +188,6 @@ export default function WhatsAppPage() {
 
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
-      // Limpa os estados de preview imediatamente para voltar ao chat
       setInputText('');
       setPreviewFile(null);
       setPreviewBase64(null);
@@ -196,7 +203,7 @@ export default function WhatsAppPage() {
             base64Data: base64ToSend, 
             fileName: fileToSend.name, 
             mimeType: fileToSend.type,
-            caption: textToSend // Aqui enviamos a legenda para o backend
+            caption: textToSend 
           })
         });
       } catch (error) {
@@ -205,7 +212,6 @@ export default function WhatsAppPage() {
         setIsSending(false);
       }
     } else {
-      // ENVIANDO APENAS TEXTO
       const optimisticMsg: Message = { 
         id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber
       };
@@ -292,10 +298,10 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          <div className="wa-main relative">
+          <div className="wa-main relative bg-[#efeae2]">
             {activeContact ? (
               <>
-                <div className="wa-header z-10">
+                <div className="wa-header z-10 bg-white border-b border-slate-200">
                   <div className="flex items-center gap-3">
                     <button onClick={() => setActiveContact(null)} className="md:hidden text-2xl text-slate-500 mr-2"><i className="bi bi-arrow-left"></i></button>
                     {activeContact.profilePictureUrl ? (
@@ -310,34 +316,32 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
 
-                {/* OVERLAY DE PRÉ-VISUALIZAÇÃO (SÓ APARECE SE TIVER ARQUIVO SELECIONADO) */}
                 {previewFile && previewBase64 && (
                   <div className="absolute inset-0 top-[70px] bg-slate-100 z-30 flex flex-col items-center justify-between">
-                    {/* Botão de Fechar/Cancelar */}
                     <div className="w-full flex justify-between p-4">
                       <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
                         <i className="bi bi-x-lg"></i>
                       </button>
                     </div>
 
-                    {/* Exibição do Arquivo a Enviar */}
                     <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
-                      {previewFile.type.startsWith('image/') ? (
-                        <img src={previewBase64} alt="Preview" className="max-h-80 md:max-h-96 rounded-lg shadow-md object-contain" />
-                      ) : (
                         <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center">
-                          <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
-                             <i className="bi bi-file-earmark-pdf-fill text-5xl text-red-500"></i>
+                          <div className={`w-20 h-20 ${previewFile.type.startsWith('image/') ? 'bg-blue-100' : previewFile.type.startsWith('video/') ? 'bg-yellow-100' : 'bg-red-100'} rounded-2xl flex items-center justify-center mb-4`}>
+                             {previewFile.type.startsWith('image/') ? (
+                                <i className="bi bi-file-earmark-image-fill text-5xl text-blue-500"></i>
+                             ) : previewFile.type.startsWith('video/') ? (
+                                <i className="bi bi-file-earmark-play-fill text-5xl text-yellow-600"></i>
+                             ) : (
+                                <i className="bi bi-file-earmark-pdf-fill text-5xl text-red-500"></i>
+                             )}
                           </div>
                           <h3 className="font-bold text-slate-800 text-lg text-center break-all">{previewFile.name}</h3>
                           <span className="text-sm font-medium text-slate-400 mt-2">
-                            {previewFile.type.includes('pdf') ? 'Documento PDF' : 'Documento'} • {(previewFile.size / 1024 / 1024).toFixed(2)} MB
+                            {previewFile.type.includes('pdf') ? 'Documento PDF' : previewFile.type.startsWith('image/') ? 'Imagem' : previewFile.type.startsWith('video/') ? 'Vídeo' : 'Documento'} • {(previewFile.size / 1024 / 1024).toFixed(2)} MB
                           </span>
                         </div>
-                      )}
                     </div>
 
-                    {/* Barra de Digitar Legenda (Baseada na interface nativa do app) */}
                     <div className="w-full bg-[#f0f2f5] p-4 flex items-center justify-center shrink-0">
                        <div className="w-full max-w-2xl flex gap-2">
                           <input 
@@ -349,11 +353,7 @@ export default function WhatsAppPage() {
                             onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
                             autoFocus
                           />
-                          <button 
-                            onClick={handleSendMessage} 
-                            disabled={isSending}
-                            className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0"
-                          >
+                          <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
                             {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
                           </button>
                        </div>
@@ -361,57 +361,56 @@ export default function WhatsAppPage() {
                   </div>
                 )}
 
-                <div className="wa-messages">
+                <div className="wa-messages !bg-transparent">
                   {activeMessages.map((msg) => (
-                    <div key={msg.id} className={`wa-msg relative ${msg.type}`}>
+                    <div key={msg.id} className={`wa-msg relative ${msg.type} shadow-sm !rounded-xl`}>
                       
-                      {/* LÓGICA DE RENDERIZAÇÃO DE MÍDIA ATUALIZADA (IGUAL À FOTO) */}
+                      {/* LÓGICA UNIFICADA: TODOS OS ARQUIVOS SÃO MOSTRADOS COMO DOCUMENTO (FECHADOS) */}
                       {msg.isMedia && msg.mediaData && (
                         <div className="mb-1 flex flex-col w-full">
-                          {msg.mimeType?.startsWith('image/') ? (
-                            <img src={msg.mediaData} className="max-w-full rounded-md max-h-64 object-contain mb-1" alt="media" />
-                          ) : msg.mimeType?.startsWith('video/') ? (
-                            <video src={msg.mediaData} controls className="max-w-full rounded-md max-h-64 mb-1" />
-                          ) : (
-                            /* CAIXA DO DOCUMENTO EXATAMENTE COMO NA FOTO */
-                            <>
-                              <div className={`flex items-center gap-3 p-3 rounded-lg ${msg.type === 'sent' ? 'bg-[#c6efc1]' : 'bg-black/5'} mb-2`}>
-                                <div className="w-11 h-11 bg-[#fce4e4] rounded-lg flex items-center justify-center shrink-0">
-                                  <i className="bi bi-file-earmark-pdf-fill text-red-500 text-2xl"></i>
+                            {/* CAIXA DO DOCUMENTO EXATAMENTE COMO NA FOTO */}
+                            <div className={`flex items-center gap-3 p-3 rounded-lg ${msg.type === 'sent' ? 'bg-[#c6efc1]' : 'bg-black/5'} mb-2`}>
+                                <div className={`w-11 h-11 ${msg.mimeType?.startsWith('image/') ? 'bg-blue-100' : msg.mimeType?.startsWith('video/') ? 'bg-yellow-100' : 'bg-[#fce4e4]'} rounded-lg flex items-center justify-center shrink-0`}>
+                                    {msg.mimeType?.startsWith('image/') ? (
+                                        <i className="bi bi-file-earmark-image-fill text-blue-500 text-2xl"></i>
+                                    ) : msg.mimeType?.startsWith('video/') ? (
+                                        <i className="bi bi-file-earmark-play-fill text-yellow-600 text-2xl"></i>
+                                    ) : msg.mimeType?.includes('pdf') ? (
+                                        <i className="bi bi-file-earmark-pdf-fill text-red-500 text-2xl"></i>
+                                    ) : (
+                                        <i className="bi bi-file-earmark-fill text-slate-500 text-2xl"></i>
+                                    )}
                                 </div>
                                 <div className="flex flex-col overflow-hidden w-full">
-                                  <span className="text-[15px] font-bold text-slate-800 truncate leading-tight">{msg.fileName || 'Documento'}</span>
-                                  <span className="text-[13px] text-slate-500 font-medium mt-0.5">
-                                    {msg.mimeType?.includes('pdf') ? 'PDF' : 'DOCUMENTO'}
+                                  <span className="text-[15px] font-bold text-slate-800 truncate leading-tight">{msg.fileName || 'Arquivo'}</span>
+                                  <span className="text-[13px] text-slate-500 font-medium mt-0.5 uppercase">
+                                    {msg.mimeType?.split('/')[1] || 'ARQUIVO'}
                                   </span>
                                 </div>
-                              </div>
-                            </>
-                          )}
+                            </div>
                         </div>
                       )}
 
-                      {/* TEXTO / LEGENDA (A legenda aparece logo abaixo do quadro gris do doc) */}
+                      {/* TEXTO / LEGENDA */}
                       {msg.text && (
-                        <p className={`text-[14.5px] text-slate-800 leading-snug break-words ${msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/') ? 'mb-2' : ''}`}>
+                        <p className={`text-[14.5px] text-slate-800 leading-snug break-words ${msg.isMedia ? 'mb-2' : ''}`}>
                           {msg.text}
                         </p>
                       )}
 
-                      {/* BOTÕES ABRIR / BAIXAR E HORA (Aparecem no final do documento) */}
-                      {msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/') && (
+                      {/* BOTÕES ABRIR E HORA (Aparecem no final do documento) */}
+                      {msg.isMedia && (
                         <div className={`flex items-center justify-between pt-2 mt-1 border-t ${msg.type === 'sent' ? 'border-[#b2dcb0]' : 'border-black/5'}`}>
                            <div className="flex gap-2 text-[13.5px] font-bold text-[#14833b]">
-                             <a href={msg.mediaData} target="_blank" rel="noreferrer" className="hover:underline cursor-pointer">Abrir</a>
-                             <span className="text-slate-400 font-normal">/</span>
-                             <a href={msg.mediaData} download={msg.fileName} className="hover:underline cursor-pointer">baixar</a>
+                             {/* BOTÃO ABRIR: AGORA ABRE O VISUALIZADOR INTERNO */}
+                             <a onClick={() => openViewer(msg)} className="hover:underline cursor-pointer">Abrir</a>
                            </div>
-                           <span className="wa-time !mt-0">{msg.time} <i className="bi bi-check-all text-[#34B7F1] ml-0.5"></i></span>
+                           <span className="wa-time !mt-0">{msg.time} {msg.fromMe && <i className="bi bi-check-all text-[#34B7F1] ml-0.5"></i>}</span>
                         </div>
                       )}
                       
-                      {/* HORA NORMAL (Para textos e imagens simples) */}
-                      {!(msg.isMedia && !msg.mimeType?.startsWith('image/') && !msg.mimeType?.startsWith('video/')) && (
+                      {/* HORA NORMAL (Para textos) */}
+                      {!msg.isMedia && (
                         <span className="wa-time">
                           {msg.time}
                           {msg.fromMe && <i className="bi bi-check-all text-[#34B7F1] ml-1 text-[13px]"></i>}
@@ -428,7 +427,7 @@ export default function WhatsAppPage() {
                     <i className="bi bi-paperclip text-2xl"></i>
                   </button>
                   <input type="text" placeholder="Escreva uma mensagem..." value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isSending} />
-                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50">
+                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors">
                     {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
                   </button>
                 </form>
@@ -442,8 +441,52 @@ export default function WhatsAppPage() {
           </div>
         </div>
       </main>
+
+      {/* ==========================================
+          MODAL DO VISUALIZADOR INTERNO
+          ========================================== */}
+      {viewerMessage && viewerMessage.mediaData && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col p-4 md:p-8" onClick={closeViewer}>
+            {/* Header do Modal com controles */}
+            <div className="w-full flex justify-between items-center mb-6" onClick={e => e.stopPropagation() /* Impede fechar ao clicar nos controles */}>
+                <div className="flex flex-col text-white">
+                    <span className="font-bold text-lg truncate max-w-sm">{viewerMessage.fileName}</span>
+                    <span className="text-sm opacity-70">{viewerMessage.mimeType}</span>
+                </div>
+                <div className="flex gap-3">
+                    {/* Botão de Download */}
+                    <a href={viewerMessage.mediaData} download={viewerMessage.fileName} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 text-xl transition-colors">
+                        <i className="bi bi-download"></i>
+                    </a>
+                    {/* Botão de Fechar */}
+                    <button onClick={closeViewer} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 text-xl transition-colors">
+                        <i className="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            {/* Conteúdo do Visualizador */}
+            <div className="flex-1 flex items-center justify-center overflow-hidden" onClick={e => e.stopPropagation()}>
+                {viewerMessage.mimeType?.startsWith('image/') ? (
+                    <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full rounded-md object-contain shadow-2xl" />
+                ) : viewerMessage.mimeType?.startsWith('video/') ? (
+                    <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded-md shadow-2xl" />
+                ) : viewerMessage.mimeType?.includes('pdf') ? (
+                    <embed src={`${viewerMessage.mediaData}#toolbar=0&navpanes=0&scrollbar=0`} type="application/pdf" className="w-full h-full rounded-md max-w-5xl" />
+                ) : (
+                    /* Para outros arquivos, mostra um aviso e botão de download */
+                    <div className="text-white text-center p-12 bg-white/5 rounded-xl flex flex-col items-center">
+                        <i className="bi bi-file-earmark-fill text-6xl mb-4 opacity-50"></i>
+                        <span className="font-bold">{viewerMessage.fileName}</span>
+                        <span className="opacity-70 mt-1 mb-6">Visualização não disponível para este tipo de arquivo.</span>
+                        <a href={viewerMessage.mediaData} download={viewerMessage.fileName} className="bg-[#1FA84A] text-white px-6 py-2 rounded-full font-bold no-underline hover:bg-green-600 transition-colors">
+                            Descarregar
+                        </a>
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
     </div>
   );
-
-  
 }
