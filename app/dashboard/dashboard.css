@@ -1,162 +1,35 @@
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
-
-:root {
-  --saas-bg: #f8fafc;          /* Fundo geral (cinza ultra-claro) */
-  --saas-surface: #ffffff;     /* Fundo dos cartões e menu (branco puro) */
-  --saas-border: #e2e8f0;      /* Bordas suaves */
-  --saas-border-hover: #cbd5e1;
-  --saas-text: #0f172a;        /* Texto principal escuro (quase preto) */
-  --saas-muted: #64748b;       /* Texto secundário (cinza médio) */
-  --saas-accent: #1FA84A;      /* Verde Suporte Imagem */
-  --saas-accent-light: #f0fdf4;/* Fundo verde bem claro pro item ativo */
-  --saas-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
-  --saas-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
-}
-
-* { box-sizing: border-box; }
+/* ==========================================
+   DASHBOARD & SCROLLBAR GLOBAL
+   ========================================== */
 
 body {
-  background-color: var(--saas-bg);
-  color: var(--saas-text);
+  background-color: #f8f9fa;
   margin: 0;
+  padding: 0;
 }
 
-.dash-container {
-  display: flex;
-  min-height: 100vh;
-  font-family: 'Inter', -apple-system, sans-serif;
-  background-color: var(--saas-bg);
+/* Scrollbar (Barra de rolagem) customizada e elegante para todo o sistema */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-/* Menu Lateral SaaS Clean (Desktop) */
-.dash-sidebar {
-  width: 260px;
-  background: var(--saas-surface);
-  border-right: 1px solid var(--saas-border);
-  display: flex;
-  flex-direction: column;
-  padding: 24px 16px;
-  position: fixed;
-  height: 100vh;
-  z-index: 100;
-  transition: transform 0.3s ease;
-}
-
-.logo-container { margin-bottom: 40px; padding-left: 12px; }
-
-.dash-nav { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
-
-.dash-nav-item {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--saas-muted);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.dash-nav-item i { font-size: 16px; margin-right: 12px; opacity: 0.8; }
-
-.dash-nav-item:hover {
-  background: #f1f5f9;
-  color: var(--saas-text);
-}
-
-.dash-nav-item.active {
-  background: var(--saas-accent-light);
-  color: var(--saas-accent);
-  font-weight: 600;
-}
-
-.dash-nav-item.active i { opacity: 1; }
-
-.dash-main {
-  flex-grow: 1;
-  margin-left: 260px;
-  padding: 48px 56px;
-}
-
-/* Botão de Logout */
-.logout-btn {
+::-webkit-scrollbar-track {
   background: transparent;
-  border: 1px solid transparent;
-  color: var(--saas-muted);
-  height: 40px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  font-weight: 500;
-  font-size: 14px;
-  transition: 0.2s;
-  width: 100%;
 }
 
-.logout-btn:hover {
-  background: #fef2f2;
-  color: #ef4444;
-}
-.logout-btn i { margin-right: 12px; }
-
-/* Tipografia e Cartões */
-.page-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--saas-text);
-  margin-bottom: 4px;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
-.saas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  margin-top: 32px;
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-.saas-card {
-  background: var(--saas-surface);
-  border: 1px solid var(--saas-border);
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--saas-shadow);
-  transition: all 0.2s ease;
-}
-
-.saas-card:hover { 
-  border-color: var(--saas-border-hover);
-  box-shadow: var(--saas-shadow-hover);
-}
-
-.saas-card h3 {
-  font-size: 13px;
-  color: var(--saas-muted);
-  font-weight: 600;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.saas-card .value {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--saas-text);
-}
-
-/* ==========================================
-   RESPONSIVIDADE GERAL (MOBILE)
-   ========================================== */
-@media (max-width: 768px) {
-  .dash-main {
-    margin-left: 0; /* Remove a margem lateral no mobile */
-    padding: 20px 16px;
-    margin-top: 60px; /* Espaço para o cabeçalho móvel */
-  }
+/* Esconde as setinhas de inputs do tipo number (Opcional, mas útil num CRM) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

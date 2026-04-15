@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/Sidebar'; // <-- O nosso novo componente universal!
 import '../dashboard/dashboard.css';
 import './whatsapp.css';
 
@@ -32,7 +32,6 @@ export default function WhatsAppPage() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
@@ -262,37 +261,15 @@ export default function WhatsAppPage() {
     }
   };
 
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    localStorage.removeItem('lastActiveContact');
-    router.replace('/login');
-  };
-
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
 
   return (
-    <div className="dash-container relative flex flex-col md:flex-row">
-      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600"><i className="bi bi-list"></i></button>
-        <span className="font-bold text-[#1FA84A]">Suporte Imagem</span>
-      </div>
+    <div className="dash-container relative flex flex-col md:flex-row h-screen overflow-hidden">
+      
+      {/* 1 Lógica inteira substituída por 1 linha! */}
+      <Sidebar />
 
-      <aside className={`dash-sidebar ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300`}>
-        <div className="flex justify-between items-center mb-10">
-          <div className="logo-container mb-0 flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[#1FA84A] flex items-center justify-center text-white font-bold text-sm">SI</div>
-            <span className="font-bold text-lg text-slate-800">Suporte Imagem</span>
-          </div>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-2xl text-slate-500"><i className="bi bi-x-lg"></i></button>
-        </div>
-        <nav className="dash-nav">
-          <Link href="/dashboard" className="dash-nav-item"><i className="bi bi-grid"></i><span>Visão Geral</span></Link>
-          <Link href="/whatsapp" className="dash-nav-item active"><i className="bi bi-chat-left-text"></i><span>WhatsApp</span></Link>
-        </nav>
-        <button onClick={handleLogout} className="logout-btn mt-auto"><i className="bi bi-box-arrow-right"></i><span>Sair</span></button>
-      </aside>
-
-      <main className="wa-page-main w-full relative">
+      <main className="wa-page-main w-full relative h-full transition-all duration-300">
         {errorBanner && (
           <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl z-[60] flex gap-2">
             <i className="bi bi-exclamation-circle"></i> {errorBanner}
@@ -300,9 +277,9 @@ export default function WhatsAppPage() {
           </div>
         )}
 
-        <div className={`wa-app-container relative ${activeContact ? 'chat-active' : ''}`}>
+        <div className={`wa-app-container relative h-full pt-[60px] md:pt-0 ${activeContact ? 'chat-active' : ''}`}>
           
-          <div className="wa-sidebar">
+          <div className="wa-sidebar h-full">
             <div className="wa-search-container">
               <div className="wa-search-box">
                 <i className="bi bi-search text-slate-400"></i>
@@ -329,7 +306,7 @@ export default function WhatsAppPage() {
             </div>
           </div>
 
-          <div className="wa-main relative bg-[#efeae2]">
+          <div className="wa-main relative bg-[#efeae2] h-full">
             {activeContact ? (
               <>
                 <div className="wa-header z-10 bg-white border-b border-slate-200">
@@ -458,7 +435,7 @@ export default function WhatsAppPage() {
                 </form>
               </>
             ) : (
-              <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-slate-50">
+              <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-slate-50 h-full">
                 <i className="bi bi-whatsapp text-6xl text-slate-200 mb-4"></i>
                 <h2 className="text-xl font-bold text-slate-400">Selecione uma conversa</h2>
               </div>
