@@ -19,70 +19,75 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Header Mobile */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600">
+      {/* Header Mobile (Visível apenas em telemóveis) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40 shadow-sm">
+        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600 p-2">
           <i className="bi bi-list"></i>
         </button>
-        <span className="font-bold text-[#1FA84A]">Suporte Imagem</span>
+        <span className="font-bold text-[#1FA84A] text-lg">Suporte Imagem</span>
+        <div className="w-8"></div> {/* Spacer para centrar o título */}
       </div>
 
-      {/* Sidebar (Desktop recolhível & Mobile) */}
+      {/* Sidebar FIXA */}
       <aside 
-        className={`group flex flex-col z-50 transition-all duration-300 ease-in-out bg-white border-r border-slate-200 fixed md:relative h-full
-          ${isMobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full'} 
-          md:translate-x-0 md:w-[84px] hover:md:w-[260px] shrink-0`}
+        className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+          md:translate-x-0`}
       >
-        {/* Logo */}
-        <div className="flex items-center h-[80px] px-4 shrink-0 overflow-hidden border-b border-slate-50 md:border-none mt-2 md:mt-0">
-          <div className="w-11 h-11 rounded-xl bg-[#1FA84A] flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">SI</div>
-          <span className="font-bold text-xl text-slate-800 ml-4 whitespace-nowrap transition-opacity duration-300 md:opacity-0 group-hover:md:opacity-100">
+        {/* Logo / Header da Sidebar */}
+        <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
+          <div className="w-10 h-10 rounded-xl bg-[#1FA84A] flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+            SI
+          </div>
+          <span className="font-bold text-[17px] text-slate-800 ml-3 truncate">
             Suporte Imagem
           </span>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500">
+            <i className="bi bi-x-lg"></i>
+          </button>
         </div>
 
-        {/* Links (flex-1 empurra o Sair para o fundo) */}
-        <nav className="flex-1 flex flex-col gap-2 px-3 mt-4 overflow-hidden">
-          
-          <Link href="/dashboard" className={`flex items-center h-12 rounded-xl transition-colors overflow-hidden ${isActive('/dashboard') ? 'bg-[#e8f6ea] text-[#1FA84A]' : 'hover:bg-slate-50 text-slate-500'}`}>
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
-              <i className="bi bi-grid text-xl"></i>
-            </div>
-            <span className={`font-medium whitespace-nowrap transition-opacity duration-300 md:opacity-0 group-hover:md:opacity-100 ${isActive('/dashboard') ? 'font-bold' : ''}`}>
-              Visão Geral
-            </span>
+        {/* Links de Navegação (O flex-1 empurra o botão Sair para o fundo) */}
+        <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
+          <Link 
+            href="/dashboard" 
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${
+              isActive('/dashboard') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'
+            }`}
+          >
+            <i className="bi bi-grid text-[20px]"></i>
+            <span className="text-[15px]">Visão Geral</span>
           </Link>
 
-          <Link href="/whatsapp" className={`flex items-center h-12 rounded-xl transition-colors overflow-hidden ${isActive('/whatsapp') ? 'bg-[#e8f6ea] text-[#1FA84A]' : 'hover:bg-slate-50 text-slate-500'}`}>
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
-              <i className="bi bi-chat-left-text text-xl"></i>
-            </div>
-            <span className={`font-medium whitespace-nowrap transition-opacity duration-300 md:opacity-0 group-hover:md:opacity-100 ${isActive('/whatsapp') ? 'font-bold' : ''}`}>
-              WhatsApp
-            </span>
+          <Link 
+            href="/whatsapp" 
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${
+              isActive('/whatsapp') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'
+            }`}
+          >
+            <i className="bi bi-chat-left-text text-[20px]"></i>
+            <span className="text-[15px]">WhatsApp</span>
           </Link>
-
         </nav>
 
-        {/* Botão Sair no fundo */}
-        <div className="p-3 shrink-0 mb-2">
+        {/* Botão Sair (Fixo no fundo) */}
+        <div className="p-4 border-t border-slate-100 shrink-0">
           <button 
             onClick={handleLogout} 
-            className="w-full flex items-center h-12 rounded-xl text-red-500 hover:bg-red-50 transition-colors overflow-hidden"
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-50 transition-colors font-medium text-[15px]"
           >
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
-              <i className="bi bi-box-arrow-right text-xl"></i>
-            </div>
-            <span className="font-medium whitespace-nowrap transition-opacity duration-300 md:opacity-0 group-hover:md:opacity-100">
-              Sair
-            </span>
+            <i className="bi bi-box-arrow-right text-[20px]"></i>
+            <span>Sair da Conta</span>
           </button>
         </div>
       </aside>
 
-      {/* Overlay Escuro para o Mobile */}
+      {/* Overlay Escuro para fechar o menu no Mobile */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+        <div 
+          className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        ></div>
       )}
     </>
   );

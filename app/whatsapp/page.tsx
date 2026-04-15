@@ -241,11 +241,13 @@ export default function WhatsAppPage() {
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f9fa] font-sans">
+    <div className="flex h-screen overflow-hidden bg-white font-sans">
       
+      {/* Menu Lateral Fixo */}
       <Sidebar />
 
-      <main className="flex-1 flex flex-col relative h-full pt-[60px] md:pt-0">
+      {/* Container Principal do WhatsApp */}
+      <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
         {errorBanner && (
           <div className="absolute top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3">
@@ -255,172 +257,168 @@ export default function WhatsAppPage() {
           </div>
         )}
 
-        {/* ESTRUTURA BLINDADA DO WHATSAPP (Tailwind 100%) */}
-        <div className="flex w-full h-full bg-white overflow-hidden shadow-sm">
-          
-          {/* BARRA DE CONTATOS */}
-          <div className={`w-full md:w-[350px] lg:w-[400px] flex-col border-r border-slate-200 shrink-0 bg-white z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-3 bg-white border-b border-slate-100">
-              <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
-                <i className="bi bi-search text-slate-400"></i>
-                <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
-              </div>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto">
-              {contacts.map((contact) => (
-                <div 
-                  key={contact.number} 
-                  className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-[#f0f2f5]' : 'hover:bg-slate-50'}`}
-                  onClick={() => handleSelectContact(contact)}
-                >
-                  {contact.profilePictureUrl ? (
-                    <img src={contact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shrink-0" alt="avatar" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0">
-                      {contact.name.substring(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <span className="font-semibold text-slate-800 text-[15px] truncate">{contact.name}</span>
-                      <span className="text-[11px] text-slate-500 shrink-0">{contact.lastMessageTime}</span>
-                    </div>
-                    <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage}</div>
-                  </div>
-                </div>
-              ))}
+        {/* COLUNA ESQUERDA: Lista de Contatos */}
+        <div className={`w-full md:w-[320px] lg:w-[350px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-3 bg-white border-b border-slate-100 shrink-0">
+            <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
+              <i className="bi bi-search text-slate-400"></i>
+              <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
             </div>
           </div>
-
-          {/* ÁREA DE CHAT (MENSAGENS) */}
-          <div className={`flex-1 flex-col relative bg-[#efeae2] ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
-            
-            {/* Background Image fixo do WhatsApp */}
-            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-multiply" 
-                 style={{ backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')", backgroundRepeat: 'repeat', backgroundSize: '400px' }}>
-            </div>
-
-            {activeContact ? (
-              <>
-                {/* Cabeçalho do Chat */}
-                <div className="h-[60px] bg-[#f0f2f5] border-b border-slate-200 flex items-center px-4 shrink-0 z-10">
-                  <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-3">
-                    <i className="bi bi-arrow-left"></i>
-                  </button>
-                  {activeContact.profilePictureUrl ? (
-                    <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center font-bold text-white">
-                      {activeContact.name.substring(0,2)}
-                    </div>
-                  )}
-                  <div className="ml-3">
-                    <h2 className="text-[15px] font-semibold text-slate-800 leading-tight">{activeContact.name}</h2>
-                    <span className="text-[12px] text-slate-500 leading-tight">{activeContact.number}</span>
-                  </div>
-                </div>
-
-                {/* Preview de Upload */}
-                {previewFile && previewUrl && (
-                  <div className="absolute inset-0 top-[60px] bg-slate-100 z-30 flex flex-col items-center justify-between">
-                    <div className="w-full flex justify-between p-4">
-                      <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
-                        <i className="bi bi-x-lg"></i>
-                      </button>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
-                        <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center text-center">
-                          <i className="bi bi-file-earmark-fill text-6xl text-slate-300 mb-4"></i>
-                          <h3 className="font-bold text-slate-800 text-lg break-all line-clamp-2">{previewFile.name}</h3>
-                          <span className="text-sm font-medium text-slate-400 mt-2">{(previewFile.size / 1024 / 1024).toFixed(2)} MB</span>
-                        </div>
-                    </div>
-                    <div className="w-full bg-[#f0f2f5] p-4 flex items-center justify-center shrink-0">
-                       <div className="w-full max-w-2xl flex gap-2">
-                          <input type="text" placeholder="Adicione uma legenda..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} autoFocus />
-                          <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
-                            {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
-                          </button>
-                       </div>
-                    </div>
+          
+          <div className="flex-1 overflow-y-auto">
+            {contacts.map((contact) => (
+              <div 
+                key={contact.number} 
+                className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-[#f0f2f5]' : 'hover:bg-slate-50'}`}
+                onClick={() => handleSelectContact(contact)}
+              >
+                {contact.profilePictureUrl ? (
+                  <img src={contact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shrink-0" alt="avatar" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0">
+                    {contact.name.substring(0, 2).toUpperCase()}
                   </div>
                 )}
-
-                {/* Lista de Mensagens */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-3 z-10">
-                  {activeMessages.map((msg) => (
-                    <div 
-                      key={msg.id} 
-                      className={`max-w-[85%] md:max-w-[65%] w-fit relative px-3 py-2 rounded-xl shadow-sm flex flex-col
-                        ${msg.fromMe ? 'self-end bg-[#d9fdd3] rounded-tr-none' : 'self-start bg-white rounded-tl-none'}`}
-                    >
-                      {msg.isMedia && msg.mediaData && (
-                        <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
-                            <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
-                                <i className={`text-2xl ${msg.mimeType?.includes('pdf') ? 'bi bi-file-earmark-pdf-fill text-red-500' : 'bi bi-file-earmark-fill text-slate-500'}`}></i>
-                            </div>
-                            <div className="flex flex-col overflow-hidden w-full max-w-[200px]">
-                              <span className="text-[14px] font-bold text-slate-800 truncate">{msg.fileName || 'Arquivo'}</span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[11px] text-slate-500 font-bold uppercase">{msg.mimeType?.split('/')[1] || 'ARQUIVO'}</span>
-                                <a onClick={() => setViewerMessage(msg)} className="text-[12px] text-[#1FA84A] font-bold hover:underline cursor-pointer">Abrir</a>
-                              </div>
-                            </div>
-                        </div>
-                      )}
-
-                      {msg.text && (
-                        <span className="text-[14.5px] text-[#111b21] leading-snug break-words">
-                          {msg.text}
-                        </span>
-                      )}
-
-                      <div className="text-[11px] text-slate-500 self-end mt-1 flex items-center gap-1 font-medium select-none float-right ml-4">
-                        {msg.time}
-                        {msg.fromMe && <i className="bi bi-check-all text-[#53bdeb] text-[15px] leading-none"></i>}
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Área de Input (Bottom) */}
-                <form className="bg-[#f0f2f5] p-3 flex items-center gap-3 shrink-0 z-10" onSubmit={handleSendMessage}>
-                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
-                  
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
-                    <i className="bi bi-paperclip text-2xl"></i>
-                  </button>
-                  
-                  <input 
-                    type="text" 
-                    placeholder="Escreva uma mensagem..." 
-                    className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm"
-                    value={inputText} 
-                    onChange={(e) => setInputText(e.target.value)} 
-                    disabled={isSending} 
-                  />
-                  
-                  <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0">
-                    {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill text-lg"></i>}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] z-10">
-                <div className="w-[320px] text-center">
-                   <i className="bi bi-whatsapp text-[80px] text-slate-300 mb-6 block"></i>
-                   <h2 className="text-[28px] font-light text-slate-600 mb-4">CRM Suporte Imagem</h2>
-                   <p className="text-[14px] text-slate-500">Selecione um contacto na barra lateral para começar a enviar e receber mensagens, fotografias e documentos.</p>
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="font-semibold text-slate-800 text-[15px] truncate">{contact.name}</span>
+                    <span className="text-[11px] text-slate-500 shrink-0">{contact.lastMessageTime}</span>
+                  </div>
+                  <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage}</div>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
+
+        {/* COLUNA DIREITA: Área de Chat */}
+        <div className={`flex-1 flex-col relative bg-[#efeae2] overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
+          
+          <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-multiply" 
+               style={{ backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')", backgroundRepeat: 'repeat', backgroundSize: '400px' }}>
+          </div>
+
+          {activeContact ? (
+            <>
+              {/* Header do Chat */}
+              <div className="h-[60px] bg-[#f0f2f5] border-b border-slate-200 flex items-center px-4 shrink-0 z-10">
+                <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-3">
+                  <i className="bi bi-arrow-left"></i>
+                </button>
+                {activeContact.profilePictureUrl ? (
+                  <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center font-bold text-white shrink-0">
+                    {activeContact.name.substring(0,2)}
+                  </div>
+                )}
+                <div className="ml-3 overflow-hidden">
+                  <h2 className="text-[15px] font-semibold text-slate-800 leading-tight truncate">{activeContact.name}</h2>
+                  <span className="text-[12px] text-slate-500 leading-tight truncate block">{activeContact.number}</span>
+                </div>
+              </div>
+
+              {/* Preview Upload */}
+              {previewFile && previewUrl && (
+                <div className="absolute inset-0 top-[60px] bg-slate-100 z-30 flex flex-col items-center justify-between">
+                  <div className="w-full flex justify-between p-4">
+                    <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
+                      <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center text-center">
+                        <i className="bi bi-file-earmark-fill text-6xl text-slate-300 mb-4"></i>
+                        <h3 className="font-bold text-slate-800 text-lg break-all line-clamp-2">{previewFile.name}</h3>
+                        <span className="text-sm font-medium text-slate-400 mt-2">{(previewFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                  </div>
+                  <div className="w-full bg-[#f0f2f5] p-4 flex items-center justify-center shrink-0">
+                     <div className="w-full max-w-2xl flex gap-2">
+                        <input type="text" placeholder="Adicione uma legenda..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} autoFocus />
+                        <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
+                          {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
+                        </button>
+                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mensagens */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-3 z-10">
+                {activeMessages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className={`max-w-[85%] md:max-w-[65%] w-fit relative px-3 py-2 rounded-xl shadow-sm flex flex-col break-words
+                      ${msg.fromMe ? 'self-end bg-[#d9fdd3] rounded-tr-none' : 'self-start bg-white rounded-tl-none'}`}
+                  >
+                    {msg.isMedia && msg.mediaData && (
+                      <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
+                          <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
+                              <i className={`text-2xl ${msg.mimeType?.includes('pdf') ? 'bi bi-file-earmark-pdf-fill text-red-500' : 'bi bi-file-earmark-fill text-slate-500'}`}></i>
+                          </div>
+                          <div className="flex flex-col overflow-hidden w-full min-w-[150px] max-w-[200px]">
+                            <span className="text-[14px] font-bold text-slate-800 truncate">{msg.fileName || 'Arquivo'}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[11px] text-slate-500 font-bold uppercase">{msg.mimeType?.split('/')[1] || 'ARQUIVO'}</span>
+                              <button onClick={() => setViewerMessage(msg)} className="text-[12px] text-[#1FA84A] font-bold hover:underline cursor-pointer bg-transparent border-none p-0">Abrir</button>
+                            </div>
+                          </div>
+                      </div>
+                    )}
+
+                    {msg.text && (
+                      <span className="text-[14.5px] text-[#111b21] leading-snug">
+                        {msg.text}
+                      </span>
+                    )}
+
+                    <div className="text-[11px] text-slate-500 self-end mt-1 flex items-center gap-1 font-medium select-none float-right ml-4">
+                      {msg.time}
+                      {msg.fromMe && <i className="bi bi-check-all text-[#53bdeb] text-[15px] leading-none"></i>}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Area */}
+              <form className="bg-[#f0f2f5] p-3 flex items-center gap-3 shrink-0 z-10" onSubmit={handleSendMessage}>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
+                
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
+                  <i className="bi bi-paperclip text-2xl"></i>
+                </button>
+                
+                <input 
+                  type="text" 
+                  placeholder="Escreva uma mensagem..." 
+                  className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm"
+                  value={inputText} 
+                  onChange={(e) => setInputText(e.target.value)} 
+                  disabled={isSending} 
+                />
+                
+                <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0">
+                  {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill text-lg"></i>}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center z-10 bg-[#f0f2f5]">
+              <div className="w-[320px] text-center">
+                 <i className="bi bi-whatsapp text-[80px] text-slate-300 mb-6 block"></i>
+                 <h2 className="text-[28px] font-light text-slate-600 mb-4">CRM Suporte Imagem</h2>
+                 <p className="text-[14px] text-slate-500">Selecione um contacto na barra lateral para começar a enviar e receber mensagens, fotografias e documentos.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
       </main>
 
-      {/* Modal de Pré-Visualização de Documentos */}
+      {/* Modal Visualizador */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={() => setViewerMessage(null)}>
           <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -430,7 +428,7 @@ export default function WhatsAppPage() {
                 <i className="bi bi-x-lg text-sm"></i>
               </button>
             </div>
-            <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden">
+            <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative">
               {viewerMessage.mimeType?.startsWith('image/') ? (
                 <img src={viewerMessage.mediaData} alt={viewerMessage.fileName} className="max-w-full max-h-full object-contain p-4 shadow-sm" />
               ) : viewerMessage.mimeType?.startsWith('video/') ? (

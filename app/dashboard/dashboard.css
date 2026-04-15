@@ -1,14 +1,18 @@
 /* ==========================================
-   DASHBOARD & SCROLLBAR GLOBAL
+   DASHBOARD & CONFIGURAÇÕES GLOBAIS
    ========================================== */
 
 body {
   background-color: #f8f9fa;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar (Barra de rolagem) customizada e elegante para todo o sistema */
+/* ==========================================
+   SCROLLBAR ELEGANTE (ESTILO MAC OS)
+   ========================================== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -33,3 +37,4 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
