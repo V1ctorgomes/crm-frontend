@@ -251,7 +251,9 @@ export default function WhatsAppPage() {
         
         {errorBanner && (
           <div className="absolute top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3">
-            <i className="bi bi-exclamation-circle text-lg"></i>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <span className="font-medium text-sm">{errorBanner}</span>
             <button onClick={() => setErrorBanner(null)} className="ml-2 font-bold opacity-80 hover:opacity-100">X</button>
           </div>
@@ -261,7 +263,9 @@ export default function WhatsAppPage() {
         <div className={`w-full md:w-[320px] lg:w-[350px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 bg-white border-b border-slate-100 shrink-0">
             <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
-              <i className="bi bi-search text-slate-400"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
               <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
             </div>
           </div>
@@ -304,7 +308,9 @@ export default function WhatsAppPage() {
               {/* Header do Chat */}
               <div className="h-[60px] bg-[#f0f2f5] border-b border-slate-200 flex items-center px-4 shrink-0 z-10">
                 <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-3">
-                  <i className="bi bi-arrow-left"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                  </svg>
                 </button>
                 {activeContact.profilePictureUrl ? (
                   <img src={activeContact.profilePictureUrl} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
@@ -323,13 +329,19 @@ export default function WhatsAppPage() {
               {previewFile && previewUrl && (
                 <div className="absolute inset-0 top-[60px] bg-slate-100 z-30 flex flex-col items-center justify-between">
                   <div className="w-full flex justify-between p-4">
-                    <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 text-xl transition-colors">
-                      <i className="bi bi-x-lg"></i>
+                    <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                   <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
                       <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center text-center">
-                        <i className="bi bi-file-earmark-fill text-6xl text-slate-300 mb-4"></i>
+                        {/* Ícone PDF SVG Nativo */}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-20 h-20 text-slate-300 mb-4">
+                          <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
+                          <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                        </svg>
                         <h3 className="font-bold text-slate-800 text-lg break-all line-clamp-2">{previewFile.name}</h3>
                         <span className="text-sm font-medium text-slate-400 mt-2">{(previewFile.size / 1024 / 1024).toFixed(2)} MB</span>
                       </div>
@@ -338,7 +350,12 @@ export default function WhatsAppPage() {
                      <div className="w-full max-w-2xl flex gap-2">
                         <input type="text" placeholder="Adicione uma legenda..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} autoFocus />
                         <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
-                          {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill"></i>}
+                          {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 
+                          /* Ícone Send SVG Nativo */
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1">
+                            <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                          </svg>
+                          }
                         </button>
                      </div>
                   </div>
@@ -356,7 +373,11 @@ export default function WhatsAppPage() {
                     {msg.isMedia && msg.mediaData && (
                       <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
                           <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
-                              <i className={`text-2xl ${msg.mimeType?.includes('pdf') ? 'bi bi-file-earmark-pdf-fill text-red-500' : 'bi bi-file-earmark-fill text-slate-500'}`}></i>
+                              {/* Ícone PDF/Media no Chat (SVG Nativo) */}
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${msg.mimeType?.includes('pdf') ? 'text-red-500' : 'text-slate-500'}`}>
+                                <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
+                                <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                              </svg>
                           </div>
                           <div className="flex flex-col overflow-hidden w-full min-w-[150px] max-w-[200px]">
                             <span className="text-[14px] font-bold text-slate-800 truncate">{msg.fileName || 'Arquivo'}</span>
@@ -376,7 +397,11 @@ export default function WhatsAppPage() {
 
                     <div className="text-[11px] text-slate-500 self-end mt-1 flex items-center gap-1 font-medium select-none float-right ml-4">
                       {msg.time}
-                      {msg.fromMe && <i className="bi bi-check-all text-[#53bdeb] text-[15px] leading-none"></i>}
+                      {msg.fromMe && (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-[#53bdeb]">
+                          <path fillRule="evenodd" d="M12.528 5.47a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4ZM7.528 11.47a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4Z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -388,7 +413,9 @@ export default function WhatsAppPage() {
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
                 
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
-                  <i className="bi bi-paperclip text-2xl"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 transform -rotate-45">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                  </svg>
                 </button>
                 
                 <input 
@@ -401,14 +428,20 @@ export default function WhatsAppPage() {
                 />
                 
                 <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0">
-                  {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="bi bi-send-fill text-lg"></i>}
+                  {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1">
+                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                  </svg>
+                  }
                 </button>
               </form>
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center z-10 bg-[#f0f2f5]">
-              <div className="w-[320px] text-center">
-                 <i className="bi bi-whatsapp text-[80px] text-slate-300 mb-6 block"></i>
+              <div className="w-[320px] text-center text-slate-300 flex flex-col items-center">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-24 h-24 mb-6">
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.436 3 12c0 1.566.47 3.033 1.284 4.288l-1.127 3.125 3.328-1.087a9.123 9.123 0 0 0 5.515 1.924Z" />
+                 </svg>
                  <h2 className="text-[28px] font-light text-slate-600 mb-4">CRM Suporte Imagem</h2>
                  <p className="text-[14px] text-slate-500">Selecione um contacto na barra lateral para começar a enviar e receber mensagens, fotografias e documentos.</p>
               </div>
@@ -418,14 +451,17 @@ export default function WhatsAppPage() {
 
       </main>
 
-      {/* Modal Visualizador */}
+      {/* Modal Visualizador - Totalmente corrigido o bug da sombra */}
       {viewerMessage && viewerMessage.mediaData && (
-        <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={() => setViewerMessage(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 z-[999] flex items-center justify-center p-4 md:p-8" onClick={() => setViewerMessage(null)}>
+          <div className="bg-white rounded-2xl shadow-xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0">
               <span className="font-bold text-slate-800 text-[15px] truncate max-w-[80%]">{viewerMessage.fileName || 'Documento'}</span>
               <button onClick={() => setViewerMessage(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
-                <i className="bi bi-x-lg text-sm"></i>
+                {/* SVG Nativo Fechar Modal */}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <div className="flex-1 bg-[#f8f9fa] flex items-center justify-center overflow-hidden relative">
@@ -437,7 +473,9 @@ export default function WhatsAppPage() {
                 <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border-none bg-white" title="PDF" />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center">
-                  <i className="bi bi-file-earmark-fill text-6xl mb-4"></i>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 mb-4">
+                    <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
+                  </svg>
                   <span className="text-[15px]">Pré-visualização indisponível</span>
                 </div>
               )}
