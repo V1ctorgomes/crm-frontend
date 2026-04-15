@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar'; 
 
 interface Message {
@@ -26,7 +25,6 @@ interface Contact {
 }
 
 export default function WhatsAppPage() {
-  const router = useRouter();
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -81,7 +79,9 @@ export default function WhatsAppPage() {
             }
           }
         }
-      } catch (err) { console.error("Erro ao carregar contatos:", err); }
+      } catch (err) { 
+        console.error("Erro ao carregar contatos:", err); 
+      }
     };
     fetchContacts();
   }, []);
@@ -109,7 +109,9 @@ export default function WhatsAppPage() {
             
             setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
           }
-        } catch (err) { }
+        } catch (err) { 
+          console.error("Erro ao carregar histórico:", err); 
+        }
       };
       fetchHistory();
     }
@@ -151,7 +153,9 @@ export default function WhatsAppPage() {
 
           setChatHistory(prev => ({ ...prev, [contactNumber]: [...(prev[contactNumber] || []), newMessage] }));
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error("Erro no SSE:", err);
+      }
     };
     return () => eventSource.close();
   }, []);
@@ -219,7 +223,12 @@ export default function WhatsAppPage() {
              )
            }));
         }
-      } catch (error) { setErrorBanner("Erro ao enviar arquivo."); } finally { setIsSending(false); }
+      } catch (error) { 
+        setErrorBanner("Erro ao enviar arquivo."); 
+        console.error(error);
+      } finally { 
+        setIsSending(false); 
+      }
     } else {
       const optimisticMsg: Message = { 
         id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber
@@ -234,7 +243,12 @@ export default function WhatsAppPage() {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ number: targetNumber, text: textToSend })
         });
-      } catch (error) { setErrorBanner("Erro ao enviar mensagem."); } finally { setIsSending(false); }
+      } catch (error) { 
+        setErrorBanner("Erro ao enviar mensagem."); 
+        console.error(error);
+      } finally { 
+        setIsSending(false); 
+      }
     }
   };
 
@@ -337,7 +351,6 @@ export default function WhatsAppPage() {
                   </div>
                   <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
                       <div className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center text-center">
-                        {/* Ícone PDF SVG Nativo */}
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-20 h-20 text-slate-300 mb-4">
                           <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
                           <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
@@ -351,7 +364,6 @@ export default function WhatsAppPage() {
                         <input type="text" placeholder="Adicione uma legenda..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} autoFocus />
                         <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
                           {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 
-                          /* Ícone Send SVG Nativo */
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1">
                             <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
                           </svg>
@@ -373,7 +385,6 @@ export default function WhatsAppPage() {
                     {msg.isMedia && msg.mediaData && (
                       <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
                           <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
-                              {/* Ícone PDF/Media no Chat (SVG Nativo) */}
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${msg.mimeType?.includes('pdf') ? 'text-red-500' : 'text-slate-500'}`}>
                                 <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
                                 <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
@@ -458,9 +469,8 @@ export default function WhatsAppPage() {
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0">
               <span className="font-bold text-slate-800 text-[15px] truncate max-w-[80%]">{viewerMessage.fileName || 'Documento'}</span>
               <button onClick={() => setViewerMessage(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
-                {/* SVG Nativo Fechar Modal */}
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
