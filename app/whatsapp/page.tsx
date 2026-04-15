@@ -14,7 +14,7 @@ interface Message {
   fromMe: boolean;
   senderNumber: string;
   isMedia?: boolean;
-  mediaData?: string; // Agora sempre será uma URL rápida do seu Domínio Personalizado
+  mediaData?: string; 
   mimeType?: string;
   fileName?: string;
 }
@@ -38,7 +38,6 @@ export default function WhatsAppPage() {
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
 
-  // Usa URLs locais efêmeras em vez de Base64 para a tela de Preview
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -106,7 +105,7 @@ export default function WhatsAppPage() {
               fromMe: m.type === 'sent',
               senderNumber: m.contactNumber,
               isMedia: m.isMedia,
-              mediaData: m.mediaData, // Já é a URL bonitinha do R2
+              mediaData: m.mediaData, 
               mimeType: m.mimeType,
               fileName: m.fileName
             }));
@@ -134,13 +133,26 @@ export default function WhatsAppPage() {
           if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
           
           const contactNumber = remoteJid.split('@')[0];
-          const incomingText = msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : "📷 Mídia recebida");
           const isFromMe = msgData.key?.fromMe || false;
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+          const customMedia = msgData.customMedia || {};
+          
+          const incomingText = customMedia.text !== undefined 
+            ? customMedia.text 
+            : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : "📷 Mídia recebida"));
+
           const newMessage: Message = {
-            id: msgData.key?.id || Date.now(), text: incomingText, type: isFromMe ? 'sent' : 'received',
-            time: timeNow, fromMe: isFromMe, senderNumber: contactNumber
+            id: msgData.key?.id || Date.now(),
+            text: incomingText,
+            type: isFromMe ? 'sent' : 'received',
+            time: timeNow,
+            fromMe: isFromMe,
+            senderNumber: contactNumber,
+            isMedia: customMedia.isMedia || false,
+            mediaData: customMedia.mediaData,
+            mimeType: customMedia.mimeType,
+            fileName: customMedia.fileName
           };
 
           setChatHistory(prev => ({ ...prev, [contactNumber]: [...(prev[contactNumber] || []), newMessage] }));
@@ -159,7 +171,6 @@ export default function WhatsAppPage() {
       return;
     }
 
-    // Cria a URL efêmera na hora (super leve)
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
     setPreviewFile(file);
@@ -192,13 +203,11 @@ export default function WhatsAppPage() {
     setIsSending(true);
 
     if (previewFile) {
-      // Usando FormData: a forma correta e rápida de enviar arquivos em Produção
       const formData = new FormData();
       formData.append('file', previewFile);
       formData.append('number', targetNumber);
       formData.append('caption', textToSend);
 
-      // Adiciona temporariamente na tela para parecer instantâneo
       const tempId = Date.now();
       const optimisticMsg: Message = { 
         id: tempId, text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
@@ -215,12 +224,11 @@ export default function WhatsAppPage() {
         const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
         const res = await fetch(`${baseUrl}/whatsapp/send-media`, {
           method: 'POST',
-          body: formData, // Sem o Header 'Content-Type', o FormData faz isso sozinho!
+          body: formData, 
         });
 
         if (res.ok) {
            const savedData = await res.json();
-           // Atualiza o ID e link temporário para o link definitivo que veio do R2
            setChatHistory(prev => ({
              ...prev,
              [targetNumber]: prev[targetNumber].map(msg => 
@@ -459,9 +467,6 @@ export default function WhatsAppPage() {
         </div>
       </main>
 
-      {/* ==========================================
-          MODAL DO VISUALIZADOR INTERNO (Agora usa as URLs públicas da Cloudflare R2)
-          ========================================== */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[999] flex items-center justify-center p-4 md:p-8 backdrop-blur-sm transition-opacity" onClick={closeViewer}>
           <div 
