@@ -46,7 +46,6 @@ export default function SolicitacoesPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // NOVO: Barra de Pesquisa
   const [searchTerm, setSearchTerm] = useState('');
 
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
@@ -324,11 +323,12 @@ export default function SolicitacoesPage() {
                             <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono">{ticket.contactNumber}</span>
                             {(ticket.notes || []).length > 0 && <span className="text-xs text-slate-400 font-bold">{(ticket.notes || []).length} notas</span>}
                           </div>
-                          <h4 className="font-bold text-slate-800 text-sm mb-1">{ticket.contact?.name || 'Sem nome'}</h4>
+                          {/* PROTEÇÃO BREAK-WORDS NO NOME */}
+                          <h4 className="font-bold text-slate-800 text-sm mb-1 break-words">{ticket.contact?.name || 'Sem nome'}</h4>
                           {(ticket.marca || ticket.modelo) && (
                             <div className="mt-3 flex flex-wrap gap-2">
-                              {ticket.marca && <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.marca}</span>}
-                              {ticket.modelo && <span className="bg-purple-50 text-purple-600 border border-purple-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.modelo}</span>}
+                              {ticket.marca && <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[11px] font-bold px-2 py-0.5 rounded-full break-words">{ticket.marca}</span>}
+                              {ticket.modelo && <span className="bg-purple-50 text-purple-600 border border-purple-100 text-[11px] font-bold px-2 py-0.5 rounded-full break-words">{ticket.modelo}</span>}
                             </div>
                           )}
                         </div>
@@ -491,14 +491,14 @@ export default function SolicitacoesPage() {
                 </div>
               </div>
               <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-6">
-                <div><label className="text-[11px] font-bold text-slate-400 uppercase">E-mail</label><p className="text-sm font-medium">{activeTicket.contact?.email || '—'}</p></div>
+                <div><label className="text-[11px] font-bold text-slate-400 uppercase">E-mail</label><p className="text-sm font-medium break-words">{activeTicket.contact?.email || '—'}</p></div>
                 <div><label className="text-[11px] font-bold text-slate-400 uppercase">CPF / CNPJ</label><p className="text-sm font-medium">{activeTicket.contact?.cnpj || '—'}</p></div>
                 <hr className="border-slate-200" />
                 <div>
                   <label className="text-[11px] font-bold text-slate-400 uppercase">Aparelho</label>
-                  <div className="mt-2 flex gap-2">
-                    {activeTicket.marca && <span className="bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded text-xs">{activeTicket.marca}</span>}
-                    {activeTicket.modelo && <span className="bg-purple-100 text-purple-700 font-bold px-2 py-1 rounded text-xs">{activeTicket.modelo}</span>}
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {activeTicket.marca && <span className="bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded text-xs break-words">{activeTicket.marca}</span>}
+                    {activeTicket.modelo && <span className="bg-purple-100 text-purple-700 font-bold px-2 py-1 rounded text-xs break-words">{activeTicket.modelo}</span>}
                   </div>
                 </div>
               </div>
@@ -524,7 +524,8 @@ export default function SolicitacoesPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                       </button>
                     </div>
-                    <p className="text-slate-700 text-sm whitespace-pre-wrap pr-28 mt-2">{note.text}</p>
+                    {/* PROTEÇÃO BREAK-WORDS NA NOTA */}
+                    <p className="text-slate-700 text-sm whitespace-pre-wrap pr-28 mt-2 break-words">{note.text}</p>
                   </div>
                 ))}
               </div>
