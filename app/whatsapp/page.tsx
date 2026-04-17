@@ -22,6 +22,8 @@ interface Contact {
   profilePictureUrl?: string;
   lastMessage: string;
   lastMessageTime: string;
+  email?: string;
+  cnpj?: string;
 }
 
 export default function WhatsAppPage() {
@@ -134,9 +136,9 @@ export default function WhatsAppPage() {
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const customMedia = msgData.customMedia || {};
-          const incomingText = customMedia.text !== undefined 
+          let incomingText = customMedia.text !== undefined 
             ? customMedia.text 
-            : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : "📷 Mídia recebida"));
+            : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : msgData.message?.audioMessage ? "🎵 Áudio" : "Mídia recebida"));
 
           const newMessage: Message = {
             id: msgData.key?.id || Date.now(),
@@ -257,10 +259,8 @@ export default function WhatsAppPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-white font-sans">
       
-      {/* Menu Lateral Fixo */}
       <Sidebar />
 
-      {/* Container Principal do WhatsApp */}
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
         {errorBanner && (
@@ -273,7 +273,6 @@ export default function WhatsAppPage() {
           </div>
         )}
 
-        {/* COLUNA ESQUERDA: Lista de Contatos */}
         <div className={`w-full md:w-[320px] lg:w-[350px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 bg-white border-b border-slate-100 shrink-0">
             <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
@@ -310,7 +309,6 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
-        {/* COLUNA DIREITA: Área de Chat */}
         <div className={`flex-1 flex-col relative bg-[#efeae2] overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
           
           <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-multiply" 
@@ -319,7 +317,6 @@ export default function WhatsAppPage() {
 
           {activeContact ? (
             <>
-              {/* Header do Chat */}
               <div className="h-[60px] bg-[#f0f2f5] border-b border-slate-200 flex items-center px-4 shrink-0 z-10">
                 <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -339,7 +336,6 @@ export default function WhatsAppPage() {
                 </div>
               </div>
 
-              {/* Preview Upload */}
               {previewFile && previewUrl && (
                 <div className="absolute inset-0 top-[60px] bg-slate-100 z-30 flex flex-col items-center justify-between">
                   <div className="w-full flex justify-between p-4">
@@ -374,33 +370,41 @@ export default function WhatsAppPage() {
                 </div>
               )}
 
-              {/* Mensagens */}
               <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-3 z-10">
                 {activeMessages.map((msg) => (
                   <div 
                     key={msg.id} 
-                    className={`max-w-[85%] md:max-w-[65%] w-fit relative px-3 py-2 rounded-xl shadow-sm flex flex-col break-words
+                    className={`max-w-[90%] md:max-w-[65%] w-fit relative px-3 py-2 rounded-xl shadow-sm flex flex-col break-words
                       ${msg.fromMe ? 'self-end bg-[#d9fdd3] rounded-tr-none' : 'self-start bg-white rounded-tl-none'}`}
                   >
                     {msg.isMedia && msg.mediaData && (
-                      <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
-                          <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${msg.mimeType?.includes('pdf') ? 'text-red-500' : 'text-slate-500'}`}>
-                                <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
-                                <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
-                              </svg>
-                          </div>
-                          <div className="flex flex-col overflow-hidden w-full min-w-[150px] max-w-[200px]">
-                            <span className="text-[14px] font-bold text-slate-800 truncate">{msg.fileName || 'Arquivo'}</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[11px] text-slate-500 font-bold uppercase">{msg.mimeType?.split('/')[1] || 'ARQUIVO'}</span>
-                              <button onClick={() => setViewerMessage(msg)} className="text-[12px] text-[#1FA84A] font-bold hover:underline cursor-pointer bg-transparent border-none p-0">Abrir</button>
+                      msg.mimeType?.startsWith('audio/') ? (
+                        /* PLAYER DE ÁUDIO NATIVO */
+                        <div className="mt-1 mb-1">
+                          <audio controls src={msg.mediaData} className="w-[240px] md:w-[280px] h-[40px] outline-none rounded-md" />
+                        </div>
+                      ) : (
+                        /* CARD PARA IMAGENS, PDFS E OUTROS DOCUMENTOS */
+                        <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
+                            <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${msg.mimeType?.includes('pdf') ? 'text-red-500' : 'text-slate-500'}`}>
+                                  <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" />
+                                  <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                                </svg>
                             </div>
-                          </div>
-                      </div>
+                            <div className="flex flex-col overflow-hidden w-full min-w-[150px] max-w-[200px]">
+                              <span className="text-[14px] font-bold text-slate-800 truncate">{msg.fileName || 'Arquivo'}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[11px] text-slate-500 font-bold uppercase">{msg.mimeType?.split('/')[1] || 'ARQUIVO'}</span>
+                                <button onClick={() => setViewerMessage(msg)} className="text-[12px] text-[#1FA84A] font-bold hover:underline cursor-pointer bg-transparent border-none p-0">Abrir</button>
+                              </div>
+                            </div>
+                        </div>
+                      )
                     )}
 
-                    {msg.text && (
+                    {/* Ignora o texto genérico "🎵 Áudio" se a mensagem for apenas um áudio com o player */}
+                    {msg.text && !(msg.mimeType?.startsWith('audio/') && msg.text === "🎵 Áudio") && (
                       <span className="text-[14.5px] text-[#111b21] leading-snug">
                         {msg.text}
                       </span>
@@ -419,9 +423,9 @@ export default function WhatsAppPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
               <form className="bg-[#f0f2f5] p-3 flex items-center gap-3 shrink-0 z-10" onSubmit={handleSendMessage}>
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*" />
+                {/* Permite envio de áudios locais também pelo form */}
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*,audio/*" />
                 
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 transform -rotate-45">
@@ -462,7 +466,6 @@ export default function WhatsAppPage() {
 
       </main>
 
-      {/* Modal Visualizador - Totalmente corrigido o bug da sombra */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-black/70 z-[999] flex items-center justify-center p-4 md:p-8" onClick={() => setViewerMessage(null)}>
           <div className="bg-white rounded-2xl shadow-xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -481,6 +484,8 @@ export default function WhatsAppPage() {
                 <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full shadow-sm outline-none p-4" />
               ) : viewerMessage.mimeType?.includes('pdf') ? (
                 <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border-none bg-white" title="PDF" />
+              ) : viewerMessage.mimeType?.startsWith('audio/') ? (
+                <audio src={viewerMessage.mediaData} controls className="w-full max-w-md outline-none p-4" />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 mb-4">
