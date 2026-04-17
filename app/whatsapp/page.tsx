@@ -143,10 +143,12 @@ export default function WhatsAppPage() {
     }
   }, [activeContact, baseUrl, chatHistory]);
 
+  // ESCUTA EM TEMPO REAL (SSE)
   useEffect(() => {
     if (hasInstances === false) return; 
 
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
+    
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
@@ -169,13 +171,39 @@ export default function WhatsAppPage() {
             senderNumber: contactNumber, isMedia: customMedia.isMedia || false, mediaData: customMedia.mediaData, mimeType: customMedia.mimeType, fileName: customMedia.fileName
           };
 
-          setChatHistory(prev => ({ ...prev, [contactNumber]: [...(prev[contactNumber] || []), newMessage] }));
+          // 1. Atualiza o Histórico de Chat
+          setChatHistory(prev => ({ 
+            ...prev, 
+            [contactNumber]: [...(prev[contactNumber] || []), newMessage] 
+          }));
+
+          // 2. Atualiza a Lista de Contatos (Move para o topo com a nova mensagem)
+          setContacts(prev => {
+            const idx = prev.findIndex(c => c.number === contactNumber);
+            const updated = [...prev];
+            if (idx !== -1) {
+              updated[idx].lastMessage = incomingText;
+              updated[idx].lastMessageTime = timeNow;
+              const item = updated.splice(idx, 1)[0];
+              updated.unshift(item);
+            } else {
+               // Atualiza toda a lista se for um contacto completamente novo
+               fetch(`${baseUrl}/whatsapp/contacts`).then(res => res.json()).then(data => {
+                  setContacts(data.map((c: any) => ({
+                    ...c,
+                    lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+                  })));
+               });
+            }
+            return updated;
+          });
         }
-      } catch (err) {}
+      } catch (err) { console.error("Erro no processamento da mensagem:", err); }
     };
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
+  // EXCLUIR CONVERSA
   const handleDeleteConversation = async () => {
     if (!activeContact) return;
     if (!confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?")) return;
@@ -213,15 +241,30 @@ export default function WhatsAppPage() {
 
     const targetNumber = activeContact.number;
     const textToSend = inputText;
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setIsSending(true);
 
     if (previewFile) {
       const formData = new FormData();
       formData.append('file', previewFile); formData.append('number', targetNumber); formData.append('caption', textToSend);
       const tempId = Date.now();
-      const optimisticMsg: Message = { id: tempId, text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name };
+      const optimisticMsg: Message = { id: tempId, text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name };
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      
+      // Atualiza a barra lateral com o ficheiro optimista
+      setContacts(prev => {
+        const idx = prev.findIndex(c => c.number === targetNumber);
+        const updated = [...prev];
+        if (idx !== -1) {
+          updated[idx].lastMessage = textToSend || "📷 Mídia";
+          updated[idx].lastMessageTime = timeNow;
+          const item = updated.splice(idx, 1)[0];
+          updated.unshift(item);
+        }
+        return updated;
+      });
+
       setInputText(''); setPreviewFile(null); if (fileInputRef.current) fileInputRef.current.value = '';
 
       try {
@@ -232,8 +275,23 @@ export default function WhatsAppPage() {
         }
       } catch (error) { setErrorBanner("Erro ao enviar arquivo."); } finally { setIsSending(false); }
     } else {
-      const optimisticMsg: Message = { id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber };
+      const optimisticMsg: Message = { id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber };
+      
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      
+      // Atualiza a barra lateral com o texto optimista
+      setContacts(prev => {
+        const idx = prev.findIndex(c => c.number === targetNumber);
+        const updated = [...prev];
+        if (idx !== -1) {
+          updated[idx].lastMessage = textToSend;
+          updated[idx].lastMessageTime = timeNow;
+          const item = updated.splice(idx, 1)[0];
+          updated.unshift(item);
+        }
+        return updated;
+      });
+
       setInputText('');
 
       try {
@@ -356,7 +414,7 @@ export default function WhatsAppPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
                               </button>
                               <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
-                              <button onClick={handleDeleteConversation} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3">
+                              <button onClick={handleDeleteConversation} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> Excluir Conversa
                               </button>
                             </div>
