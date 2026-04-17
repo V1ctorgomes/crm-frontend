@@ -26,6 +26,12 @@ interface Contact {
   cnpj?: string;
 }
 
+// Interface para as Fases do Kanban
+interface Stage {
+  id: string;
+  name: string;
+}
+
 export default function WhatsAppPage() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -37,14 +43,36 @@ export default function WhatsAppPage() {
 
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ==================================================
+  // NOVOS ESTADOS: PESQUISA E MENU DO CABEÇALHO
+  // ==================================================
+  const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
+  const [chatSearchTerm, setChatSearchTerm] = useState('');
+  const [isChatMenuOpen, setIsChatMenuOpen] = useState(false);
+
+  // ==================================================
+  // NOVOS ESTADOS: CRIAÇÃO DE TICKET (KANBAN)
+  // ==================================================
+  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [formNome, setFormNome] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formCpf, setFormCpf] = useState('');
+  const [formMarca, setFormMarca] = useState('');
+  const [formModelo, setFormModelo] = useState('');
+
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
   const handleSelectContact = (contact: Contact | null) => {
     setActiveContact(contact);
+    setIsSearchChatOpen(false);
+    setChatSearchTerm('');
+    setIsChatMenuOpen(false);
     if (contact) {
       localStorage.setItem('lastActiveContact', contact.number);
     } else {
@@ -58,15 +86,15 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatHistory, activeContact]);
+  }, [chatHistory, activeContact, chatSearchTerm]);
 
   useEffect(() => {
-    const fetchContacts = async () => {
+    const fetchContactsAndStages = async () => {
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-        const res = await fetch(`${baseUrl}/whatsapp/contacts`);
-        if (res.ok) {
-          const data = await res.json();
+        // Carrega Contatos
+        const resContacts = await fetch(`${baseUrl}/whatsapp/contacts`);
+        if (resContacts.ok) {
+          const data = await resContacts.json();
           const formattedContacts = data.map((c: any) => ({
             ...c,
             lastMessageTime: new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -76,23 +104,25 @@ export default function WhatsAppPage() {
           const savedNumber = localStorage.getItem('lastActiveContact');
           if (savedNumber) {
             const foundContact = formattedContacts.find((c: Contact) => c.number === savedNumber);
-            if (foundContact) {
-              setActiveContact(foundContact);
-            }
+            if (foundContact) setActiveContact(foundContact);
           }
         }
+        // Carrega Fases do Kanban (para criar o ticket na 1ª fase)
+        const resStages = await fetch(`${baseUrl}/tickets/stages`);
+        if (resStages.ok) {
+          setStages(await resStages.json());
+        }
       } catch (err) { 
-        console.error("Erro ao carregar contatos:", err); 
+        console.error("Erro ao carregar dados:", err); 
       }
     };
-    fetchContacts();
+    fetchContactsAndStages();
   }, []);
 
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
         try {
-          const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
           const res = await fetch(`${baseUrl}/whatsapp/history/${activeContact.number}`);
           if (res.ok) {
             const data = await res.json();
@@ -108,7 +138,6 @@ export default function WhatsAppPage() {
               mimeType: m.mimeType,
               fileName: m.fileName
             }));
-            
             setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
           }
         } catch (err) { 
@@ -120,7 +149,6 @@ export default function WhatsAppPage() {
   }, [activeContact]);
 
   useEffect(() => {
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
 
     eventSource.onmessage = (event) => {
@@ -165,12 +193,10 @@ export default function WhatsAppPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
-
     if (file.size > 15 * 1024 * 1024) {
       setErrorBanner("O arquivo é muito grande (máximo 15MB).");
       return;
     }
-
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
     setPreviewFile(file);
@@ -213,9 +239,7 @@ export default function WhatsAppPage() {
       if (fileInputRef.current) fileInputRef.current.value = '';
 
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
         const res = await fetch(`${baseUrl}/whatsapp/send-media`, { method: 'POST', body: formData });
-
         if (res.ok) {
            const savedData = await res.json();
            setChatHistory(prev => ({
@@ -228,9 +252,7 @@ export default function WhatsAppPage() {
       } catch (error) { 
         setErrorBanner("Erro ao enviar arquivo."); 
         console.error(error);
-      } finally { 
-        setIsSending(false); 
-      }
+      } finally { setIsSending(false); }
     } else {
       const optimisticMsg: Message = { 
         id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber
@@ -240,7 +262,6 @@ export default function WhatsAppPage() {
       setInputText('');
 
       try {
-        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
         await fetch(`${baseUrl}/whatsapp/send`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ number: targetNumber, text: textToSend })
@@ -248,13 +269,66 @@ export default function WhatsAppPage() {
       } catch (error) { 
         setErrorBanner("Erro ao enviar mensagem."); 
         console.error(error);
-      } finally { 
-        setIsSending(false); 
-      }
+      } finally { setIsSending(false); }
     }
   };
 
+  // ==================================================
+  // LÓGICA DE CRIAÇÃO DE TICKET
+  // ==================================================
+  const openNewTicketModal = () => {
+    setIsChatMenuOpen(false);
+    if (!activeContact) return;
+    setFormNome(activeContact.name || '');
+    setFormEmail(activeContact.email || '');
+    setFormCpf(activeContact.cnpj || '');
+    setFormMarca('');
+    setFormModelo('');
+    setIsNewTicketModalOpen(true);
+  };
+
+  const handleCreateTicket = async () => {
+    if (!activeContact || stages.length === 0) return alert("Nenhuma fase de Kanban encontrada no sistema.");
+    
+    const body = {
+      contactNumber: activeContact.number,
+      nome: formNome,
+      email: formEmail,
+      cpf: formCpf,
+      marca: formMarca,
+      modelo: formModelo,
+      stageId: stages[0].id // Envia para a primeira coluna
+    };
+
+    try {
+      const res = await fetch(`${baseUrl}/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        setIsNewTicketModalOpen(false);
+        // Pequena notificação visual de sucesso
+        const ticketAlert = document.createElement("div");
+        ticketAlert.className = "fixed bottom-10 right-10 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl z-50 font-bold transition-all";
+        ticketAlert.innerText = "Solicitação criada no Kanban!";
+        document.body.appendChild(ticketAlert);
+        setTimeout(() => ticketAlert.remove(), 3000);
+      }
+    } catch (err) {
+      console.error("Erro ao criar ticket:", err);
+      setErrorBanner("Erro ao criar a solicitação.");
+    }
+  };
+
+  // Filtragem de Mensagens (Pesquisa)
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
+  const filteredMessages = chatSearchTerm
+    ? activeMessages.filter(msg => 
+        (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+        (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase())
+      )
+    : activeMessages;
 
   return (
     <div className="flex h-screen overflow-hidden bg-white font-sans">
@@ -273,6 +347,7 @@ export default function WhatsAppPage() {
           </div>
         )}
 
+        {/* LISTA DE CONTATOS */}
         <div className={`w-full md:w-[320px] lg:w-[350px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 bg-white border-b border-slate-100 shrink-0">
             <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
@@ -309,6 +384,7 @@ export default function WhatsAppPage() {
           </div>
         </div>
 
+        {/* ÁREA DE CHAT */}
         <div className={`flex-1 flex-col relative bg-[#efeae2] overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
           
           <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-multiply" 
@@ -317,6 +393,7 @@ export default function WhatsAppPage() {
 
           {activeContact ? (
             <>
+              {/* HEADER DO CHAT */}
               <div className="h-[60px] bg-[#f0f2f5] border-b border-slate-200 flex items-center px-4 shrink-0 z-10">
                 <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -330,19 +407,79 @@ export default function WhatsAppPage() {
                     {activeContact.name.substring(0,2)}
                   </div>
                 )}
-                <div className="ml-3 overflow-hidden">
+                <div className="ml-3 overflow-hidden flex-1">
                   <h2 className="text-[15px] font-semibold text-slate-800 leading-tight truncate">{activeContact.name}</h2>
                   <span className="text-[12px] text-slate-500 leading-tight truncate block">{activeContact.number}</span>
                 </div>
+                
+                {/* ÍCONES DE AÇÃO (PESQUISA E PONTINHOS) */}
+                <div className="flex items-center gap-2 ml-auto relative">
+                  <button 
+                    onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-[#d9fdd3] text-[#1FA84A]' : 'text-slate-500 hover:bg-slate-200'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                  </button>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsChatMenuOpen(!isChatMenuOpen)} 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isChatMenuOpen ? 'bg-slate-200 text-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                      </svg>
+                    </button>
+
+                    {/* DROPDOWN MENU */}
+                    {isChatMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsChatMenuOpen(false)}></div>
+                        <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden">
+                          <button 
+                            onClick={openNewTicketModal} 
+                            className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Nova Solicitação
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
+              {/* BARRA DE PESQUISA (CONDICIONAL) */}
+              {isSearchChatOpen && (
+                <div className="bg-white px-4 py-2 border-b border-slate-200 flex items-center gap-3 shrink-0 z-10 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                  <input 
+                    type="text" 
+                    placeholder="Pesquisar nesta conversa..." 
+                    className="flex-1 bg-transparent border-none outline-none text-[14.5px] text-slate-700"
+                    value={chatSearchTerm}
+                    onChange={e => setChatSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                  <button onClick={() => { setIsSearchChatOpen(false); setChatSearchTerm(''); }} className="text-slate-400 hover:text-slate-600 font-bold px-2 py-1 bg-slate-100 rounded text-xs uppercase tracking-wider">
+                    Fechar
+                  </button>
+                </div>
+              )}
+
+              {/* PREVIEW DE UPLOAD */}
               {previewFile && previewUrl && (
                 <div className="absolute inset-0 top-[60px] bg-slate-100 z-30 flex flex-col items-center justify-between">
                   <div className="w-full flex justify-between p-4">
                     <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-slate-700 hover:bg-black/20 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
                   <div className="flex-1 flex flex-col items-center justify-center w-full px-4 overflow-hidden">
@@ -359,19 +496,21 @@ export default function WhatsAppPage() {
                      <div className="w-full max-w-2xl flex gap-2">
                         <input type="text" placeholder="Adicione uma legenda..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} autoFocus />
                         <button onClick={handleSendMessage} disabled={isSending} className="w-12 h-12 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-md shrink-0">
-                          {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1">
-                            <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                          </svg>
-                          }
+                          {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
                         </button>
                      </div>
                   </div>
                 </div>
               )}
 
+              {/* LISTA DE MENSAGENS (COM FILTRO) */}
               <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-3 z-10">
-                {activeMessages.map((msg) => (
+                {filteredMessages.length === 0 && chatSearchTerm && (
+                  <div className="text-center text-slate-500 mt-10 p-4 bg-black/5 rounded-xl self-center">
+                    Nenhuma mensagem encontrada para <b>"{chatSearchTerm}"</b>.
+                  </div>
+                )}
+                {filteredMessages.map((msg) => (
                   <div 
                     key={msg.id} 
                     className={`max-w-[90%] md:max-w-[65%] w-fit relative px-3 py-2 rounded-xl shadow-sm flex flex-col break-words
@@ -379,12 +518,10 @@ export default function WhatsAppPage() {
                   >
                     {msg.isMedia && msg.mediaData && (
                       msg.mimeType?.startsWith('audio/') ? (
-                        /* PLAYER DE ÁUDIO NATIVO */
                         <div className="mt-1 mb-1">
                           <audio controls src={msg.mediaData} className="w-[240px] md:w-[280px] h-[40px] outline-none rounded-md" />
                         </div>
                       ) : (
-                        /* CARD PARA IMAGENS, PDFS E OUTROS DOCUMENTOS */
                         <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 mt-1 ${msg.fromMe ? 'bg-[#c6efc1]' : 'bg-black/5'}`}>
                             <div className="w-10 h-10 bg-white/60 rounded-lg flex items-center justify-center shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${msg.mimeType?.includes('pdf') ? 'text-red-500' : 'text-slate-500'}`}>
@@ -403,10 +540,16 @@ export default function WhatsAppPage() {
                       )
                     )}
 
-                    {/* Ignora o texto genérico "🎵 Áudio" se a mensagem for apenas um áudio com o player */}
                     {msg.text && !(msg.mimeType?.startsWith('audio/') && msg.text === "🎵 Áudio") && (
                       <span className="text-[14.5px] text-[#111b21] leading-snug">
-                        {msg.text}
+                        {/* Se estiver a pesquisar, realça a parte pesquisada em amarelo simples */}
+                        {chatSearchTerm ? (
+                          msg.text.split(new RegExp(`(${chatSearchTerm})`, 'gi')).map((part, i) => 
+                            part.toLowerCase() === chatSearchTerm.toLowerCase() 
+                              ? <mark key={i} className="bg-yellow-300 text-black px-0.5 rounded">{part}</mark> 
+                              : part
+                          )
+                        ) : msg.text}
                       </span>
                     )}
 
@@ -423,8 +566,8 @@ export default function WhatsAppPage() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* INPUT AREA */}
               <form className="bg-[#f0f2f5] p-3 flex items-center gap-3 shrink-0 z-10" onSubmit={handleSendMessage}>
-                {/* Permite envio de áudios locais também pelo form */}
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*,audio/*" />
                 
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
@@ -443,11 +586,7 @@ export default function WhatsAppPage() {
                 />
                 
                 <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0">
-                  {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1">
-                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                  </svg>
-                  }
+                  {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
                 </button>
               </form>
             </>
@@ -463,9 +602,81 @@ export default function WhatsAppPage() {
             </div>
           )}
         </div>
-
       </main>
 
+      {/* ================================================================= */}
+      {/* MODAL: NOVA SOLICITAÇÃO (CHAMADO PELO WHATSAPP)                 */}
+      {/* ================================================================= */}
+      {isNewTicketModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Nova Solicitação
+              </h3>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[70vh]">
+              {/* Resumo do Cliente Selecionado */}
+              <div className="bg-[#e8f6ea] border border-[#1FA84A]/30 p-4 rounded-xl flex items-center gap-4">
+                 {activeContact?.profilePictureUrl ? (
+                    <img src={activeContact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shadow-sm" alt="" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-white text-[#1FA84A] font-bold flex items-center justify-center shadow-sm">
+                      {(activeContact?.name || '?').substring(0, 2).toUpperCase()}
+                    </div>
+                 )}
+                 <div>
+                   <h4 className="font-bold text-slate-800 text-[15px]">{activeContact?.name || 'Cliente'}</h4>
+                   <span className="text-[12px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md mt-1 inline-block border border-slate-200">{activeContact?.number}</span>
+                 </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados do Cliente</h4>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Nome</label>
+                  <input type="text" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A] transition-colors" value={formNome} onChange={e => setFormNome(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1">E-mail</label>
+                  <input type="email" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A] transition-colors" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1">CPF / CNPJ</label>
+                  <input type="text" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono focus:border-[#1FA84A] transition-colors" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Marca do Aparelho</label>
+                  <input type="text" placeholder="Ex: Apple, Samsung" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#1FA84A] shadow-sm transition-colors" value={formMarca} onChange={e => setFormMarca(e.target.value)} />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Modelo</label>
+                  <input type="text" placeholder="Ex: iPhone 13" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#1FA84A] shadow-sm transition-colors" value={formModelo} onChange={e => setFormModelo(e.target.value)} />
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="px-4 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-100 transition-colors">Cancelar</button>
+              <button onClick={handleCreateTicket} className="bg-[#1FA84A] text-white px-6 py-2 rounded-lg font-bold hover:bg-green-600 shadow-sm transition-colors">Confirmar e Criar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL: VISUALIZADOR DE MÍDIA                                    */}
+      {/* ================================================================= */}
       {viewerMessage && viewerMessage.mediaData && (
         <div className="fixed inset-0 bg-black/70 z-[999] flex items-center justify-center p-4 md:p-8" onClick={() => setViewerMessage(null)}>
           <div className="bg-white rounded-2xl shadow-xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -484,8 +695,6 @@ export default function WhatsAppPage() {
                 <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full shadow-sm outline-none p-4" />
               ) : viewerMessage.mimeType?.includes('pdf') ? (
                 <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border-none bg-white" title="PDF" />
-              ) : viewerMessage.mimeType?.startsWith('audio/') ? (
-                <audio src={viewerMessage.mediaData} controls className="w-full max-w-md outline-none p-4" />
               ) : (
                 <div className="text-slate-400 flex flex-col items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 mb-4">
@@ -496,7 +705,7 @@ export default function WhatsAppPage() {
               )}
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end bg-white shrink-0">
-              <a href={viewerMessage.mediaData} download={viewerMessage.fileName || 'download'} target="_blank" rel="noopener noreferrer" className="bg-[#1FA84A] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-600 shadow-sm no-underline">
+              <a href={viewerMessage.mediaData} download={viewerMessage.fileName || 'download'} target="_blank" rel="noopener noreferrer" className="bg-[#1FA84A] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-green-600 shadow-sm no-underline transition-colors">
                 Descarregar Original
               </a>
             </div>
