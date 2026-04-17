@@ -33,7 +33,7 @@ interface Ticket {
   marca: string | null; 
   modelo: string | null; 
   createdAt: string; 
-  updatedAt: string; // <-- CORREÇÃO: Faltava avisar o TypeScript que isto existia!
+  updatedAt: string;
   notes?: Note[]; 
   isArchived: boolean; 
   stage?: Stage; 
@@ -45,6 +45,9 @@ export default function SolicitacoesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // NOVO: Barra de Pesquisa
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
@@ -137,10 +140,21 @@ export default function SolicitacoesPage() {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newNoteText }) });
       if (res.ok) {
         setNewNoteText(''); fetchData();
-        const note: Note = await res.json(); // <-- CORREÇÃO: Tipagem estrita adicionada aqui
+        const note: Note = await res.json();
         setActiveTicket(prev => prev ? { ...prev, notes: [note, ...(prev.notes || [])] } : prev);
       }
     } catch (err) {}
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm("Tem a certeza que deseja apagar esta nota?")) return;
+    try {
+      const res = await fetch(`${baseUrl}/tickets/notes/${noteId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchData();
+        setActiveTicket(prev => prev ? { ...prev, notes: prev.notes?.filter(n => n.id !== noteId) } : prev);
+      }
+    } catch (err) { console.error(err); }
   };
 
   const handleToggleArchive = async (ticketId: string, archive: boolean) => {
@@ -176,6 +190,19 @@ export default function SolicitacoesPage() {
     } catch (err) {}
   };
 
+  const handleDeleteStage = async (id: string) => {
+    if (!confirm("Tem a certeza que deseja apagar esta fase permanentemente?")) return;
+    try {
+      const res = await fetch(`${baseUrl}/tickets/stages/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        openStageManager(); fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Erro ao apagar fase.");
+      }
+    } catch (err) { console.error(err); }
+  };
+
   const handleReorder = async (index: number, direction: 'up' | 'down') => {
     const newStages = [...allStages];
     if (direction === 'up' && index > 0) {
@@ -202,6 +229,23 @@ export default function SolicitacoesPage() {
     if (res.ok) setArchivedTickets(await res.json());
   };
 
+  // ==========================================
+  // FILTRO (PESQUISA)
+  // ==========================================
+  const filteredStages = stages.map(stage => ({
+    ...stage,
+    tickets: stage.tickets.filter(t => {
+      if (!searchTerm) return true;
+      const lowerSearch = searchTerm.toLowerCase();
+      return (
+        t.contact?.name?.toLowerCase().includes(lowerSearch) ||
+        t.contactNumber.includes(lowerSearch) ||
+        t.marca?.toLowerCase().includes(lowerSearch) ||
+        t.modelo?.toLowerCase().includes(lowerSearch)
+      );
+    })
+  }));
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f4f5f7] font-sans">
       <Sidebar />
@@ -209,21 +253,36 @@ export default function SolicitacoesPage() {
       <main className="flex-1 flex flex-col pt-[80px] md:pt-0 h-full relative overflow-hidden">
         
         {/* HEADER */}
-        <header className="px-8 py-6 bg-white border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+        <header className="px-6 py-5 bg-white border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Painel de Solicitações</h1>
             <p className="text-slate-500 text-sm mt-1">Acompanhe e gira os pedidos dos seus clientes.</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button onClick={openArchivedModal} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors text-sm flex items-center gap-2">
+          
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* BARRA DE PESQUISA */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl flex items-center px-4 h-10 w-full md:w-[250px] shadow-sm focus-within:border-[#1FA84A] transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Pesquisar tickets..." 
+                className="bg-transparent border-none outline-none w-full pl-2 text-sm text-slate-700"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <button onClick={openArchivedModal} className="h-10 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>
               Arquivados
             </button>
-            <button onClick={openStageManager} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors text-sm flex items-center gap-2">
+            <button onClick={openStageManager} className="h-10 px-4 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition-colors text-sm flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>
               Fases
             </button>
-            <button onClick={() => setIsNewTicketModalOpen(true)} className="px-4 py-2 bg-[#1FA84A] text-white font-bold rounded-lg hover:bg-green-600 transition-colors shadow-sm flex items-center gap-2 text-sm">
+            <button onClick={() => setIsNewTicketModalOpen(true)} className="h-10 px-4 bg-[#1FA84A] text-white font-bold rounded-lg hover:bg-green-600 transition-colors shadow-sm flex items-center gap-2 text-sm">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               Nova Solicitação
             </button>
@@ -235,10 +294,10 @@ export default function SolicitacoesPage() {
           <div className="flex h-full gap-6 items-start w-max pb-4">
             {isLoading ? (
               <div className="w-full flex justify-center p-10"><div className="w-8 h-8 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin"></div></div>
-            ) : stages.length === 0 ? (
+            ) : filteredStages.length === 0 ? (
               <div className="text-slate-400 p-10">Nenhuma fase configurada. Vá em "Fases".</div>
             ) : (
-              stages.map((stage) => (
+              filteredStages.map((stage) => (
                 <div 
                   key={stage.id} 
                   className="w-[320px] bg-slate-200/50 rounded-xl flex flex-col max-h-full border border-slate-200/60 overflow-hidden"
@@ -253,24 +312,28 @@ export default function SolicitacoesPage() {
                   </div>
                   
                   <div className="p-3 flex-1 overflow-y-auto flex flex-col gap-3">
-                    {stage.tickets.map((ticket) => (
-                      <div 
-                        key={ticket.id} draggable onDragStart={(e) => handleDragStart(e, ticket.id, stage.id)} onClick={() => setActiveTicket(ticket)}
-                        className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-[#1FA84A] transition-all"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono">{ticket.contactNumber}</span>
-                          {(ticket.notes || []).length > 0 && <span className="text-xs text-slate-400 font-bold">{(ticket.notes || []).length} notas</span>}
-                        </div>
-                        <h4 className="font-bold text-slate-800 text-sm mb-1">{ticket.contact?.name || 'Sem nome'}</h4>
-                        {(ticket.marca || ticket.modelo) && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {ticket.marca && <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.marca}</span>}
-                            {ticket.modelo && <span className="bg-purple-50 text-purple-600 border border-purple-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.modelo}</span>}
+                    {stage.tickets.length === 0 && searchTerm ? (
+                      <p className="text-xs text-slate-400 text-center mt-2">Nenhum resultado na fase.</p>
+                    ) : (
+                      stage.tickets.map((ticket) => (
+                        <div 
+                          key={ticket.id} draggable onDragStart={(e) => handleDragStart(e, ticket.id, stage.id)} onClick={() => setActiveTicket(ticket)}
+                          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-[#1FA84A] transition-all"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono">{ticket.contactNumber}</span>
+                            {(ticket.notes || []).length > 0 && <span className="text-xs text-slate-400 font-bold">{(ticket.notes || []).length} notas</span>}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <h4 className="font-bold text-slate-800 text-sm mb-1">{ticket.contact?.name || 'Sem nome'}</h4>
+                          {(ticket.marca || ticket.modelo) && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {ticket.marca && <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.marca}</span>}
+                              {ticket.modelo && <span className="bg-purple-50 text-purple-600 border border-purple-100 text-[11px] font-bold px-2 py-0.5 rounded-full">{ticket.modelo}</span>}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               ))
@@ -284,7 +347,7 @@ export default function SolicitacoesPage() {
       {/* 1. GESTÃO DE FASES */}
       {isStageManagerOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsStageManagerOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg text-slate-800">Gerenciar Fases</h3>
               <button onClick={() => setIsStageManagerOpen(false)} className="text-slate-400 hover:text-slate-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
@@ -310,7 +373,7 @@ export default function SolicitacoesPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-3">
-              <h4 className="text-xs font-bold text-slate-400 uppercase mb-1">Ordem e Status</h4>
+              <h4 className="text-xs font-bold text-slate-400 uppercase mb-1">Ordem, Status e Exclusão</h4>
               {allStages.map((stage, index) => (
                 <div key={stage.id} className={`flex items-center justify-between p-3 rounded-xl border ${stage.isActive ? 'border-slate-200 bg-white' : 'border-red-100 bg-red-50 opacity-70'}`}>
                   <div className="flex items-center gap-4">
@@ -321,12 +384,22 @@ export default function SolicitacoesPage() {
                     <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: stage.color }}></div>
                     <span className="font-bold text-slate-700 text-sm">{stage.name}</span>
                   </div>
-                  <button 
-                    onClick={() => handleToggleStageActive(stage.id, stage.isActive)} 
-                    className={`text-xs font-bold px-3 py-1 rounded-md ${stage.isActive ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
-                  >
-                    {stage.isActive ? 'Desativar' : 'Ativar'}
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleToggleStageActive(stage.id, stage.isActive)} 
+                      className={`text-xs font-bold px-3 py-1.5 rounded-md ${stage.isActive ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                    >
+                      {stage.isActive ? 'Desativar' : 'Ativar'}
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteStage(stage.id)} 
+                      className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                      title="Apagar Fase"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -430,9 +503,9 @@ export default function SolicitacoesPage() {
                 </div>
               </div>
               <div className="p-4 border-t border-slate-200 bg-white">
-                 <button onClick={() => handleToggleArchive(activeTicket.id, true)} className="w-full flex items-center justify-center gap-2 text-red-500 bg-red-50 hover:bg-red-100 py-2.5 rounded-lg text-sm font-bold transition-colors">
+                 <button onClick={() => handleToggleArchive(activeTicket.id, true)} className="w-full flex items-center justify-center gap-2 text-amber-600 bg-amber-50 hover:bg-amber-100 py-2.5 rounded-lg text-sm font-bold transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>
-                    Arquivar Ticket
+                    Arquivar Solicitação
                  </button>
               </div>
             </div>
@@ -444,14 +517,19 @@ export default function SolicitacoesPage() {
               </div>
               <div className="flex-1 p-6 overflow-y-auto bg-slate-50/50">
                 {(activeTicket.notes || []).map(note => (
-                  <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative mb-4">
-                    <span className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{new Date(note.createdAt).toLocaleString()}</span>
-                    <p className="text-slate-700 text-sm whitespace-pre-wrap pr-24">{note.text}</p>
+                  <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative mb-4 group">
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{new Date(note.createdAt).toLocaleString()}</span>
+                      <button onClick={() => handleDeleteNote(note.id)} className="w-6 h-6 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                      </button>
+                    </div>
+                    <p className="text-slate-700 text-sm whitespace-pre-wrap pr-28 mt-2">{note.text}</p>
                   </div>
                 ))}
               </div>
               <div className="p-4 border-t border-slate-100 bg-white">
-                <textarea className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none resize-none h-[100px]" placeholder="Escreva uma nova atualização..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
+                <textarea className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none resize-none h-[80px]" placeholder="Escreva uma nova atualização..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
                 <div className="flex justify-end mt-2">
                   <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50">Adicionar Nota</button>
                 </div>
