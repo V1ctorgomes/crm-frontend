@@ -33,7 +33,6 @@ interface Stage {
 }
 
 export default function WhatsAppPage() {
-  // NOVO: Verificação de Instâncias
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
 
   const [inputText, setInputText] = useState('');
@@ -88,7 +87,6 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // 1. Verifica se existem Instâncias conectadas para o Utilizador
         const resUsers = await fetch(`${baseUrl}/users`);
         if (resUsers.ok) {
           const users = await resUsers.json();
@@ -97,22 +95,17 @@ export default function WhatsAppPage() {
             const resInstances = await fetch(`${baseUrl}/instances/user/${userId}`);
             if (resInstances.ok) {
               const instances = await resInstances.json();
-              setHasInstances(instances.length > 0); // Se for > 0, tem instância
-            } else {
-              setHasInstances(false);
-            }
-          } else {
-            setHasInstances(false);
-          }
+              setHasInstances(instances.length > 0); 
+            } else setHasInstances(false);
+          } else setHasInstances(false);
         }
 
-        // 2. Carrega Contatos
         const resContacts = await fetch(`${baseUrl}/whatsapp/contacts`);
         if (resContacts.ok) {
           const data = await resContacts.json();
           const formattedContacts = data.map((c: any) => ({
             ...c,
-            lastMessageTime: new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
           }));
           setContacts(formattedContacts);
 
@@ -123,14 +116,10 @@ export default function WhatsAppPage() {
           }
         }
 
-        // 3. Carrega Fases do Kanban
         const resStages = await fetch(`${baseUrl}/tickets/stages`);
         if (resStages.ok) setStages(await resStages.json());
 
-      } catch (err) { 
-        console.error("Erro ao carregar dados:", err);
-        setHasInstances(false);
-      }
+      } catch (err) { setHasInstances(false); }
     };
     fetchInitialData();
   }, [baseUrl]);
@@ -143,27 +132,19 @@ export default function WhatsAppPage() {
           if (res.ok) {
             const data = await res.json();
             const formattedMessages = data.map((m: any) => ({
-              id: m.id,
-              text: m.text,
-              type: m.type,
-              time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              fromMe: m.type === 'sent',
-              senderNumber: m.contactNumber,
-              isMedia: m.isMedia,
-              mediaData: m.mediaData, 
-              mimeType: m.mimeType,
-              fileName: m.fileName
+              id: m.id, text: m.text, type: m.type, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              fromMe: m.type === 'sent', senderNumber: m.contactNumber, isMedia: m.isMedia, mediaData: m.mediaData, mimeType: m.mimeType, fileName: m.fileName
             }));
             setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
           }
-        } catch (err) { console.error("Erro ao carregar histórico:", err); }
+        } catch (err) {}
       };
       fetchHistory();
     }
   }, [activeContact, baseUrl, chatHistory]);
 
   useEffect(() => {
-    if (hasInstances === false) return; // Se não tem instância, não liga o streaming para poupar recursos
+    if (hasInstances === false) return; 
 
     const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
     eventSource.onmessage = (event) => {
@@ -184,16 +165,8 @@ export default function WhatsAppPage() {
             : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : msgData.message?.audioMessage ? "🎵 Áudio" : "Mídia recebida"));
 
           const newMessage: Message = {
-            id: msgData.key?.id || Date.now(),
-            text: incomingText,
-            type: isFromMe ? 'sent' : 'received',
-            time: timeNow,
-            fromMe: isFromMe,
-            senderNumber: contactNumber,
-            isMedia: customMedia.isMedia || false,
-            mediaData: customMedia.mediaData,
-            mimeType: customMedia.mimeType,
-            fileName: customMedia.fileName
+            id: msgData.key?.id || Date.now(), text: incomingText, type: isFromMe ? 'sent' : 'received', time: timeNow, fromMe: isFromMe,
+            senderNumber: contactNumber, isMedia: customMedia.isMedia || false, mediaData: customMedia.mediaData, mimeType: customMedia.mimeType, fileName: customMedia.fileName
           };
 
           setChatHistory(prev => ({ ...prev, [contactNumber]: [...(prev[contactNumber] || []), newMessage] }));
@@ -203,23 +176,33 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
+  const handleDeleteConversation = async () => {
+    if (!activeContact) return;
+    if (!confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?")) return;
+    
+    try {
+      const res = await fetch(`${baseUrl}/whatsapp/history/${activeContact.number}`, { method: 'DELETE' });
+      if (res.ok) {
+        setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+        setIsChatMenuOpen(false);
+        setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
+      }
+    } catch (err) {
+      setErrorBanner("Erro ao apagar conversa.");
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
-    if (file.size > 15 * 1024 * 1024) {
-      setErrorBanner("O arquivo é muito grande (máximo 15MB).");
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    if (file.size > 15 * 1024 * 1024) { setErrorBanner("Arquivo muito grande (máx 15MB)."); return; }
+    setPreviewUrl(URL.createObjectURL(file));
     setPreviewFile(file);
   };
 
   const cancelPreview = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewFile(null);
-    setPreviewUrl(null);
-    setInputText('');
+    setPreviewFile(null); setPreviewUrl(null); setInputText('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -230,52 +213,31 @@ export default function WhatsAppPage() {
 
     const targetNumber = activeContact.number;
     const textToSend = inputText;
-
     setIsSending(true);
 
     if (previewFile) {
       const formData = new FormData();
-      formData.append('file', previewFile);
-      formData.append('number', targetNumber);
-      formData.append('caption', textToSend);
-
+      formData.append('file', previewFile); formData.append('number', targetNumber); formData.append('caption', textToSend);
       const tempId = Date.now();
-      const optimisticMsg: Message = { 
-        id: tempId, text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
-        fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name
-      };
-
-      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      const optimisticMsg: Message = { id: tempId, text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name };
       
-      setInputText('');
-      setPreviewFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+      setInputText(''); setPreviewFile(null); if (fileInputRef.current) fileInputRef.current.value = '';
 
       try {
         const res = await fetch(`${baseUrl}/whatsapp/send-media`, { method: 'POST', body: formData });
         if (res.ok) {
            const savedData = await res.json();
-           setChatHistory(prev => ({
-             ...prev,
-             [targetNumber]: prev[targetNumber].map(msg => 
-               msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg
-             )
-           }));
+           setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
         }
       } catch (error) { setErrorBanner("Erro ao enviar arquivo."); } finally { setIsSending(false); }
     } else {
-      const optimisticMsg: Message = { 
-        id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber
-      };
-
+      const optimisticMsg: Message = { id: Date.now(), text: textToSend, type: 'sent', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), fromMe: true, senderNumber: targetNumber };
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       setInputText('');
 
       try {
-        await fetch(`${baseUrl}/whatsapp/send`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ number: targetNumber, text: textToSend })
-        });
+        await fetch(`${baseUrl}/whatsapp/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: targetNumber, text: textToSend }) });
       } catch (error) { setErrorBanner("Erro ao enviar mensagem."); } finally { setIsSending(false); }
     }
   };
@@ -283,19 +245,13 @@ export default function WhatsAppPage() {
   const openNewTicketModal = () => {
     setIsChatMenuOpen(false);
     if (!activeContact) return;
-    setFormNome(activeContact.name || '');
-    setFormEmail(activeContact.email || '');
-    setFormCpf(activeContact.cnpj || '');
-    setFormMarca('');
-    setFormModelo('');
+    setFormNome(activeContact.name || ''); setFormEmail(activeContact.email || ''); setFormCpf(activeContact.cnpj || ''); setFormMarca(''); setFormModelo('');
     setIsNewTicketModalOpen(true);
   };
 
   const handleCreateTicket = async () => {
     if (!activeContact || stages.length === 0) return alert("Nenhuma fase de Kanban encontrada no sistema.");
-    
     const body = { contactNumber: activeContact.number, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, stageId: stages[0].id };
-
     try {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
@@ -311,45 +267,24 @@ export default function WhatsAppPage() {
 
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
   const filteredMessages = chatSearchTerm
-    ? activeMessages.filter(msg => 
-        (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
-        (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase())
-      )
+    ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
   return (
     <div className="flex h-screen overflow-hidden bg-white font-sans">
-      
       <Sidebar />
-
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
-        {/* Trava: Mostra Loading se ainda estiver verificando */}
         {hasInstances === null ? (
-          <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]">
-            <div className="w-10 h-10 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]"><div className="w-10 h-10 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin"></div></div>
         ) : hasInstances === false ? (
-          // Trava: Tela de Bloqueio caso não tenha Instâncias conectadas
           <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] p-6 text-center animate-in fade-in">
-             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-slate-300">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                </svg>
-             </div>
+             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg></div>
              <h2 className="text-2xl font-bold text-slate-800 mb-3">Nenhuma Instância Conectada</h2>
-             <p className="text-slate-500 mb-8 max-w-md text-sm leading-relaxed">
-               Para começar a enviar e receber mensagens com os seus clientes, você precisa primeiro criar e conectar uma instância do WhatsApp.
-             </p>
-             <Link href="/configuracoes" className="bg-[#1FA84A] text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors shadow-sm flex items-center gap-2">
-                Ir para Configurações
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-             </Link>
+             <p className="text-slate-500 mb-8 max-w-md text-sm leading-relaxed">Para começar a enviar e receber mensagens com os seus clientes, você precisa primeiro criar e conectar uma instância do WhatsApp.</p>
+             <Link href="/configuracoes" className="bg-[#1FA84A] text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 transition-colors shadow-sm flex items-center gap-2">Ir para Configurações<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg></Link>
           </div>
         ) : (
-          /* ========================================================= */
-          /* O SEU WHATSAPP NORMAL AQUI (SÓ APARECE SE TIVER INSTÂNCIA) */
-          /* ========================================================= */
           <>
             {errorBanner && (
               <div className="absolute top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3">
@@ -380,7 +315,7 @@ export default function WhatsAppPage() {
                         <span className="font-semibold text-slate-800 text-[15px] truncate">{contact.name}</span>
                         <span className="text-[11px] text-slate-500 shrink-0">{contact.lastMessageTime}</span>
                       </div>
-                      <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage}</div>
+                      <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage || ''}</div>
                     </div>
                   </div>
                 ))}
@@ -419,6 +354,10 @@ export default function WhatsAppPage() {
                             <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden">
                               <button onClick={openNewTicketModal} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
+                              </button>
+                              <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
+                              <button onClick={handleDeleteConversation} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> Excluir Conversa
                               </button>
                             </div>
                           </>
@@ -514,7 +453,6 @@ export default function WhatsAppPage() {
         )}
       </main>
 
-      {/* MODAL NOVA SOLICITAÇÃO (CABEÇALHO WHATSAPP) */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -573,5 +511,4 @@ export default function WhatsAppPage() {
       )}
     </div>
   );
-  
 }
