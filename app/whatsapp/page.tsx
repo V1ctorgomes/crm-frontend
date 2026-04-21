@@ -152,6 +152,7 @@ export default function WhatsAppPage() {
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
+        
         if (payload?.event === 'messages.upsert' && payload?.data) {
           const msgData = payload.data;
           const remoteJid = msgData.key?.remoteJid;
@@ -177,13 +178,14 @@ export default function WhatsAppPage() {
             [contactNumber]: [...(prev[contactNumber] || []), newMessage] 
           }));
 
-          // 2. Atualiza a Lista de Contatos (Move para o topo com a nova mensagem)
+          // 2. Atualiza a Lista de Contatos (Move para o topo com a nova mensagem e foto)
           setContacts(prev => {
             const idx = prev.findIndex(c => c.number === contactNumber);
             const updated = [...prev];
             if (idx !== -1) {
               updated[idx].lastMessage = incomingText;
               updated[idx].lastMessageTime = timeNow;
+              if (msgData.profilePictureUrl) updated[idx].profilePictureUrl = msgData.profilePictureUrl;
               const item = updated.splice(idx, 1)[0];
               updated.unshift(item);
             } else {
@@ -200,6 +202,12 @@ export default function WhatsAppPage() {
         }
       } catch (err) { console.error("Erro no processamento da mensagem:", err); }
     };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      // O navegador tentará reconectar automaticamente
+    };
+
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
@@ -252,7 +260,7 @@ export default function WhatsAppPage() {
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
-      // Atualiza a barra lateral com o ficheiro optimista
+      // Atualiza a barra lateral
       setContacts(prev => {
         const idx = prev.findIndex(c => c.number === targetNumber);
         const updated = [...prev];
@@ -279,7 +287,7 @@ export default function WhatsAppPage() {
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
-      // Atualiza a barra lateral com o texto optimista
+      // Atualiza a barra lateral
       setContacts(prev => {
         const idx = prev.findIndex(c => c.number === targetNumber);
         const updated = [...prev];
