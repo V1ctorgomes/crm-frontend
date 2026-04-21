@@ -143,7 +143,7 @@ export default function WhatsAppPage() {
     }
   }, [activeContact, baseUrl, chatHistory]);
 
-  // ESCUTA EM TEMPO REAL (SSE)
+  // ESCUTA EM TEMPO REAL (SSE) CORRIGIDO
   useEffect(() => {
     if (hasInstances === false) return; 
 
@@ -153,13 +153,15 @@ export default function WhatsAppPage() {
       try {
         const payload = JSON.parse(event.data);
         
-        if (payload?.event === 'messages.upsert' && payload?.data) {
+        // Aceita 'messages.upsert' e 'send.message' (do telemóvel)
+        if ((payload?.event === 'messages.upsert' || payload?.event === 'send.message') && payload?.data) {
           const msgData = payload.data;
           const remoteJid = msgData.key?.remoteJid;
           if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
           
           const contactNumber = remoteJid.split('@')[0];
           const isFromMe = msgData.key?.fromMe || false;
+          const waId = msgData.key?.id || Date.now().toString(); // Pega o ID real
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const customMedia = msgData.customMedia || {};
@@ -168,17 +170,28 @@ export default function WhatsAppPage() {
             : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : msgData.message?.audioMessage ? "🎵 Áudio" : "Mídia recebida"));
 
           const newMessage: Message = {
-            id: msgData.key?.id || Date.now(), text: incomingText, type: isFromMe ? 'sent' : 'received', time: timeNow, fromMe: isFromMe,
+            id: waId, text: incomingText, type: isFromMe ? 'sent' : 'received', time: timeNow, fromMe: isFromMe,
             senderNumber: contactNumber, isMedia: customMedia.isMedia || false, mediaData: customMedia.mediaData, mimeType: customMedia.mimeType, fileName: customMedia.fileName
           };
 
-          // 1. Atualiza o Histórico de Chat
-          setChatHistory(prev => ({ 
-            ...prev, 
-            [contactNumber]: [...(prev[contactNumber] || []), newMessage] 
-          }));
+          setChatHistory(prev => {
+            const history = prev[contactNumber] || [];
+            
+            // Bloqueia duplicação: se já temos esta mensagem pelo ID, ignora
+            if (history.some(m => m.id === waId)) return prev;
 
-          // 2. Atualiza a Lista de Contatos (Move para o topo com a nova mensagem e foto)
+            // Se for de nós mesmos, checa se há uma "mensagem otimista" enviada pelo CRM agora mesmo para fundir o ID
+            if (isFromMe) {
+               const dupOptimistic = history.find(m => m.fromMe && m.text === incomingText && typeof m.id === 'number');
+               if (dupOptimistic) {
+                  return { ...prev, [contactNumber]: history.map(m => m === dupOptimistic ? { ...m, id: waId } : m) };
+               }
+            }
+
+            return { ...prev, [contactNumber]: [...history, newMessage] };
+          });
+
+          // Atualiza a Barra Lateral
           setContacts(prev => {
             const idx = prev.findIndex(c => c.number === contactNumber);
             const updated = [...prev];
@@ -189,11 +202,9 @@ export default function WhatsAppPage() {
               const item = updated.splice(idx, 1)[0];
               updated.unshift(item);
             } else {
-               // Atualiza toda a lista se for um contacto completamente novo
                fetch(`${baseUrl}/whatsapp/contacts`).then(res => res.json()).then(data => {
                   setContacts(data.map((c: any) => ({
-                    ...c,
-                    lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+                    ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
                   })));
                });
             }
@@ -203,15 +214,10 @@ export default function WhatsAppPage() {
       } catch (err) { console.error("Erro no processamento da mensagem:", err); }
     };
 
-    eventSource.onerror = () => {
-      eventSource.close();
-      // O navegador tentará reconectar automaticamente
-    };
-
+    eventSource.onerror = () => { eventSource.close(); };
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // EXCLUIR CONVERSA
   const handleDeleteConversation = async () => {
     if (!activeContact) return;
     if (!confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?")) return;
@@ -223,9 +229,7 @@ export default function WhatsAppPage() {
         setIsChatMenuOpen(false);
         setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
       }
-    } catch (err) {
-      setErrorBanner("Erro ao apagar conversa.");
-    }
+    } catch (err) { setErrorBanner("Erro ao apagar conversa."); }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,7 +264,6 @@ export default function WhatsAppPage() {
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
-      // Atualiza a barra lateral
       setContacts(prev => {
         const idx = prev.findIndex(c => c.number === targetNumber);
         const updated = [...prev];
@@ -287,7 +290,6 @@ export default function WhatsAppPage() {
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       
-      // Atualiza a barra lateral
       setContacts(prev => {
         const idx = prev.findIndex(c => c.number === targetNumber);
         const updated = [...prev];
