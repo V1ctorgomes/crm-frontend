@@ -65,8 +65,8 @@ export default function WhatsAppPage() {
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
-  
-  // NOVO ESTADO: Controle da Modal de Exclusão segura
+
+  // NOVO: Estado para controlar a janela visual de confirmação de exclusão
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -221,17 +221,11 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // Ação para ABRIR a Modal de Exclusão
-  const openDeleteModal = () => {
-    setIsChatMenuOpen(false); // Fecha o menu flutuante
-    setIsDeleteModalOpen(true); // Abre a modal na tela
-  };
-
-  // Ação REAL para Excluir a Conversa no Banco de Dados
+  // NOVO: Função que executa a exclusão de fato quando confirmada na janela
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
     
-    setIsDeleteModalOpen(false); // Fecha a modal imediatamente
+    setIsDeleteModalOpen(false); // Fecha a modal
     
     try {
       const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
@@ -493,7 +487,8 @@ export default function WhatsAppPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
                               </button>
                               <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
-                              <button onClick={openDeleteModal} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                              {/* NOVO: Botão abre a Modal Visual de forma síncrona */}
+                              <button onClick={() => { setIsChatMenuOpen(false); setIsDeleteModalOpen(true); }} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> Excluir Conversa
                               </button>
                             </div>
@@ -590,7 +585,7 @@ export default function WhatsAppPage() {
         )}
       </main>
 
-      {/* MODAL DE EXCLUSÃO DE CONVERSA */}
+      {/* NOVA MODAL GRÁFICA DE CONFIRMAÇÃO DE EXCLUSÃO */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsDeleteModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -609,12 +604,13 @@ export default function WhatsAppPage() {
         </div>
       )}
 
+      {/* RESTO DAS MODAIS (CRM, TICKETS, ARQUIVOS) */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">Nova Conversa</h3>
-              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
             </div>
             
             <div className="p-4 border-b border-slate-100 bg-white">
@@ -650,7 +646,7 @@ export default function WhatsAppPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>Nova Solicitação</h3>
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
             </div>
             
             <div className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[70vh]">
