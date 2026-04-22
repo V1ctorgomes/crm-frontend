@@ -67,6 +67,14 @@ export default function WhatsAppPage() {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+  // === ESTADOS PARA GRAVAÇÃO DE ÁUDIO ===
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCancelledRef = useRef<boolean>(false);
+
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const handleSelectContact = (contact: Contact | null) => {
@@ -253,46 +261,65 @@ export default function WhatsAppPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // FUNÇÃO AUXILIAR PARA ENVIAR MÍDIA DIRETAMENTE (Usada pelo preview e pelo Áudio)
+  const sendDirectMedia = async (file: File, caption: string) => {
+    if (!activeContact) return;
+    const targetNumber = activeContact.number;
+    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setIsSending(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('number', targetNumber);
+    formData.append('caption', caption);
+
+    const tempId = Date.now();
+    const tempUrl = URL.createObjectURL(file);
+    const optimisticMsg: Message = { id: tempId, text: caption || "🎵 Áudio", type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: tempUrl, mimeType: file.type, fileName: file.name };
+
+    setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+
+    setContacts(prev => {
+      const idx = prev.findIndex(c => c.number === targetNumber);
+      const updated = [...prev];
+      if (idx !== -1) {
+        updated[idx].lastMessage = caption || "🎵 Áudio";
+        updated[idx].lastMessageTime = timeNow;
+        const item = updated.splice(idx, 1)[0];
+        updated.unshift(item);
+      }
+      return updated;
+    });
+
+    try {
+      const res = await fetch(`${baseUrl}/whatsapp/send-media`, { method: 'POST', body: formData });
+      if (res.ok) {
+         const savedData = await res.json();
+         setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
+      }
+    } catch (error) { 
+      setErrorBanner("Erro ao enviar mídia."); 
+    } finally { 
+      setIsSending(false); 
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isRecording) return; // Proteção para não enviar formulário se estiver gravando áudio
     if (isSending || !activeContact) return;
     if (!inputText.trim() && !previewFile) return;
 
     const targetNumber = activeContact.number;
     const textToSend = inputText;
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setIsSending(true);
-
+    
     if (previewFile) {
-      const formData = new FormData();
-      formData.append('file', previewFile); formData.append('number', targetNumber); formData.append('caption', textToSend);
-      const tempId = Date.now();
-      const optimisticMsg: Message = { id: tempId, text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: previewUrl || '', mimeType: previewFile.type, fileName: previewFile.name };
-      
-      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
-      
-      setContacts(prev => {
-        const idx = prev.findIndex(c => c.number === targetNumber);
-        const updated = [...prev];
-        if (idx !== -1) {
-          updated[idx].lastMessage = textToSend || "📷 Mídia";
-          updated[idx].lastMessageTime = timeNow;
-          const item = updated.splice(idx, 1)[0];
-          updated.unshift(item);
-        }
-        return updated;
-      });
-
+      const fileToSend = previewFile;
       setInputText(''); setPreviewFile(null); if (fileInputRef.current) fileInputRef.current.value = '';
-
-      try {
-        const res = await fetch(`${baseUrl}/whatsapp/send-media`, { method: 'POST', body: formData });
-        if (res.ok) {
-           const savedData = await res.json();
-           setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
-        }
-      } catch (error) { setErrorBanner("Erro ao enviar arquivo."); } finally { setIsSending(false); }
+      await sendDirectMedia(fileToSend, textToSend);
     } else {
+      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setIsSending(true);
       const optimisticMsg: Message = { id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber };
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
@@ -317,7 +344,65 @@ export default function WhatsAppPage() {
     }
   };
 
-  // AÇÃO DO BOTÃO "NOVA SOLICITAÇÃO" PARA ABRIR A TELA DE CRIAÇÃO
+  // === FUNÇÕES DE GRAVAÇÃO DE ÁUDIO ===
+  const formatRecordingTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      isCancelledRef.current = false;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        if (isCancelledRef.current) return; // Se foi cancelado, a gente para por aqui
+
+        // Cria o blob e converte para arquivo webm compatível
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+
+        await sendDirectMedia(audioFile, '');
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      setErrorBanner("Acesso ao microfone negado ou indisponível.");
+    }
+  };
+
+  const stopRecordingAndSend = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop(); // Isto vai invocar o onstop acima, que fará o envio
+      setIsRecording(false);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      isCancelledRef.current = true;
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  };
+  // ===================================
+
   const openNewTicketModal = () => {
     if (!activeContact) return;
     setFormNome(activeContact.name || ''); 
@@ -477,8 +562,6 @@ export default function WhatsAppPage() {
                     </div>
                     
                     <div className="flex items-center gap-2 ml-auto relative">
-                      
-                      {/* NOVO: BOTÃO ABRIR SOLICITAÇÃO (FORA DOS 3 PONTINHOS) */}
                       <button
                         onClick={openNewTicketModal}
                         className="w-10 h-10 rounded-full flex items-center justify-center text-[#1FA84A] hover:bg-[#d9fdd3] transition-colors"
@@ -500,7 +583,6 @@ export default function WhatsAppPage() {
                       <button onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-[#d9fdd3] text-[#1FA84A]' : 'text-slate-500 hover:bg-slate-200'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                       </button>
-
                     </div>
                   </div>
 
@@ -572,9 +654,38 @@ export default function WhatsAppPage() {
 
                   <form className="bg-[#f0f2f5] p-3 flex items-center gap-3 shrink-0 z-10" onSubmit={handleSendMessage}>
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*,audio/*" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 transform -rotate-45"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg></button>
-                    <input type="text" placeholder="Escreva uma mensagem..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isSending} />
-                    <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0">{isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}</button>
+                    
+                    {!isRecording && (
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 transform -rotate-45"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
+                      </button>
+                    )}
+
+                    {isRecording ? (
+                      <div className="flex-1 flex items-center justify-between bg-red-50 rounded-xl px-4 py-2 border border-red-100 animate-in fade-in">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                          <span className="text-red-500 font-bold text-[15px] tabular-nums tracking-wider">{formatRecordingTime(recordingTime)}</span>
+                        </div>
+                        <button type="button" onClick={cancelRecording} className="text-slate-500 hover:text-red-600 font-medium text-sm transition-colors uppercase tracking-wider px-2">Cancelar</button>
+                      </div>
+                    ) : (
+                      <input type="text" placeholder="Escreva uma mensagem..." className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-[15px] outline-none shadow-sm" value={inputText} onChange={(e) => setInputText(e.target.value)} disabled={isSending} />
+                    )}
+
+                    {!inputText.trim() && !previewFile && !isRecording ? (
+                      <button type="button" onClick={startRecording} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 transition-colors shrink-0 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>
+                      </button>
+                    ) : isRecording ? (
+                      <button type="button" onClick={stopRecordingAndSend} disabled={isSending} className="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shrink-0 shadow-sm animate-in zoom-in">
+                         {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
+                      </button>
+                    ) : (
+                      <button type="submit" disabled={isSending || !inputText.trim()} className="w-11 h-11 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 hover:bg-green-600 transition-colors shrink-0 shadow-sm">
+                        {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
+                      </button>
+                    )}
                   </form>
                 </>
               ) : (
@@ -610,6 +721,7 @@ export default function WhatsAppPage() {
         </div>
       )}
 
+      {/* MODAL PARA NOVA CONVERSA (BOTÃO + DA BARRA LATERAL) */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -646,6 +758,7 @@ export default function WhatsAppPage() {
         </div>
       )}
 
+      {/* MODAL DE CRIAÇÃO DE TICKET (SOLICITAÇÃO) */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
