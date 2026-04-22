@@ -62,6 +62,11 @@ export default function WhatsAppPage() {
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
 
+  // ESTADOS NOVOS PARA INICIAR CONVERSA DO CRM
+  const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const handleSelectContact = (contact: Contact | null) => {
@@ -119,6 +124,10 @@ export default function WhatsAppPage() {
         const resStages = await fetch(`${baseUrl}/tickets/stages`);
         if (resStages.ok) setStages(await resStages.json());
 
+        // NOVO: Puxar a lista de clientes do CRM
+        const resCustomers = await fetch(`${baseUrl}/customers`);
+        if (resCustomers.ok) setCrmCustomers(await resCustomers.json());
+
       } catch (err) { setHasInstances(false); }
     };
     fetchInitialData();
@@ -143,7 +152,6 @@ export default function WhatsAppPage() {
     }
   }, [activeContact, baseUrl, chatHistory]);
 
-  // ESCUTA EM TEMPO REAL (SSE) CORRIGIDO
   useEffect(() => {
     if (hasInstances === false) return; 
 
@@ -153,7 +161,6 @@ export default function WhatsAppPage() {
       try {
         const payload = JSON.parse(event.data);
         
-        // Aceita 'messages.upsert' e 'send.message' (do telemóvel)
         if ((payload?.event === 'messages.upsert' || payload?.event === 'send.message') && payload?.data) {
           const msgData = payload.data;
           const remoteJid = msgData.key?.remoteJid;
@@ -161,7 +168,7 @@ export default function WhatsAppPage() {
           
           const contactNumber = remoteJid.split('@')[0];
           const isFromMe = msgData.key?.fromMe || false;
-          const waId = msgData.key?.id || Date.now().toString(); // Pega o ID real
+          const waId = msgData.key?.id || Date.now().toString(); 
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const customMedia = msgData.customMedia || {};
@@ -176,22 +183,17 @@ export default function WhatsAppPage() {
 
           setChatHistory(prev => {
             const history = prev[contactNumber] || [];
-            
-            // Bloqueia duplicação: se já temos esta mensagem pelo ID, ignora
             if (history.some(m => m.id === waId)) return prev;
 
-            // Se for de nós mesmos, checa se há uma "mensagem otimista" enviada pelo CRM agora mesmo para fundir o ID
             if (isFromMe) {
                const dupOptimistic = history.find(m => m.fromMe && m.text === incomingText && typeof m.id === 'number');
                if (dupOptimistic) {
                   return { ...prev, [contactNumber]: history.map(m => m === dupOptimistic ? { ...m, id: waId } : m) };
                }
             }
-
             return { ...prev, [contactNumber]: [...history, newMessage] };
           });
 
-          // Atualiza a Barra Lateral
           setContacts(prev => {
             const idx = prev.findIndex(c => c.number === contactNumber);
             const updated = [...prev];
@@ -218,6 +220,7 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
+  // EXCLUIR CONVERSA DE VERDADE
   const handleDeleteConversation = async () => {
     if (!activeContact) return;
     if (!confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?")) return;
@@ -227,7 +230,10 @@ export default function WhatsAppPage() {
       if (res.ok) {
         setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
         setIsChatMenuOpen(false);
-        setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
+        // NOVO: Remove da barra lateral e limpa a tela
+        setContacts(prev => prev.filter(c => c.number !== activeContact.number));
+        setActiveContact(null);
+        localStorage.removeItem('lastActiveContact');
       }
     } catch (err) { setErrorBanner("Erro ao apagar conversa."); }
   };
@@ -333,10 +339,47 @@ export default function WhatsAppPage() {
     } catch (err) { setErrorBanner("Erro ao criar a solicitação."); }
   };
 
+  // INICIAR CONVERSA VIA CRM
+  const startChatWithCustomer = (customer: any) => {
+    if (!customer.phone) {
+      setErrorBanner("Este cliente não tem número de telefone registado no CRM.");
+      return;
+    }
+    
+    let cleanPhone = customer.phone.replace(/\D/g, '');
+    if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+      cleanPhone = `55${cleanPhone}`; // Formata para o Brasil caso falte o DDI
+    }
+
+    const existingContact = contacts.find(c => c.number === cleanPhone);
+
+    if (existingContact) {
+      handleSelectContact(existingContact);
+    } else {
+      const newContact: Contact = {
+        number: cleanPhone,
+        name: customer.name,
+        lastMessage: '',
+        lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        email: customer.email,
+        cnpj: customer.company
+      };
+      setContacts(prev => [newContact, ...prev]);
+      handleSelectContact(newContact);
+    }
+    setIsCustomerModalOpen(false);
+    setCustomerSearch('');
+  };
+
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
   const filteredMessages = chatSearchTerm
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
+
+  const filteredCustomers = crmCustomers.filter(c => 
+    c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+    (c.phone && c.phone.includes(customerSearch))
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-white font-sans">
@@ -363,11 +406,19 @@ export default function WhatsAppPage() {
             )}
 
             <div className={`w-full md:w-[320px] lg:w-[350px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-3 bg-white border-b border-slate-100 shrink-0">
-                <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
+              <div className="p-3 bg-white border-b border-slate-100 shrink-0 flex gap-2">
+                <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10 flex-1">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                   <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
                 </div>
+                {/* NOVO: Botão Iniciar Conversa do CRM */}
+                <button 
+                  onClick={() => setIsCustomerModalOpen(true)} 
+                  className="w-10 h-10 bg-[#1FA84A] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm shrink-0" 
+                  title="Nova conversa a partir do CRM"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </button>
               </div>
               
               <div className="flex-1 overflow-y-auto">
@@ -383,7 +434,7 @@ export default function WhatsAppPage() {
                         <span className="font-semibold text-slate-800 text-[15px] truncate">{contact.name}</span>
                         <span className="text-[11px] text-slate-500 shrink-0">{contact.lastMessageTime}</span>
                       </div>
-                      <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage || ''}</div>
+                      <div className="text-[13px] text-slate-500 truncate">{contact.lastMessage || 'Nova Conversa'}</div>
                     </div>
                   </div>
                 ))}
@@ -520,6 +571,43 @@ export default function WhatsAppPage() {
           </>
         )}
       </main>
+
+      {/* MODAL DE NOVA CONVERSA COM O CLIENTE DO CRM */}
+      {isCustomerModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">Nova Conversa</h3>
+              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+            </div>
+            
+            <div className="p-4 border-b border-slate-100 bg-white">
+               <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                  <input type="text" placeholder="Procurar cliente no CRM..." className="bg-transparent border-none outline-none w-full pl-3 text-sm" value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} autoFocus />
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto max-h-[50vh] p-2">
+               {filteredCustomers.length === 0 ? (
+                 <div className="text-center text-slate-400 p-6 text-sm">Nenhum cliente encontrado.</div>
+               ) : (
+                 filteredCustomers.map(customer => (
+                   <div key={customer.id} onClick={() => startChatWithCustomer(customer)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-[#e8f6ea] text-[#1FA84A] flex items-center justify-center font-bold text-sm shrink-0">
+                        {customer.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                         <span className="font-semibold text-slate-800 text-sm truncate">{customer.name}</span>
+                         <span className="text-xs text-slate-500 font-mono truncate">{customer.phone || 'Sem número'}</span>
+                      </div>
+                   </div>
+                 ))
+               )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
