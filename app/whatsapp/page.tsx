@@ -52,7 +52,6 @@ export default function WhatsAppPage() {
 
   const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
   const [chatSearchTerm, setChatSearchTerm] = useState('');
-  const [isChatMenuOpen, setIsChatMenuOpen] = useState(false);
 
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -74,7 +73,6 @@ export default function WhatsAppPage() {
     setActiveContact(contact);
     setIsSearchChatOpen(false);
     setChatSearchTerm('');
-    setIsChatMenuOpen(false);
     if (contact) {
       localStorage.setItem('lastActiveContact', contact.number);
     } else {
@@ -113,7 +111,6 @@ export default function WhatsAppPage() {
             ...c,
             lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
           }));
-          // Agora contacts contém TUDO (Ativos e Inativos)
           setContacts(formattedContacts);
 
           const savedNumber = localStorage.getItem('lastActiveContact');
@@ -221,7 +218,6 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // Ação REAL para Excluir a Conversa no Banco de Dados
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
     
@@ -232,11 +228,7 @@ export default function WhatsAppPage() {
       
       if (res.ok) {
         setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
-        
-        // O SEGREDO: Em vez de remover do array contacts, apenas limpamos a lastMessage.
-        // Assim, ele sai da barra lateral, mas continua na agenda global e na modal de "+".
         setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
-        
         setActiveContact(null);
         localStorage.removeItem('lastActiveContact');
       } else {
@@ -325,10 +317,14 @@ export default function WhatsAppPage() {
     }
   };
 
+  // AÇÃO DO BOTÃO "NOVA SOLICITAÇÃO" PARA ABRIR A TELA DE CRIAÇÃO
   const openNewTicketModal = () => {
-    setIsChatMenuOpen(false);
     if (!activeContact) return;
-    setFormNome(activeContact.name || ''); setFormEmail(activeContact.email || ''); setFormCpf(activeContact.cnpj || ''); setFormMarca(''); setFormModelo('');
+    setFormNome(activeContact.name || ''); 
+    setFormEmail(activeContact.email || ''); 
+    setFormCpf(activeContact.cnpj || ''); 
+    setFormMarca(''); 
+    setFormModelo('');
     setIsNewTicketModalOpen(true);
   };
 
@@ -348,16 +344,13 @@ export default function WhatsAppPage() {
     } catch (err) { setErrorBanner("Erro ao criar a solicitação."); }
   };
 
-  // LÓGICA DE INICIAR CONVERSA 
   const startChatWithContact = (contact: any) => {
     const existing = contacts.find(c => c.number === contact.number);
 
     if (existing) {
-      // Se ele já existe no contacts (WhatsApp history inativo), a gente "ativa" ele
       setContacts(prev => prev.map(c => c.number === contact.number ? { ...c, lastMessage: 'Nova Conversa', lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : c));
       setActiveContact({ ...existing, lastMessage: 'Nova Conversa' });
     } else {
-      // Se ele veio estritamente da tabela Customers e nunca falou no WhatsApp
       const newContact: Contact = {
         number: contact.number,
         name: contact.name,
@@ -379,23 +372,16 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
-
-  // SEPARAÇÃO DAS DUAS LISTAS (BARRA LATERAL x AGENDA DO BOTÃO +)
-  
-  // 1. Barra Lateral: Só mostra quem tem mensagem ativa
   const activeContactsList = contacts.filter(c => c.lastMessage && c.lastMessage.trim() !== '');
 
-  // 2. Agenda (Modal +): Todos os contatos do WhatsApp que NÃO têm mensagem ativa...
   const inactiveContactsList = contacts.filter(c => !c.lastMessage || c.lastMessage.trim() === '');
   const availableToChat = [...inactiveContactsList];
 
-  // ... Somados aos Clientes do CRM (evitando duplicados)
   crmCustomers.forEach(cust => {
     let cleanPhone = cust.phone ? cust.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length === 10 || cleanPhone.length === 11) {
       cleanPhone = `55${cleanPhone}`;
     }
-    // Se o cliente tem telefone, e NÃO está nem nos inativos nem nos ativos, adicionamos à lista
     if (cleanPhone && !availableToChat.some(c => c.number === cleanPhone) && !activeContactsList.some(c => c.number === cleanPhone)) {
       availableToChat.push({
         number: cleanPhone,
@@ -453,7 +439,6 @@ export default function WhatsAppPage() {
                 </button>
               </div>
               
-              {/* O SEGREDO 1: Renderiza APENAS a activeContactsList */}
               <div className="flex-1 overflow-y-auto">
                 {activeContactsList.map((contact) => (
                   <div key={contact.number} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-[#f0f2f5]' : 'hover:bg-slate-50'}`} onClick={() => handleSelectContact(contact)}>
@@ -492,6 +477,18 @@ export default function WhatsAppPage() {
                     </div>
                     
                     <div className="flex items-center gap-2 ml-auto relative">
+                      
+                      {/* NOVO: BOTÃO ABRIR SOLICITAÇÃO (FORA DOS 3 PONTINHOS) */}
+                      <button
+                        onClick={openNewTicketModal}
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-[#1FA84A] hover:bg-[#d9fdd3] transition-colors"
+                        title="Criar Nova Solicitação"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                      </button>
+
                       <button 
                         onClick={() => setIsDeleteModalOpen(true)} 
                         className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
@@ -504,21 +501,6 @@ export default function WhatsAppPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                       </button>
 
-                      <div className="relative">
-                        <button onClick={() => setIsChatMenuOpen(!isChatMenuOpen)} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isChatMenuOpen ? 'bg-slate-200 text-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}>
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" /></svg>
-                        </button>
-                        {isChatMenuOpen && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsChatMenuOpen(false)}></div>
-                            <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden">
-                              <button onClick={openNewTicketModal} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
                     </div>
                   </div>
 
@@ -628,7 +610,6 @@ export default function WhatsAppPage() {
         </div>
       )}
 
-      {/* O SEGREDO 2: O BOTÃO + EXIBE A LISTA `filteredNewContacts` */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
