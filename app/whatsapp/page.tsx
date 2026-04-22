@@ -62,7 +62,6 @@ export default function WhatsAppPage() {
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
 
-  // ESTADOS NOVOS PARA INICIAR CONVERSA DO CRM
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -124,7 +123,6 @@ export default function WhatsAppPage() {
         const resStages = await fetch(`${baseUrl}/tickets/stages`);
         if (resStages.ok) setStages(await resStages.json());
 
-        // NOVO: Puxar a lista de clientes do CRM
         const resCustomers = await fetch(`${baseUrl}/customers`);
         if (resCustomers.ok) setCrmCustomers(await resCustomers.json());
 
@@ -137,7 +135,7 @@ export default function WhatsAppPage() {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
         try {
-          const res = await fetch(`${baseUrl}/whatsapp/history/${activeContact.number}`);
+          const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`);
           if (res.ok) {
             const data = await res.json();
             const formattedMessages = data.map((m: any) => ({
@@ -220,22 +218,27 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // EXCLUIR CONVERSA DE VERDADE
   const handleDeleteConversation = async () => {
     if (!activeContact) return;
-    if (!confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?")) return;
+    
+    const confirmDelete = window.confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?");
+    if (!confirmDelete) return;
     
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/history/${activeContact.number}`, { method: 'DELETE' });
+      const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
+      
       if (res.ok) {
         setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
         setIsChatMenuOpen(false);
-        // NOVO: Remove da barra lateral e limpa a tela
         setContacts(prev => prev.filter(c => c.number !== activeContact.number));
         setActiveContact(null);
         localStorage.removeItem('lastActiveContact');
+      } else {
+        setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
       }
-    } catch (err) { setErrorBanner("Erro ao apagar conversa."); }
+    } catch (err) { 
+      setErrorBanner("Falha de conexão. Tente novamente."); 
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,7 +342,6 @@ export default function WhatsAppPage() {
     } catch (err) { setErrorBanner("Erro ao criar a solicitação."); }
   };
 
-  // INICIAR CONVERSA VIA CRM
   const startChatWithCustomer = (customer: any) => {
     if (!customer.phone) {
       setErrorBanner("Este cliente não tem número de telefone registado no CRM.");
@@ -348,7 +350,7 @@ export default function WhatsAppPage() {
     
     let cleanPhone = customer.phone.replace(/\D/g, '');
     if (cleanPhone.length === 10 || cleanPhone.length === 11) {
-      cleanPhone = `55${cleanPhone}`; // Formata para o Brasil caso falte o DDI
+      cleanPhone = `55${cleanPhone}`; 
     }
 
     const existingContact = contacts.find(c => c.number === cleanPhone);
@@ -376,10 +378,20 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
-  const filteredCustomers = crmCustomers.filter(c => 
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
-    (c.phone && c.phone.includes(customerSearch))
-  );
+  // NOVO: Filtro inteligente! Só mostra clientes do CRM que NÃO têm conversa na barra lateral
+  const filteredCustomers = crmCustomers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                          (c.phone && c.phone.includes(customerSearch));
+    if (!matchesSearch) return false;
+
+    let cleanPhone = c.phone ? c.phone.replace(/\D/g, '') : '';
+    if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+      cleanPhone = `55${cleanPhone}`;
+    }
+
+    const alreadyHasChat = contacts.some(contact => contact.number === cleanPhone);
+    return !alreadyHasChat;
+  });
 
   return (
     <div className="flex h-screen overflow-hidden bg-white font-sans">
@@ -411,7 +423,6 @@ export default function WhatsAppPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                   <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
                 </div>
-                {/* NOVO: Botão Iniciar Conversa do CRM */}
                 <button 
                   onClick={() => setIsCustomerModalOpen(true)} 
                   className="w-10 h-10 bg-[#1FA84A] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm shrink-0" 
@@ -572,7 +583,6 @@ export default function WhatsAppPage() {
         )}
       </main>
 
-      {/* MODAL DE NOVA CONVERSA COM O CLIENTE DO CRM */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -590,7 +600,7 @@ export default function WhatsAppPage() {
 
             <div className="flex-1 overflow-y-auto max-h-[50vh] p-2">
                {filteredCustomers.length === 0 ? (
-                 <div className="text-center text-slate-400 p-6 text-sm">Nenhum cliente encontrado.</div>
+                 <div className="text-center text-slate-400 p-6 text-sm">Nenhum cliente disponível para nova conversa.</div>
                ) : (
                  filteredCustomers.map(customer => (
                    <div key={customer.id} onClick={() => startChatWithCustomer(customer)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
