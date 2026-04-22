@@ -113,6 +113,7 @@ export default function WhatsAppPage() {
             ...c,
             lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
           }));
+          // Agora contacts contém TUDO (Ativos e Inativos)
           setContacts(formattedContacts);
 
           const savedNumber = localStorage.getItem('lastActiveContact');
@@ -220,18 +221,22 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // Função REAL para Excluir a Conversa no Banco de Dados
+  // Ação REAL para Excluir a Conversa no Banco de Dados
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
     
-    setIsDeleteModalOpen(false); // Fecha a modal imediatamente
+    setIsDeleteModalOpen(false); 
     
     try {
       const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
       
       if (res.ok) {
         setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
-        setContacts(prev => prev.filter(c => c.number !== activeContact.number));
+        
+        // O SEGREDO: Em vez de remover do array contacts, apenas limpamos a lastMessage.
+        // Assim, ele sai da barra lateral, mas continua na agenda global e na modal de "+".
+        setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
+        
         setActiveContact(null);
         localStorage.removeItem('lastActiveContact');
       } else {
@@ -343,33 +348,28 @@ export default function WhatsAppPage() {
     } catch (err) { setErrorBanner("Erro ao criar a solicitação."); }
   };
 
-  const startChatWithCustomer = (customer: any) => {
-    if (!customer.phone) {
-      setErrorBanner("Este cliente não tem número de telefone registado no CRM.");
-      return;
-    }
-    
-    let cleanPhone = customer.phone.replace(/\D/g, '');
-    if (cleanPhone.length === 10 || cleanPhone.length === 11) {
-      cleanPhone = `55${cleanPhone}`; 
-    }
+  // LÓGICA DE INICIAR CONVERSA 
+  const startChatWithContact = (contact: any) => {
+    const existing = contacts.find(c => c.number === contact.number);
 
-    const existingContact = contacts.find(c => c.number === cleanPhone);
-
-    if (existingContact) {
-      handleSelectContact(existingContact);
+    if (existing) {
+      // Se ele já existe no contacts (WhatsApp history inativo), a gente "ativa" ele
+      setContacts(prev => prev.map(c => c.number === contact.number ? { ...c, lastMessage: 'Nova Conversa', lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : c));
+      setActiveContact({ ...existing, lastMessage: 'Nova Conversa' });
     } else {
+      // Se ele veio estritamente da tabela Customers e nunca falou no WhatsApp
       const newContact: Contact = {
-        number: cleanPhone,
-        name: customer.name,
-        lastMessage: '',
+        number: contact.number,
+        name: contact.name,
+        lastMessage: 'Nova Conversa',
         lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        email: customer.email,
-        cnpj: customer.company
+        email: contact.email,
+        cnpj: contact.cnpj
       };
       setContacts(prev => [newContact, ...prev]);
-      handleSelectContact(newContact);
+      setActiveContact(newContact);
     }
+    
     setIsCustomerModalOpen(false);
     setCustomerSearch('');
   };
@@ -379,18 +379,39 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
-  const filteredCustomers = crmCustomers.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
-                          (c.phone && c.phone.includes(customerSearch));
-    if (!matchesSearch) return false;
 
-    let cleanPhone = c.phone ? c.phone.replace(/\D/g, '') : '';
+  // SEPARAÇÃO DAS DUAS LISTAS (BARRA LATERAL x AGENDA DO BOTÃO +)
+  
+  // 1. Barra Lateral: Só mostra quem tem mensagem ativa
+  const activeContactsList = contacts.filter(c => c.lastMessage && c.lastMessage.trim() !== '');
+
+  // 2. Agenda (Modal +): Todos os contatos do WhatsApp que NÃO têm mensagem ativa...
+  const inactiveContactsList = contacts.filter(c => !c.lastMessage || c.lastMessage.trim() === '');
+  const availableToChat = [...inactiveContactsList];
+
+  // ... Somados aos Clientes do CRM (evitando duplicados)
+  crmCustomers.forEach(cust => {
+    let cleanPhone = cust.phone ? cust.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length === 10 || cleanPhone.length === 11) {
       cleanPhone = `55${cleanPhone}`;
     }
+    // Se o cliente tem telefone, e NÃO está nem nos inativos nem nos ativos, adicionamos à lista
+    if (cleanPhone && !availableToChat.some(c => c.number === cleanPhone) && !activeContactsList.some(c => c.number === cleanPhone)) {
+      availableToChat.push({
+        number: cleanPhone,
+        name: cust.name,
+        lastMessage: '',
+        lastMessageTime: '',
+        email: cust.email,
+        cnpj: cust.company
+      });
+    }
+  });
 
-    const alreadyHasChat = contacts.some(contact => contact.number === cleanPhone);
-    return !alreadyHasChat;
+  const filteredNewContacts = availableToChat.filter(c => {
+    const matchesSearch = (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || 
+                          (c.number || '').includes(customerSearch);
+    return matchesSearch;
   });
 
   return (
@@ -432,8 +453,9 @@ export default function WhatsAppPage() {
                 </button>
               </div>
               
+              {/* O SEGREDO 1: Renderiza APENAS a activeContactsList */}
               <div className="flex-1 overflow-y-auto">
-                {contacts.map((contact) => (
+                {activeContactsList.map((contact) => (
                   <div key={contact.number} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-[#f0f2f5]' : 'hover:bg-slate-50'}`} onClick={() => handleSelectContact(contact)}>
                     {contact.profilePictureUrl ? (
                       <img src={contact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shrink-0" alt="avatar" />
@@ -470,7 +492,6 @@ export default function WhatsAppPage() {
                     </div>
                     
                     <div className="flex items-center gap-2 ml-auto relative">
-                      {/* NOVO: BOTÃO DE EXCLUIR MOVIDO PARA FORA DO MENU (LIXEIRA VERMELHA) */}
                       <button 
                         onClick={() => setIsDeleteModalOpen(true)} 
                         className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
@@ -494,7 +515,6 @@ export default function WhatsAppPage() {
                               <button onClick={openNewTicketModal} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
                               </button>
-                              {/* Botão de Excluir foi removido daqui e posto do lado de fora! */}
                             </div>
                           </>
                         )}
@@ -608,6 +628,7 @@ export default function WhatsAppPage() {
         </div>
       )}
 
+      {/* O SEGREDO 2: O BOTÃO + EXIBE A LISTA `filteredNewContacts` */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -624,17 +645,17 @@ export default function WhatsAppPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto max-h-[50vh] p-2">
-               {filteredCustomers.length === 0 ? (
+               {filteredNewContacts.length === 0 ? (
                  <div className="text-center text-slate-400 p-6 text-sm">Nenhum cliente disponível para nova conversa.</div>
                ) : (
-                 filteredCustomers.map(customer => (
-                   <div key={customer.id} onClick={() => startChatWithCustomer(customer)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
+                 filteredNewContacts.map(customer => (
+                   <div key={customer.number} onClick={() => startChatWithContact(customer)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
                       <div className="w-10 h-10 rounded-full bg-[#e8f6ea] text-[#1FA84A] flex items-center justify-center font-bold text-sm shrink-0">
-                        {customer.name.substring(0, 2).toUpperCase()}
+                        {(customer.name || '?').substring(0, 2).toUpperCase()}
                       </div>
                       <div className="flex flex-col flex-1 overflow-hidden">
                          <span className="font-semibold text-slate-800 text-sm truncate">{customer.name}</span>
-                         <span className="text-xs text-slate-500 font-mono truncate">{customer.phone || 'Sem número'}</span>
+                         <span className="text-xs text-slate-500 font-mono truncate">{customer.number || 'Sem número'}</span>
                       </div>
                    </div>
                  ))
