@@ -218,34 +218,36 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  // CORREÇÃO: Função melhorada para não congelar o menu
+  // CORREÇÃO APLICADA AQUI: Remover o setTimeout para que o navegador não bloqueie o window.confirm
   const handleDeleteConversation = async (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); // Impede cliques paralelos
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); 
+    }
+    
     if (!activeContact) return;
     
-    // Fecha o menu primeiro para melhorar a experiência visual
+    // O alerta de confirmação tem que ser executado instantaneamente após o clique
+    const confirmDelete = window.confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?");
+    if (!confirmDelete) return;
+    
+    // Só fecha o menu e altera o estado DEPOIS da confirmação
     setIsChatMenuOpen(false);
     
-    // Pequeno atraso para garantir que o menu fechou antes do alerta bloquear a tela
-    setTimeout(async () => {
-      const confirmDelete = window.confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?");
-      if (!confirmDelete) return;
+    try {
+      const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
       
-      try {
-        const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
-        
-        if (res.ok) {
-          setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
-          setContacts(prev => prev.filter(c => c.number !== activeContact.number));
-          setActiveContact(null);
-          localStorage.removeItem('lastActiveContact');
-        } else {
-          setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
-        }
-      } catch (err) { 
-        setErrorBanner("Falha de conexão. Tente novamente."); 
+      if (res.ok) {
+        setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+        setContacts(prev => prev.filter(c => c.number !== activeContact.number));
+        setActiveContact(null);
+        localStorage.removeItem('lastActiveContact');
+      } else {
+        setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
       }
-    }, 50);
+    } catch (err) { 
+      setErrorBanner("Falha de conexão. Tente novamente."); 
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -594,7 +596,7 @@ export default function WhatsAppPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">Nova Conversa</h3>
-              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
             </div>
             
             <div className="p-4 border-b border-slate-100 bg-white">
