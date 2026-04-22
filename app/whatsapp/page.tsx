@@ -218,27 +218,34 @@ export default function WhatsAppPage() {
     return () => eventSource.close();
   }, [baseUrl, hasInstances]);
 
-  const handleDeleteConversation = async () => {
+  // CORREÇÃO: Função melhorada para não congelar o menu
+  const handleDeleteConversation = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); // Impede cliques paralelos
     if (!activeContact) return;
     
-    const confirmDelete = window.confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?");
-    if (!confirmDelete) return;
+    // Fecha o menu primeiro para melhorar a experiência visual
+    setIsChatMenuOpen(false);
     
-    try {
-      const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
+    // Pequeno atraso para garantir que o menu fechou antes do alerta bloquear a tela
+    setTimeout(async () => {
+      const confirmDelete = window.confirm("Tem a certeza que deseja apagar todas as mensagens desta conversa?");
+      if (!confirmDelete) return;
       
-      if (res.ok) {
-        setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
-        setIsChatMenuOpen(false);
-        setContacts(prev => prev.filter(c => c.number !== activeContact.number));
-        setActiveContact(null);
-        localStorage.removeItem('lastActiveContact');
-      } else {
-        setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
+      try {
+        const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
+        
+        if (res.ok) {
+          setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+          setContacts(prev => prev.filter(c => c.number !== activeContact.number));
+          setActiveContact(null);
+          localStorage.removeItem('lastActiveContact');
+        } else {
+          setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
+        }
+      } catch (err) { 
+        setErrorBanner("Falha de conexão. Tente novamente."); 
       }
-    } catch (err) { 
-      setErrorBanner("Falha de conexão. Tente novamente."); 
-    }
+    }, 50);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,7 +385,6 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
-  // NOVO: Filtro inteligente! Só mostra clientes do CRM que NÃO têm conversa na barra lateral
   const filteredCustomers = crmCustomers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
                           (c.phone && c.phone.includes(customerSearch));
@@ -486,7 +492,7 @@ export default function WhatsAppPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> Nova Solicitação
                               </button>
                               <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
-                              <button onClick={handleDeleteConversation} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                              <button onClick={(e) => handleDeleteConversation(e)} className="w-full text-left px-4 py-3 text-[14.5px] font-medium text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> Excluir Conversa
                               </button>
                             </div>
