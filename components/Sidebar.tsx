@@ -74,9 +74,14 @@ export default function Sidebar() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.84 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.08 1.157.148 1.74.205l.026.003 3.03 3.03v-3.048c1.16.082 2.33.14 3.51.171m-6.6-2.529a92.4 92.4 0 0 0 3.651-.01" /></svg>
             <span className="text-[15px]">WhatsApp</span>
           </Link>
+
+          {/* O LINK DE ARQUIVOS ADICIONADO AQUI */}
+          <Link href="/arquivos" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/arquivos') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" /></svg>
+            <span className="text-[15px]">Arquivos</span>
+          </Link>
         </nav>
 
-        {/* NOVO MENU DE PERFIL E CONFIGURAÇÕES */}
         <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
           
           {/* Popup Menu */}
