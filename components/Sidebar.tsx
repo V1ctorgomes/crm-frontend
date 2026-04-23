@@ -44,13 +44,14 @@ export default function Sidebar() {
       <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
           {/* LOGO SUBSTITUÍDA AQUI (DESKTOP) */}
-          <img src="/logo.png" alt="Logo" className="h-10 object-contain" />
+          <img src="/logoBar.png" alt="Logo" className="h-10 object-contain" />
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Principal</div>
           <Link href="/dashboard" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/dashboard') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
             <span className="text-[15px]">Visão Geral</span>
@@ -76,6 +77,7 @@ export default function Sidebar() {
             <span className="text-[15px]">WhatsApp</span>
           </Link>
 
+          {/* O LINK DE ARQUIVOS ADICIONADO AQUI */}
           <Link href="/arquivos" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/arquivos') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" /></svg>
             <span className="text-[15px]">Arquivos</span>
@@ -91,6 +93,8 @@ export default function Sidebar() {
         </nav>
 
         <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
+          
+          {/* Popup Menu */}
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
               <Link 
@@ -119,6 +123,7 @@ export default function Sidebar() {
             </div>
           )}
 
+          {/* Profile Toggle Button */}
           <button 
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
