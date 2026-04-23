@@ -23,7 +23,6 @@ export default function Sidebar() {
   };
 
   useEffect(() => {
-    // Busca os dados do utilizador logado para exibir a foto e nome reais
     fetch(`${baseUrl}/users`)
       .then(res => res.json())
       .then(data => {
@@ -48,13 +47,13 @@ export default function Sidebar() {
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600 p-2">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
         </button>
-        <img src="/logoBar.png" alt="Logo" className="h-8 object-contain" />
+        <img src="/logo.png" alt="Logo" className="h-8 object-contain" />
         <div className="w-8"></div>
       </div>
 
       <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
-          <img src="/logoBar.png" alt="Logo" className="h-10 object-contain" />
+          <img src="/logo.png" alt="Logo" className="h-10 object-contain" />
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
           </button>
@@ -93,21 +92,10 @@ export default function Sidebar() {
         </nav>
 
         <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
+          
+          {/* Popup Menu */}
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-              
-              {/* NOVO: Link para o Perfil adicionado aqui */}
-              <Link 
-                href="/perfil" 
-                onClick={() => setIsProfileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
-                Meu Perfil
-              </Link>
-
               <Link 
                 href="/configuracoes" 
                 onClick={() => setIsProfileMenuOpen(false)}
@@ -134,6 +122,7 @@ export default function Sidebar() {
             </div>
           )}
 
+          {/* Profile Toggle Button */}
           <button 
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
