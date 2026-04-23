@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 
 type TabType = 'perfil' | 'tema' | 'instancias' | 'sistema';
@@ -122,34 +122,36 @@ export default function ConfiguracoesPage() {
     fetchInstances();
   };
 
+  // CORREÇÃO: Tratamento robusto para não crashar o frontend quando o backend devolve erro não-JSON
   const openQrCode = async (name: string) => {
     setActiveQrCode(null);
     setIsQrModalOpen(true);
     try {
-      // CORREÇÃO: Usar a rota '/connect/:name' que criámos no backend
       const res = await fetch(`${baseUrl}/instances/connect/${name}`);
       
       if (!res.ok) {
-        const err = await res.json();
-        alert(`Erro: ${err.message || 'Não foi possível carregar o QR Code'}`);
+        // Lemos como texto primeiro para não rebentar se o erro for HTML
+        const errText = await res.text();
+        console.error("Resposta de Erro:", errText);
+        alert(`Erro ao tentar carregar o QR Code. A instância pode estar a ser criada. Tente novamente em 5 segundos.`);
         setIsQrModalOpen(false);
         return;
       }
 
       const data = await res.json();
       
-      // CORREÇÃO: A Evolution v2 pode devolver a base64 na raiz ou dentro de 'qrcode'
-      const qrBase64 = data?.base64 || data?.qrcode?.base64;
+      // Procura a base64 na resposta da Evolution API v2
+      const qrBase64 = data?.base64 || data?.qrcode?.base64 || data?.instance?.qrcode;
       
       if (qrBase64) {
-        // CORREÇÃO: Garante o prefixo data:image para que o HTML consiga renderizar a imagem
         setActiveQrCode(qrBase64.startsWith('data:') ? qrBase64 : `data:image/png;base64,${qrBase64}`);
       } else {
-        alert("A instância já está conectada ou a carregar. Sincronize o status.");
+        alert("A instância já está conectada, ou o QR code está em processamento. Aguarde alguns segundos.");
         setIsQrModalOpen(false);
       }
     } catch (err) {
-      alert("Falha ao gerar QR Code. Verifique se o backend está a comunicar com a Evolution API.");
+      console.error(err);
+      alert("Falha de conexão com o servidor. Verifique se o backend está ativo.");
       setIsQrModalOpen(false);
     }
   };
@@ -229,7 +231,7 @@ export default function ConfiguracoesPage() {
                 </div>
               )}
 
-              {/* TAB 3: INSTÂNCIAS EVOLUTION (A MÁGICA ACONTECE AQUI) */}
+              {/* TAB 3: INSTÂNCIAS EVOLUTION */}
               {activeTab === 'instancias' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex justify-between items-center mb-6">
@@ -265,6 +267,12 @@ export default function ConfiguracoesPage() {
                               {inst.rejectCalls ? <span className="text-red-500 bg-red-50 px-2 rounded">Rejeita Calls</span> : <span className="text-slate-400 bg-slate-100 px-2 rounded">Aceita Calls</span>}
                               {inst.ignoreGroups ? <span className="text-red-500 bg-red-50 px-2 rounded">Ignora Grupos</span> : <span className="text-slate-400 bg-slate-100 px-2 rounded">Lê Grupos</span>}
                             </div>
+                            {/* Proxy Indicator */}
+                            {(inst.proxyHost || inst.proxyPort) && (
+                               <p className="text-[11px] font-bold text-blue-500 mt-1 uppercase tracking-wider">
+                                 PROXY ATIVO: {inst.proxyHost}:{inst.proxyPort}
+                               </p>
+                            )}
                           </div>
                         </div>
                         
