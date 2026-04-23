@@ -62,12 +62,12 @@ export default function WhatsAppPage() {
   const [formModelo, setFormModelo] = useState('');
 
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  
+  // ESTADO DA PESQUISA UNIFICADA NA SIDEBAR
   const [customerSearch, setCustomerSearch] = useState('');
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // === ESTADOS PARA GRAVAÇÃO DE ÁUDIO ===
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -81,6 +81,7 @@ export default function WhatsAppPage() {
     setActiveContact(contact);
     setIsSearchChatOpen(false);
     setChatSearchTerm('');
+    setCustomerSearch(''); // Limpa a barra de pesquisa
     if (contact) {
       localStorage.setItem('lastActiveContact', contact.number);
     } else {
@@ -261,7 +262,6 @@ export default function WhatsAppPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // FUNÇÃO AUXILIAR PARA ENVIAR MÍDIA DIRETAMENTE (Usada pelo preview e pelo Áudio)
   const sendDirectMedia = async (file: File, caption: string) => {
     if (!activeContact) return;
     const targetNumber = activeContact.number;
@@ -306,7 +306,7 @@ export default function WhatsAppPage() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (isRecording) return; // Proteção para não enviar formulário se estiver gravando áudio
+    if (isRecording) return;
     if (isSending || !activeContact) return;
     if (!inputText.trim() && !previewFile) return;
 
@@ -344,7 +344,6 @@ export default function WhatsAppPage() {
     }
   };
 
-  // === FUNÇÕES DE GRAVAÇÃO DE ÁUDIO ===
   const formatRecordingTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -365,9 +364,8 @@ export default function WhatsAppPage() {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(track => track.stop());
-        if (isCancelledRef.current) return; // Se foi cancelado, a gente para por aqui
+        if (isCancelledRef.current) return;
 
-        // Cria o blob e converte para arquivo webm compatível
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
 
@@ -387,7 +385,7 @@ export default function WhatsAppPage() {
 
   const stopRecordingAndSend = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop(); // Isto vai invocar o onstop acima, que fará o envio
+      mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
@@ -401,7 +399,6 @@ export default function WhatsAppPage() {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
   };
-  // ===================================
 
   const openNewTicketModal = () => {
     if (!activeContact) return;
@@ -448,8 +445,7 @@ export default function WhatsAppPage() {
       setActiveContact(newContact);
     }
     
-    setIsCustomerModalOpen(false);
-    setCustomerSearch('');
+    setCustomerSearch(''); // Limpa a barra de pesquisa
   };
 
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
@@ -457,8 +453,16 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
+  // LÓGICA UNIFICADA DA SIDEBAR
   const activeContactsList = contacts.filter(c => c.lastMessage && c.lastMessage.trim() !== '');
+  
+  // Filtra as conversas ativas pela pesquisa
+  const filteredActiveContacts = activeContactsList.filter(c => 
+    (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || 
+    (c.number || '').includes(customerSearch)
+  );
 
+  // Filtra os clientes inativos/CRM pela pesquisa (apenas mostrar se a barra não estiver vazia)
   const inactiveContactsList = contacts.filter(c => !c.lastMessage || c.lastMessage.trim() === '');
   const availableToChat = [...inactiveContactsList];
 
@@ -513,24 +517,24 @@ export default function WhatsAppPage() {
               <div className="p-3 bg-white border-b border-slate-100 shrink-0 flex gap-2">
                 <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10 flex-1">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                  <input type="text" placeholder="Procurar ou iniciar conversa" className="bg-transparent border-none outline-none w-full pl-3 text-sm" />
+                  <input 
+                    type="text" 
+                    placeholder="Procurar ou iniciar conversa" 
+                    className="bg-transparent border-none outline-none w-full pl-3 text-sm" 
+                    value={customerSearch} 
+                    onChange={e => setCustomerSearch(e.target.value)} 
+                  />
                 </div>
-                <button 
-                  onClick={() => setIsCustomerModalOpen(true)} 
-                  className="w-10 h-10 bg-[#1FA84A] text-white rounded-lg flex items-center justify-center hover:bg-green-600 transition-colors shadow-sm shrink-0" 
-                  title="Nova conversa a partir do CRM"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                </button>
               </div>
               
               <div className="flex-1 overflow-y-auto">
-                {activeContactsList.map((contact) => (
+                {/* CONVERSAS ATIVAS */}
+                {filteredActiveContacts.map((contact) => (
                   <div key={contact.number} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-[#f0f2f5]' : 'hover:bg-slate-50'}`} onClick={() => handleSelectContact(contact)}>
                     {contact.profilePictureUrl ? (
                       <img src={contact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shrink-0" alt="avatar" />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0">{contact.name.substring(0, 2).toUpperCase()}</div>
+                      <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0">{(contact.name || '?').substring(0, 2).toUpperCase()}</div>
                     )}
                     <div className="flex-1 overflow-hidden">
                       <div className="flex justify-between items-center mb-0.5">
@@ -541,6 +545,30 @@ export default function WhatsAppPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* RESULTADOS DE CLIENTES NOVOS DO CRM (Só aparece se a pessoa escrever algo na barra de pesquisa) */}
+                {customerSearch && filteredNewContacts.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 bg-slate-50 border-y border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Contatos do CRM
+                    </div>
+                    {filteredNewContacts.map((customer) => (
+                      <div key={customer.number} className="flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 hover:bg-slate-50" onClick={() => startChatWithContact(customer)}>
+                        <div className="w-12 h-12 rounded-full bg-[#e8f6ea] text-[#1FA84A] flex items-center justify-center font-bold shrink-0">
+                          {(customer.name || '?').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex flex-col flex-1 overflow-hidden">
+                          <span className="font-semibold text-slate-800 text-[15px] truncate">{customer.name}</span>
+                          <span className="text-[12px] text-slate-500 font-mono truncate">{customer.number || 'Sem número'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {customerSearch && filteredActiveContacts.length === 0 && filteredNewContacts.length === 0 && (
+                  <div className="p-4 text-center text-sm text-slate-500">Nenhum contato encontrado.</div>
+                )}
               </div>
             </div>
 
@@ -721,53 +749,14 @@ export default function WhatsAppPage() {
         </div>
       )}
 
-      {/* MODAL PARA NOVA CONVERSA (BOTÃO + DA BARRA LATERAL) */}
-      {isCustomerModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsCustomerModalOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">Nova Conversa</h3>
-              <button onClick={() => setIsCustomerModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
-            </div>
-            
-            <div className="p-4 border-b border-slate-100 bg-white">
-               <div className="bg-[#f0f2f5] rounded-lg flex items-center px-4 h-10">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                  <input type="text" placeholder="Procurar cliente no CRM..." className="bg-transparent border-none outline-none w-full pl-3 text-sm" value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} autoFocus />
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto max-h-[50vh] p-2">
-               {filteredNewContacts.length === 0 ? (
-                 <div className="text-center text-slate-400 p-6 text-sm">Nenhum cliente disponível para nova conversa.</div>
-               ) : (
-                 filteredNewContacts.map(customer => (
-                   <div key={customer.number} onClick={() => startChatWithContact(customer)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-[#e8f6ea] text-[#1FA84A] flex items-center justify-center font-bold text-sm shrink-0">
-                        {(customer.name || '?').substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex flex-col flex-1 overflow-hidden">
-                         <span className="font-semibold text-slate-800 text-sm truncate">{customer.name}</span>
-                         <span className="text-xs text-slate-500 font-mono truncate">{customer.number || 'Sem número'}</span>
-                      </div>
-                   </div>
-                 ))
-               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE CRIAÇÃO DE TICKET (SOLICITAÇÃO) */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>Nova Solicitação</h3>
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
             </div>
-            
-            <div className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[70vh]">
+            <div className="p-6 flex flex-col gap-4">
               <div className="bg-[#e8f6ea] border border-[#1FA84A]/30 p-4 rounded-xl flex items-center gap-4">
                  {activeContact?.profilePictureUrl ? (
                     <img src={activeContact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shadow-sm" alt="" />
@@ -779,23 +768,20 @@ export default function WhatsAppPage() {
                    <span className="text-[12px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded-md mt-1 inline-block border border-slate-200">{activeContact?.number}</span>
                  </div>
               </div>
-
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados do Cliente</h4>
                 <div><label className="text-[11px] font-bold text-slate-500 block mb-1">Nome</label><input type="text" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" value={formNome} onChange={e => setFormNome(e.target.value)} /></div>
                 <div><label className="text-[11px] font-bold text-slate-500 block mb-1">E-mail</label><input type="email" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
                 <div><label className="text-[11px] font-bold text-slate-500 block mb-1">CPF / CNPJ</label><input type="text" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none font-mono focus:border-[#1FA84A]" value={formCpf} onChange={e => setFormCpf(e.target.value)} /></div>
               </div>
-
               <div className="flex gap-3">
                 <div className="flex-1"><label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Marca do Aparelho</label><input type="text" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#1FA84A] shadow-sm" value={formMarca} onChange={e => setFormMarca(e.target.value)} /></div>
                 <div className="flex-1"><label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Modelo</label><input type="text" className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#1FA84A] shadow-sm" value={formModelo} onChange={e => setFormModelo(e.target.value)} /></div>
               </div>
             </div>
-            
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="px-4 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-100 transition-colors">Cancelar</button>
-              <button onClick={handleCreateTicket} className="bg-[#1FA84A] text-white px-6 py-2 rounded-lg font-bold hover:bg-green-600 shadow-sm transition-colors">Confirmar e Criar</button>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="px-4 py-2 font-bold text-slate-500">Cancelar</button>
+              <button onClick={handleCreateTicket} className="bg-[#1FA84A] text-white px-6 py-2 rounded-lg font-bold">Criar Solicitação</button>
             </div>
           </div>
         </div>

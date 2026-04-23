@@ -36,14 +36,15 @@ export default function Sidebar() {
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600 p-2">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
         </button>
-        <span className="font-bold text-[#1FA84A] text-lg">Suporte Imagem</span>
+        {/* LOGO SUBSTITUÍDA AQUI (MOBILE) */}
+        <img src="/logoBar.png" alt="Logo" className="h-8 object-contain" />
         <div className="w-8"></div>
       </div>
 
       <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
-          <div className="w-10 h-10 rounded-xl bg-[#1FA84A] flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">SI</div>
-          <span className="font-bold text-[17px] text-slate-800 ml-3 truncate">Suporte Imagem</span>
+          {/* LOGO SUBSTITUÍDA AQUI (DESKTOP) */}
+          <img src="/logo.png" alt="Logo" className="h-10 object-contain" />
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
           </button>
@@ -75,16 +76,21 @@ export default function Sidebar() {
             <span className="text-[15px]">WhatsApp</span>
           </Link>
 
-          {/* O LINK DE ARQUIVOS ADICIONADO AQUI */}
           <Link href="/arquivos" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/arquivos') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" /></svg>
             <span className="text-[15px]">Arquivos</span>
           </Link>
+
+          <div className="pt-6">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Sistema</div>
+            <Link href="/configuracoes" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/configuracoes') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <span className="text-[15px]">Configurações</span>
+            </Link>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
-          
-          {/* Popup Menu */}
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
               <Link 
@@ -113,7 +119,6 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* Profile Toggle Button */}
           <button 
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
