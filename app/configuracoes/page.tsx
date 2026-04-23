@@ -180,10 +180,11 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  const handleDeleteInstance = async (id: string) => {
+  // CORREÇÃO: Agora recebe o NOME da instância para bater certo com o backend
+  const handleDeleteInstance = async (instanceName: string) => {
     if (!confirm("Tem a certeza que deseja excluir esta instância?")) return;
     try {
-      await fetch(`${baseUrl}/instances/${id}`, { method: 'DELETE' });
+      await fetch(`${baseUrl}/instances/${instanceName}`, { method: 'DELETE' });
       await fetchInstances();
     } catch (error) {
       console.error(error);
@@ -406,7 +407,8 @@ export default function ConfiguracoesPage() {
                                   Ler QR Code
                                 </button>
                               )}
-                              <button onClick={() => handleDeleteInstance(inst.id)} className="flex-1 md:flex-none bg-red-50 text-red-500 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors">
+                              {/* CORREÇÃO DO BOTÃO DE EXCLUIR */}
+                              <button onClick={() => handleDeleteInstance(inst.name)} className="flex-1 md:flex-none bg-red-50 text-red-500 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors">
                                 Excluir
                               </button>
                             </div>
