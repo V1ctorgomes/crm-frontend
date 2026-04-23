@@ -10,6 +10,9 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const isActive = (path: string) => pathname?.includes(path);
 
@@ -19,7 +22,16 @@ export default function Sidebar() {
     router.replace('/login');
   };
 
-  // Fecha o menu de perfil se clicar fora dele
+  useEffect(() => {
+    // Busca os dados do utilizador logado para exibir a foto e nome reais
+    fetch(`${baseUrl}/users`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) setCurrentUser(data[0]);
+      })
+      .catch(err => console.error("Erro ao carregar utilizador:", err));
+  }, [baseUrl]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
@@ -81,10 +93,21 @@ export default function Sidebar() {
         </nav>
 
         <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
-          
-          {/* Popup Menu */}
           {isProfileMenuOpen && (
             <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
+              
+              {/* NOVO: Link para o Perfil adicionado aqui */}
+              <Link 
+                href="/perfil" 
+                onClick={() => setIsProfileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+                Meu Perfil
+              </Link>
+
               <Link 
                 href="/configuracoes" 
                 onClick={() => setIsProfileMenuOpen(false)}
@@ -111,18 +134,21 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* Profile Toggle Button */}
           <button 
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                U
+              <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm shrink-0 overflow-hidden shadow-sm">
+                {currentUser?.profilePictureUrl ? (
+                  <img src={currentUser.profilePictureUrl} alt="Perfil" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.name || 'U').substring(0, 1).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col text-left overflow-hidden">
-                <span className="text-sm font-bold text-slate-800 truncate">Utilizador</span>
-                <span className="text-[11px] font-medium text-slate-500 truncate">Admin</span>
+                <span className="text-sm font-bold text-slate-800 truncate">{currentUser?.name || 'Utilizador'}</span>
+                <span className="text-[11px] font-medium text-slate-500 truncate">{currentUser?.role || 'Admin'}</span>
               </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`}>
