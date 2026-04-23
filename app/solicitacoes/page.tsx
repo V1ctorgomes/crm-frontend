@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 
 interface Contact { 
@@ -15,6 +15,16 @@ interface Note {
   id: string; 
   text: string; 
   createdAt: string; 
+}
+
+interface TicketFile {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  size: number;
+  description?: string;
+  createdAt: string;
 }
 
 interface Stage { 
@@ -35,6 +45,7 @@ interface Ticket {
   createdAt: string; 
   updatedAt: string;
   notes?: Note[]; 
+  files?: TicketFile[];
   isArchived: boolean; 
   stage?: Stage; 
 }
@@ -46,13 +57,14 @@ export default function SolicitacoesPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // NOVO: Barra de Pesquisa
   const [searchTerm, setSearchTerm] = useState('');
 
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+  
+  // Controle de Abas no Modal da OS (Notas vs Arquivos)
+  const [activeTab, setActiveTab] = useState<'notes' | 'files'>('notes');
 
-  // Estados Form Solicitação
   const [selectedContactNumber, setSelectedContactNumber] = useState('');
   const [formNome, setFormNome] = useState('');
   const [formEmail, setFormEmail] = useState('');
@@ -61,13 +73,17 @@ export default function SolicitacoesPage() {
   const [formModelo, setFormModelo] = useState('');
   const [newNoteText, setNewNoteText] = useState('');
 
-  // Estados Gestão de Fases
+  // Estados de Upload de Ficheiro no Kanban
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [fileDescription, setFileDescription] = useState('');
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
   const [allStages, setAllStages] = useState<Stage[]>([]);
   const [newStageName, setNewStageName] = useState('');
   const [newStageColor, setNewStageColor] = useState(PREDEFINED_COLORS[0]);
 
-  // Estados Arquivados
   const [isArchivedModalOpen, setIsArchivedModalOpen] = useState(false);
   const [archivedTickets, setArchivedTickets] = useState<Ticket[]>([]);
 
@@ -81,6 +97,15 @@ export default function SolicitacoesPage() {
       ]);
       if (boardRes.ok) setStages(await boardRes.json());
       if (contactsRes.ok) setContacts(await contactsRes.json());
+      
+      // Atualiza o ticket aberto na tela se houver mudanças
+      if (activeTicket) {
+        const board = await boardRes.json();
+        for (const stage of board) {
+          const found = stage.tickets.find((t: Ticket) => t.id === activeTicket.id);
+          if (found) { setActiveTicket(found); break; }
+        }
+      }
     } catch (err) { console.error(err); } finally { setIsLoading(false); }
   };
 
@@ -91,9 +116,6 @@ export default function SolicitacoesPage() {
     if (contact) { setFormNome(contact.name || ''); setFormEmail(contact.email || ''); setFormCpf(contact.cnpj || ''); }
   }, [selectedContactNumber, contacts]);
 
-  // ==========================================
-  // LÓGICA DE DRAG & DROP
-  // ==========================================
   const handleDragStart = (e: React.DragEvent, ticketId: string, sourceStageId: string) => {
     e.dataTransfer.setData('ticketId', ticketId);
     e.dataTransfer.setData('sourceStageId', sourceStageId);
@@ -122,9 +144,6 @@ export default function SolicitacoesPage() {
     catch (err) { fetchData(); }
   };
 
-  // ==========================================
-  // TICKETS & NOTAS
-  // ==========================================
   const handleCreateTicket = async () => {
     if (!selectedContactNumber || stages.length === 0) return alert("Selecione um contato e garanta que existe uma fase ativa.");
     const body = { contactNumber: selectedContactNumber, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, stageId: stages[0].id };
@@ -140,8 +159,6 @@ export default function SolicitacoesPage() {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newNoteText }) });
       if (res.ok) {
         setNewNoteText(''); fetchData();
-        const note: Note = await res.json();
-        setActiveTicket(prev => prev ? { ...prev, notes: [note, ...(prev.notes || [])] } : prev);
       }
     } catch (err) {}
   };
@@ -150,10 +167,7 @@ export default function SolicitacoesPage() {
     if (!confirm("Tem a certeza que deseja apagar esta nota?")) return;
     try {
       const res = await fetch(`${baseUrl}/tickets/notes/${noteId}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchData();
-        setActiveTicket(prev => prev ? { ...prev, notes: prev.notes?.filter(n => n.id !== noteId) } : prev);
-      }
+      if (res.ok) { fetchData(); }
     } catch (err) { console.error(err); }
   };
 
@@ -166,9 +180,39 @@ export default function SolicitacoesPage() {
     } catch (err) {}
   };
 
-  // ==========================================
-  // GESTÃO DE FASES
-  // ==========================================
+  // UPLOAD DE FICHEIROS NO CRM
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) { alert("Arquivo muito grande (máx 15MB)."); return; }
+    setPendingFile(file);
+    setFileDescription('');
+  };
+
+  const confirmUploadFile = async () => {
+    if (!pendingFile || !activeTicket) return;
+    setIsUploadingFile(true);
+    const formData = new FormData();
+    formData.append('file', pendingFile);
+    if (fileDescription.trim()) formData.append('description', fileDescription.trim());
+
+    try {
+      const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/files`, { method: 'POST', body: formData });
+      if (res.ok) {
+        setPendingFile(null); setFileDescription(''); fetchData();
+      } else { alert("Erro ao enviar ficheiro."); }
+    } catch (error) { alert("Erro de conexão."); } 
+    finally { setIsUploadingFile(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm("Tem certeza que deseja apagar este ficheiro?")) return;
+    try {
+      const res = await fetch(`${baseUrl}/tickets/files/${fileId}`, { method: 'DELETE' });
+      if (res.ok) { fetchData(); }
+    } catch (error) { console.error(error); }
+  };
+
   const openStageManager = async () => {
     setIsStageManagerOpen(true);
     const res = await fetch(`${baseUrl}/tickets/stages`);
@@ -220,18 +264,12 @@ export default function SolicitacoesPage() {
     } catch (err) {}
   };
 
-  // ==========================================
-  // ARQUIVADOS
-  // ==========================================
   const openArchivedModal = async () => {
     setIsArchivedModalOpen(true);
     const res = await fetch(`${baseUrl}/tickets/archived`);
     if (res.ok) setArchivedTickets(await res.json());
   };
 
-  // ==========================================
-  // FILTRO (PESQUISA)
-  // ==========================================
   const filteredStages = stages.map(stage => ({
     ...stage,
     tickets: stage.tickets.filter(t => {
@@ -246,13 +284,18 @@ export default function SolicitacoesPage() {
     })
   }));
 
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f4f5f7] font-sans">
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[80px] md:pt-0 h-full relative overflow-hidden">
         
-        {/* HEADER */}
         <header className="px-6 py-5 bg-white border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Painel de Solicitações</h1>
@@ -288,7 +331,6 @@ export default function SolicitacoesPage() {
           </div>
         </header>
 
-        {/* BOARD KANBAN */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
           <div className="flex h-full gap-6 items-start w-max pb-4">
             {isLoading ? (
@@ -316,12 +358,15 @@ export default function SolicitacoesPage() {
                     ) : (
                       stage.tickets.map((ticket) => (
                         <div 
-                          key={ticket.id} draggable onDragStart={(e) => handleDragStart(e, ticket.id, stage.id)} onClick={() => setActiveTicket(ticket)}
+                          key={ticket.id} draggable onDragStart={(e) => handleDragStart(e, ticket.id, stage.id)} onClick={() => {setActiveTicket(ticket); setActiveTab('notes');}}
                           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-[#1FA84A] transition-all w-full overflow-hidden"
                         >
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md font-mono">{ticket.contactNumber}</span>
-                            {(ticket.notes || []).length > 0 && <span className="text-xs text-slate-400 font-bold">{(ticket.notes || []).length} notas</span>}
+                            <div className="flex gap-2">
+                              {(ticket.files || []).length > 0 && <span className="text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" /></svg>{ticket.files!.length}</span>}
+                              {(ticket.notes || []).length > 0 && <span className="text-xs text-slate-400 font-bold">{(ticket.notes || []).length} notas</span>}
+                            </div>
                           </div>
                           <h4 className="font-bold text-slate-800 text-sm mb-1 break-all w-full">{ticket.contact?.name || 'Sem nome'}</h4>
                           {(ticket.marca || ticket.modelo) && (
@@ -343,7 +388,6 @@ export default function SolicitacoesPage() {
 
       {/* ================= MODAIS ================= */}
       
-      {/* 1. GESTÃO DE FASES */}
       {isStageManagerOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsStageManagerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -394,7 +438,6 @@ export default function SolicitacoesPage() {
                     <button 
                       onClick={() => handleDeleteStage(stage.id)} 
                       className="w-8 h-8 flex items-center justify-center rounded-md bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
-                      title="Apagar Fase"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                     </button>
@@ -406,7 +449,6 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* 2. ARQUIVADOS */}
       {isArchivedModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsArchivedModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -437,7 +479,6 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* 3. NOVA SOLICITAÇÃO */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setIsNewTicketModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -473,11 +514,13 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* 4. DETALHES E NOTAS */}
+      {/* MODAL DA OS (COM ABAS PARA NOTAS E ARQUIVOS) */}
       {activeTicket && (
-        <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => setActiveTicket(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="w-[300px] bg-slate-50 border-r border-slate-200 flex flex-col">
+        <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4" onClick={() => { setActiveTicket(null); setActiveTab('notes'); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex overflow-hidden" onClick={e => e.stopPropagation()}>
+            
+            {/* Lateral Esquerda: Info do Cliente */}
+            <div className="w-[300px] bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 hidden md:flex">
               <div className="p-6 border-b border-slate-200 flex items-center gap-4">
                 {activeTicket.contact?.profilePictureUrl ? (
                   <img src={activeTicket.contact.profilePictureUrl} className="w-14 h-14 rounded-full object-cover" alt="" />
@@ -509,33 +552,124 @@ export default function SolicitacoesPage() {
               </div>
             </div>
 
+            {/* Painel Principal (Abas) */}
             <div className="flex-1 flex flex-col bg-white w-full overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
-                <h3 className="font-bold text-lg text-slate-800">Notas</h3>
-                <button onClick={() => setActiveTicket(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
-              </div>
-              <div className="flex-1 p-6 overflow-y-auto bg-slate-50/50">
-                {(activeTicket.notes || []).map(note => (
-                  <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 group w-full flex flex-col">
-                    <div className="flex justify-between items-start mb-2 w-full">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                        {new Date(note.createdAt).toLocaleString()}
-                      </span>
-                      <button onClick={() => handleDeleteNote(note.id)} className="w-6 h-6 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                      </button>
-                    </div>
-                    {/* Aqui está a chave mágica: break-all e w-full para garantir a quebra exata! */}
-                    <p className="text-slate-700 text-sm whitespace-pre-wrap break-all w-full leading-relaxed">{note.text}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 border-t border-slate-100 bg-white">
-                <textarea className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none resize-none h-[80px]" placeholder="Escreva uma nova atualização..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
-                <div className="flex justify-end mt-2">
-                  <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="bg-slate-800 text-white px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50">Adicionar Nota</button>
+              
+              <div className="px-6 border-b border-slate-100 flex justify-between items-center shrink-0 bg-white">
+                <div className="flex gap-6 h-[60px]">
+                  <button 
+                    onClick={() => setActiveTab('notes')} 
+                    className={`h-full font-bold border-b-2 px-1 transition-colors ${activeTab === 'notes' ? 'border-[#1FA84A] text-[#1FA84A]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Notas Internas
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('files')} 
+                    className={`h-full font-bold border-b-2 px-1 transition-colors ${activeTab === 'files' ? 'border-[#1FA84A] text-[#1FA84A]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Arquivos <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px] ml-1">{(activeTicket.files || []).length}</span>
+                  </button>
                 </div>
+                <button onClick={() => { setActiveTicket(null); setActiveTab('notes'); }} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
               </div>
+
+              {activeTab === 'notes' ? (
+                <>
+                  <div className="flex-1 p-6 overflow-y-auto bg-slate-50/50">
+                    {(activeTicket.notes || []).length === 0 && <p className="text-center text-slate-400 mt-10">Nenhuma nota adicionada.</p>}
+                    {(activeTicket.notes || []).map(note => (
+                      <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 group w-full flex flex-col">
+                        <div className="flex justify-between items-start mb-2 w-full">
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{new Date(note.createdAt).toLocaleString()}</span>
+                          <button onClick={() => handleDeleteNote(note.id)} className="w-6 h-6 flex items-center justify-center rounded bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>
+                        </div>
+                        <p className="text-slate-700 text-sm whitespace-pre-wrap break-all w-full leading-relaxed">{note.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 border-t border-slate-100 bg-white">
+                    <textarea className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none resize-none h-[80px] focus:border-[#1FA84A] transition-colors" placeholder="Escreva uma nova atualização..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
+                    <div className="flex justify-end mt-2">
+                      <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="bg-[#1FA84A] text-white px-5 py-2 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-green-600 transition-colors">Adicionar Nota</button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col bg-slate-50/50 p-6 overflow-y-auto">
+                  
+                  {/* UPLOAD DE ARQUIVOS DENTRO DA OS */}
+                  {pendingFile ? (
+                    <div className="bg-white border-2 border-[#1FA84A]/50 rounded-2xl p-5 mb-6 shadow-sm">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-[#e8f6ea] text-[#1FA84A] rounded-lg flex items-center justify-center shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                        </div>
+                        <div className="overflow-hidden">
+                          <h4 className="font-bold text-slate-800 text-sm truncate">{pendingFile.name}</h4>
+                          <span className="text-xs text-slate-500">{formatSize(pendingFile.size)}</span>
+                        </div>
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Adicionar nota ou descrição a este arquivo (Opcional)" 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#1FA84A] mb-3"
+                        value={fileDescription}
+                        onChange={e => setFileDescription(e.target.value)}
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => { setPendingFile(null); setFileDescription(''); if(fileInputRef.current) fileInputRef.current.value=''; }} className="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                        <button onClick={confirmUploadFile} disabled={isUploadingFile} className="px-4 py-2 text-sm font-bold text-white bg-[#1FA84A] hover:bg-green-600 rounded-lg flex items-center gap-2 shadow-sm">
+                          {isUploadingFile && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                          Enviar Documento
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div onClick={() => fileInputRef.current?.click()} className="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-6 flex items-center justify-center gap-3 cursor-pointer hover:border-[#1FA84A] hover:bg-[#f8fdf9] transition-colors mb-6 group">
+                      <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                      <div className="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center group-hover:bg-[#e8f6ea] group-hover:text-[#1FA84A] transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      </div>
+                      <span className="font-bold text-slate-600 group-hover:text-[#1FA84A] transition-colors">Anexar novo arquivo</span>
+                    </div>
+                  )}
+
+                  {/* LISTA DE ARQUIVOS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(activeTicket.files || []).length === 0 && !pendingFile && (
+                      <p className="text-slate-400 text-center col-span-full mt-4">Nenhum ficheiro arquivado nesta OS.</p>
+                    )}
+                    {(activeTicket.files || []).map(file => (
+                      <div key={file.id} className="bg-white border border-slate-200 p-4 rounded-xl flex items-start gap-3 hover:shadow-md transition-shadow group relative overflow-hidden">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${file.mimeType.includes('image') ? 'bg-blue-50 text-blue-500' : file.mimeType.includes('pdf') ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
+                            {file.mimeType.includes('image') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" /></svg>
+                            : file.mimeType.includes('pdf') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0016.5 9h-1.875a1.875 1.875 0 01-1.875-1.875V5.25A3.75 3.75 0 009 1.5H5.625zM7.5 15a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 017.5 15zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H8.25z" /><path d="M12.971 1.816A5.23 5.23 0 0114.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 013.434 1.279 9.768 9.768 0 00-6.963-6.963z" /></svg>
+                            : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M19.5 21a3 3 0 003-3V9a3 3 0 00-3-3h-5.379a.75.75 0 01-.53-.22L11.47 3.66A2.25 2.25 0 009.879 3H4.5a3 3 0 00-3 3v12a3 3 0 003 3h15z" clipRule="evenodd" /></svg>}
+                        </div>
+                        <div className="flex-1 min-w-0 pr-8">
+                          <h4 className="font-bold text-xs text-slate-800 truncate" title={file.fileName}>{file.fileName}</h4>
+                          <div className="flex items-center gap-2 mt-0.5 mb-1.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{file.mimeType.split('/')[1] || 'DOC'}</span>
+                            <span className="text-[10px] text-slate-400">•</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{formatSize(file.size)}</span>
+                          </div>
+                          {file.description && (
+                            <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 leading-snug line-clamp-3" title={file.description}>
+                              {file.description}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Ações (Abrir / Deletar) */}
+                        <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white pl-1">
+                           <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
+                           <button onClick={() => handleDeleteFile(file.id)} className="w-7 h-7 rounded bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
