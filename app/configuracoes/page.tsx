@@ -169,10 +169,13 @@ export default function ConfiguracoesPage() {
         setProxyPass('');
         await fetchInstances();
       } else {
-        alert("Erro ao criar a instância. O nome pode já estar em uso.");
+        // CORREÇÃO AQUI: Lemos a mensagem de erro que o backend retornou
+        const errorData = await res.json().catch(() => null);
+        const errorMessage = errorData?.message || "Erro desconhecido ao criar a instância. Verifique os dados.";
+        alert(`❌ ATENÇÃO:\n\n${errorMessage}`);
       }
     } catch (error) {
-      alert("Erro de conexão.");
+      alert("Erro de conexão com o servidor.");
     } finally {
       setIsCreatingInstance(false);
     }
