@@ -21,6 +21,7 @@ export default function DeveloperPage() {
   const [cfBucket, setCfBucket] = useState('');
   const [cfAccessKey, setCfAccessKey] = useState('');
   const [cfSecretKey, setCfSecretKey] = useState('');
+  const [cfPublicUrl, setCfPublicUrl] = useState(''); // <-- O NOVO 5º CAMPO
 
   const [isSavingProviders, setIsSavingProviders] = useState(false);
 
@@ -52,6 +53,7 @@ export default function DeveloperPage() {
         if (data.bucket) setCfBucket(data.bucket);
         if (data.apiKey) setCfAccessKey(data.apiKey);
         if (data.apiToken) setCfSecretKey(data.apiToken);
+        if (data.baseUrl) setCfPublicUrl(data.baseUrl); // Carrega a Public URL do banco
       }
     } catch (err) { console.error("Erro ao carregar provedores", err); }
   };
@@ -89,7 +91,6 @@ export default function DeveloperPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: evoBaseUrl, apiKey: evoApiKey })
       });
-      // Um pequeno feedback visual sem usar alert nativo seria ideal, mas mantemos o alert simples por enquanto
       alert('Configurações Evolution salvas com sucesso!');
     } catch (err) { alert('Erro ao salvar Evolution.'); }
     setIsSavingProviders(false);
@@ -101,7 +102,8 @@ export default function DeveloperPage() {
       await fetch(`${baseUrl}/providers/cloudflare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId: cfAccountId, bucket: cfBucket, apiKey: cfAccessKey, apiToken: cfSecretKey })
+        // Envia a cfPublicUrl na propriedade baseUrl do banco de dados
+        body: JSON.stringify({ accountId: cfAccountId, bucket: cfBucket, apiKey: cfAccessKey, apiToken: cfSecretKey, baseUrl: cfPublicUrl })
       });
       alert('Configurações Cloudflare salvas com sucesso!');
     } catch (err) { alert('Erro ao salvar Cloudflare.'); }
@@ -153,7 +155,7 @@ export default function DeveloperPage() {
           {activeTab === 'providers' ? (
             <>
               {/* Card Evolution API */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+              <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
                 <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-green-100 text-[#1FA84A] rounded-xl flex items-center justify-center shadow-inner">
@@ -196,7 +198,7 @@ export default function DeveloperPage() {
                   <button 
                     onClick={handleSaveEvo} 
                     disabled={isSavingProviders} 
-                    className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold shadow-md hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full mt-auto bg-slate-800 text-white py-3 rounded-xl font-bold shadow-md hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     {isSavingProviders ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Salvar Credenciais Evolution'}
                   </button>
@@ -204,7 +206,7 @@ export default function DeveloperPage() {
               </div>
 
               {/* Card Cloudflare R2 */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+              <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
                 <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center shadow-inner">
@@ -222,6 +224,17 @@ export default function DeveloperPage() {
                 
                 <div className="p-6 flex-1 flex flex-col justify-between gap-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* NOVO 5º CAMPO DE URL PÚBLICA */}
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">URL Pública do Bucket (Public Endpoint)</label>
+                      <input 
+                        type="text" 
+                        value={cfPublicUrl} 
+                        onChange={e => setCfPublicUrl(e.target.value)} 
+                        placeholder="Ex: https://pub-123456789.r2.dev" 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all" 
+                      />
+                    </div>
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Account ID</label>
                       <input type="text" value={cfAccountId} onChange={e => setCfAccountId(e.target.value)} placeholder="Ex: 1234567890abcdef..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all" />
@@ -243,7 +256,7 @@ export default function DeveloperPage() {
                   <button 
                     onClick={handleSaveCf} 
                     disabled={isSavingProviders} 
-                    className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold shadow-md hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full mt-auto bg-slate-800 text-white py-3 rounded-xl font-bold shadow-md hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     {isSavingProviders ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Atualizar Storage Cloudflare'}
                   </button>
