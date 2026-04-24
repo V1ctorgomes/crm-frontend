@@ -62,7 +62,6 @@ export default function SolicitacoesPage() {
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   
-  // Controle de Abas no Modal da OS (Notas vs Arquivos)
   const [activeTab, setActiveTab] = useState<'notes' | 'files'>('notes');
 
   const [selectedContactNumber, setSelectedContactNumber] = useState('');
@@ -73,7 +72,6 @@ export default function SolicitacoesPage() {
   const [formModelo, setFormModelo] = useState('');
   const [newNoteText, setNewNoteText] = useState('');
 
-  // Estados de Upload de Ficheiro no Kanban
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -98,7 +96,6 @@ export default function SolicitacoesPage() {
       if (boardRes.ok) setStages(await boardRes.json());
       if (contactsRes.ok) setContacts(await contactsRes.json());
       
-      // Atualiza o ticket aberto na tela se houver mudanças
       if (activeTicket) {
         const board = await boardRes.json();
         let foundTicket = null;
@@ -121,7 +118,6 @@ export default function SolicitacoesPage() {
   const handleDragStart = (e: React.DragEvent, ticketId: string, sourceStageId: string) => {
     e.dataTransfer.setData('ticketId', ticketId);
     e.dataTransfer.setData('sourceStageId', sourceStageId);
-    // Efeito visual opcional durante o drag pode ser adicionado aqui
   };
   
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -149,7 +145,7 @@ export default function SolicitacoesPage() {
     try { 
       await fetch(`${baseUrl}/tickets/${ticketId}/stage`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stageId: targetStageId }) }); 
     } catch (err) { 
-      fetchData(); // Reverte em caso de erro
+      fetchData(); 
     }
   };
 
@@ -187,7 +183,6 @@ export default function SolicitacoesPage() {
     } catch (err) {}
   };
 
-  // ================= UPLOAD DE FICHEIROS =================
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -220,7 +215,6 @@ export default function SolicitacoesPage() {
     } catch (error) { console.error(error); }
   };
 
-  // ================= GESTÃO DE FASES (STAGES) =================
   const openStageManager = async () => {
     setIsStageManagerOpen(true);
     const res = await fetch(`${baseUrl}/tickets/stages`);
@@ -302,14 +296,14 @@ export default function SolicitacoesPage() {
     <div className="flex h-screen overflow-hidden bg-[#f4f7f6] font-sans">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col pt-[80px] md:pt-0 h-full relative overflow-hidden">
+      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
-        {/* CABEÇALHO DA PÁGINA */}
-        <header className="px-6 md:px-10 py-6 bg-white border-b border-slate-200 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 shadow-sm">
+        {/* CABEÇALHO INTEGRADO (SEM FUNDO BRANCO / SEM SER FIXO) */}
+        <header className="px-6 md:px-10 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125-1.125-1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
               </div>
               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Gestão de Atendimento</span>
             </div>
@@ -317,9 +311,10 @@ export default function SolicitacoesPage() {
             <p className="text-slate-500 mt-1 font-medium">Acompanhe e gira as Ordens de Serviço (OS) ao longo do funil.</p>
           </div>
           
-          <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
+          {/* BARRA DE BOTÕES HORIZONTAL */}
+          <div className="flex flex-row items-center gap-3 overflow-x-auto no-scrollbar pb-2 xl:pb-0 w-full xl:w-auto">
             {/* Barra de Pesquisa */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center px-4 h-11 w-full sm:w-[280px] shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all">
+            <div className="bg-white border border-slate-200/80 rounded-2xl flex items-center px-4 h-11 min-w-[220px] shadow-sm focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
               <input 
                 type="text" 
@@ -330,16 +325,16 @@ export default function SolicitacoesPage() {
               />
             </div>
 
-            {/* Ações */}
-            <button onClick={openArchivedModal} className="h-11 px-5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-colors text-sm flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
+            {/* Botões de Ação (Sempre um ao lado do outro) */}
+            <button onClick={openArchivedModal} className="h-11 px-5 bg-white border border-slate-200/80 text-slate-600 font-bold rounded-2xl hover:border-slate-300 hover:text-slate-800 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 whitespace-nowrap">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>
               Arquivados
             </button>
-            <button onClick={openStageManager} className="h-11 px-5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-colors text-sm flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
+            <button onClick={openStageManager} className="h-11 px-5 bg-white border border-slate-200/80 text-slate-600 font-bold rounded-2xl hover:border-slate-300 hover:text-slate-800 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 whitespace-nowrap">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>
-              Fases do Funil
+              Fases
             </button>
-            <button onClick={() => setIsNewTicketModalOpen(true)} className="h-11 px-6 bg-[#1FA84A] text-white font-bold rounded-xl hover:bg-green-600 hover:shadow-lg transition-all shadow-md flex items-center gap-2 text-sm w-full sm:w-auto justify-center">
+            <button onClick={() => setIsNewTicketModalOpen(true)} className="h-11 px-6 bg-[#1FA84A] text-white font-bold rounded-2xl hover:bg-green-600 hover:shadow-lg transition-all shadow-md flex items-center gap-2 text-sm shrink-0 whitespace-nowrap">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               Nova OS
             </button>
@@ -347,8 +342,8 @@ export default function SolicitacoesPage() {
         </header>
 
         {/* ================= QUADRO KANBAN ================= */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 md:p-10">
-          <div className="flex h-full gap-6 items-start w-max pb-4">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 md:px-10">
+          <div className="flex h-full gap-6 items-start w-max pb-4 animate-in fade-in duration-700">
             {isLoading ? (
               <div className="w-[calc(100vw-300px)] flex justify-center items-center h-full">
                 <div className="flex flex-col items-center gap-3">
@@ -368,25 +363,22 @@ export default function SolicitacoesPage() {
               filteredStages.map((stage) => (
                 <div 
                   key={stage.id} 
-                  className="w-[340px] bg-slate-100/80 rounded-2xl flex flex-col max-h-full border border-slate-200/60 shadow-sm overflow-hidden"
+                  className="w-[340px] bg-slate-200/50 rounded-2xl flex flex-col max-h-full border border-slate-200/80 shadow-sm overflow-hidden"
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, stage.id)}
                 >
-                  {/* Linha de cor no topo */}
                   <div className="h-1.5 w-full" style={{ backgroundColor: stage.color }}></div>
                   
-                  {/* Cabeçalho da Coluna */}
-                  <div className="px-5 py-4 flex justify-between items-center shrink-0 bg-white border-b border-slate-100">
+                  <div className="px-5 py-4 flex justify-between items-center shrink-0 bg-white/60 backdrop-blur-sm border-b border-slate-200/50">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }}></div>
                       <h3 className="font-extrabold text-slate-800 uppercase tracking-wide text-sm">{stage.name}</h3>
                     </div>
-                    <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-md border border-slate-200">
+                    <span className="bg-white text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-md border border-slate-200/60 shadow-sm">
                       {stage.tickets.length}
                     </span>
                   </div>
                   
-                  {/* Lista de Cards */}
                   <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-4 no-scrollbar">
                     {stage.tickets.length === 0 && searchTerm ? (
                       <p className="text-xs text-slate-400 text-center mt-4 font-medium">Nenhum resultado nesta fase.</p>
@@ -513,7 +505,7 @@ export default function SolicitacoesPage() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 md:p-6 lg:p-10 animate-in fade-in duration-200" onClick={() => { setActiveTicket(null); setActiveTab('notes'); }}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
             
-            {/* Lateral Esquerda: Info do Cliente (Perfil do Ticket) */}
+            {/* Lateral Esquerda: Info do Cliente */}
             <div className="w-[320px] bg-slate-50/80 border-r border-slate-200 flex flex-col shrink-0 hidden md:flex relative">
               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-200/50 to-transparent"></div>
               
@@ -705,38 +697,25 @@ export default function SolicitacoesPage() {
                                 : file.mimeType.includes('pdf') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" /><path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" /></svg>
                                 : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h15Z" clipRule="evenodd" /></svg>}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-sm text-slate-800 truncate" title={file.fileName}>{file.fileName}</h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">{file.mimeType.split('/')[1] || 'DOC'}</span>
-                                <span className="text-[10px] text-slate-400 font-mono font-medium">{formatSize(file.size)}</span>
+                            <div className="flex-1 min-w-0 pr-8">
+                              <h4 className="font-bold text-xs text-slate-800 truncate" title={file.fileName}>{file.fileName}</h4>
+                              <div className="flex items-center gap-2 mt-0.5 mb-1.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{file.mimeType.split('/')[1] || 'DOC'}</span>
+                                <span className="text-[10px] text-slate-400">•</span>
+                                <span className="text-[10px] text-slate-400 font-mono">{formatSize(file.size)}</span>
                               </div>
+                              {file.description && (
+                                <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 leading-snug line-clamp-3" title={file.description}>
+                                  {file.description}
+                                </p>
+                              )}
                             </div>
-                          </div>
-
-                          {file.description && (
-                            <div className="px-5 pb-4 text-[12px] font-medium text-slate-600 line-clamp-2">
-                              {file.description}
+                            
+                            {/* Ações (Abrir / Deletar) */}
+                            <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white pl-1">
+                               <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
+                               <button onClick={() => handleDeleteFile(file.id)} className="w-7 h-7 rounded bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>
                             </div>
-                          )}
-                          
-                          <div className="mt-auto border-t border-slate-100 bg-slate-50/50 p-2 flex justify-end gap-1">
-                             <a 
-                               href={file.fileUrl} 
-                               target="_blank" 
-                               rel="noopener noreferrer" 
-                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs text-blue-600 hover:bg-blue-100 transition-colors"
-                             >
-                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                               Descarregar
-                             </a>
-                             <button 
-                               onClick={() => handleDeleteFile(file.id)} 
-                               className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-100 transition-colors ml-1"
-                               title="Excluir Ficheiro"
-                             >
-                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                             </button>
                           </div>
                         </div>
                       ))}
