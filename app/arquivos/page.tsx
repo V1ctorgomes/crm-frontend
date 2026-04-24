@@ -151,59 +151,60 @@ export default function ArquivosPage() {
       <Sidebar />
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full overflow-hidden">
         
-        {/* BREADCRUMBS NAVIGATION (Barra de Topo Fixa) */}
-        <div className="h-[70px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 flex items-center px-6 md:px-10 shrink-0 shadow-sm z-20 sticky top-0">
-          <nav className="flex items-center text-sm font-bold text-slate-500 overflow-x-auto no-scrollbar w-full whitespace-nowrap">
-            <button 
-              onClick={() => { setSelectedCustomer(null); setSelectedTicket(null); setPendingFile(null); }} 
-              className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-lg ${!selectedCustomer ? 'bg-[#e8f6ea] text-[#1FA84A]' : 'hover:bg-slate-100 hover:text-slate-800'}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>
-              Arquivos Base
-            </button>
-            
-            {selectedCustomer && (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 mx-2 text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                <button 
-                  onClick={() => { setSelectedTicket(null); setPendingFile(null); }} 
-                  className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-lg ${!selectedTicket ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 hover:text-slate-800'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" /><path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" /></svg>
-                  {selectedCustomer.contact.name || selectedCustomer.contact.number}
-                </button>
-              </>
-            )}
-
-            {selectedTicket && (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 mx-2 text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${selectedTicket.isArchived ? 'bg-amber-100 text-amber-700' : 'bg-[#e8f6ea] text-[#1FA84A]'}`}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.241 4.243h.001l.497-.5a.75.75 0 0 1 1.064 1.057l-.498.501-.002.002a4.5 4.5 0 0 1-6.364-6.364l7-7a4.5 4.5 0 0 1 6.368 6.36l-3.455 3.553A2.625 2.625 0 1 1 9.52 9.52l3.45-3.451a.75.75 0 1 1 1.061 1.06l-3.45 3.451a1.125 1.125 0 0 0 1.587 1.595l3.454-3.553a3 3 0 0 0 0-4.242Z" clipRule="evenodd" /></svg>
-                  OS {selectedTicket.id.split('-')[0].toUpperCase()}
-                  {selectedTicket.isArchived && " (Arquivada)"}
-                </span>
-              </>
-            )}
-          </nav>
-        </div>
-
         <div className="flex-1 overflow-y-auto p-6 md:p-10">
           <div className="max-w-7xl mx-auto">
             
-            {/* CABEÇALHO DA PÁGINA (Apenas na Raiz) */}
-            {!selectedCustomer && (
-              <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" /></svg>
-                  </div>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nuvem de Documentos</span>
+            {/* CABEÇALHO DA PÁGINA COM BREADCRUMBS INTEGRADOS */}
+            <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center shadow-md">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" /></svg>
                 </div>
-                <h1 className="text-3xl font-black text-slate-800 tracking-tight">Arquivos & Anexos</h1>
-                <p className="text-slate-500 mt-1 font-medium">Faça a gestão dos documentos técnicos e imagens das Ordens de Serviço.</p>
-              </header>
-            )}
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nuvem de Documentos</span>
+              </div>
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h1 className="text-3xl font-black text-slate-800 tracking-tight">Arquivos & Anexos</h1>
+                  <p className="text-slate-500 mt-1 font-medium">Faça a gestão dos documentos técnicos e imagens das Ordens de Serviço.</p>
+                </div>
+              </div>
+
+              {/* BREADCRUMBS NAVIGATION (Integrado como pílula) */}
+              <nav className="inline-flex items-center text-sm font-bold text-slate-500 overflow-x-auto no-scrollbar whitespace-nowrap bg-white border border-slate-200/80 p-1.5 rounded-xl shadow-sm">
+                <button 
+                  onClick={() => { setSelectedCustomer(null); setSelectedTicket(null); setPendingFile(null); }} 
+                  className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-lg ${!selectedCustomer ? 'bg-[#e8f6ea] text-[#1FA84A] shadow-sm' : 'hover:bg-slate-100 hover:text-slate-800'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>
+                  Raiz
+                </button>
+                
+                {selectedCustomer && (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 mx-1 text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    <button 
+                      onClick={() => { setSelectedTicket(null); setPendingFile(null); }} 
+                      className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-lg ${!selectedTicket ? 'bg-blue-50 text-blue-600 shadow-sm' : 'hover:bg-slate-100 hover:text-slate-800'}`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" /><path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" /></svg>
+                      {selectedCustomer.contact.name || selectedCustomer.contact.number}
+                    </button>
+                  </>
+                )}
+
+                {selectedTicket && (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 mx-1 text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-sm ${selectedTicket.isArchived ? 'bg-amber-100 text-amber-700' : 'bg-[#e8f6ea] text-[#1FA84A]'}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.241 4.243h.001l.497-.5a.75.75 0 0 1 1.064 1.057l-.498.501-.002.002a4.5 4.5 0 0 1-6.364-6.364l7-7a4.5 4.5 0 0 1 6.368 6.36l-3.455 3.553A2.625 2.625 0 1 1 9.52 9.52l3.45-3.451a.75.75 0 1 1 1.061 1.06l-3.45 3.451a1.125 1.125 0 0 0 1.587 1.595l3.454-3.553a3 3 0 0 0 0-4.242Z" clipRule="evenodd" /></svg>
+                      OS {selectedTicket.id.split('-')[0].toUpperCase()}
+                      {selectedTicket.isArchived && " (Arquivada)"}
+                    </span>
+                  </>
+                )}
+              </nav>
+            </header>
 
             {/* VISTA 1: LISTA DE CLIENTES */}
             {!selectedCustomer && (
@@ -274,7 +275,6 @@ export default function ArquivosPage() {
                         </div>
                       </div>
 
-                      {/* Botão Excluir (Destrutivo) para Arquivadas */}
                       {ticket.isArchived && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDeleteTicket(ticket.id); }}
@@ -362,7 +362,6 @@ export default function ArquivosPage() {
                       {selectedTicket.files.map(file => (
                         <div key={file.id} className="bg-white border border-slate-200/80 rounded-2xl flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all group overflow-hidden">
                           
-                          {/* Top Area: Icon and Details */}
                           <div className="p-5 flex items-start gap-4">
                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 shadow-inner border border-white/50 ${file.mimeType.includes('image') ? 'bg-gradient-to-br from-blue-100 to-blue-50 text-blue-500' : file.mimeType.includes('pdf') ? 'bg-gradient-to-br from-red-100 to-red-50 text-red-500' : 'bg-gradient-to-br from-slate-200 to-slate-100 text-slate-600'}`}>
                                {file.mimeType.includes('image') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clipRule="evenodd" /></svg>
@@ -378,14 +377,12 @@ export default function ArquivosPage() {
                             </div>
                           </div>
 
-                          {/* Description Area */}
                           {file.description && (
                             <div className="px-5 pb-4 text-[12px] font-medium text-slate-600 line-clamp-2">
                               {file.description}
                             </div>
                           )}
                           
-                          {/* Bottom Action Bar */}
                           <div className="mt-auto border-t border-slate-100 bg-slate-50/50 p-2 flex justify-end gap-1">
                              <a 
                                href={file.fileUrl} 
