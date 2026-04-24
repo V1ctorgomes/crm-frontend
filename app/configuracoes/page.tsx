@@ -35,14 +35,12 @@ export default function ConfiguracoesPage() {
   const [isInstancesLoading, setIsInstancesLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   
-  // Campos de Criação de Instância (Incluindo Proxy)
+  // Lista de Proxies vindas da BD (cadastradas no Developer)
+  const [availableProxies, setAvailableProxies] = useState<any[]>([]);
+  
+  // Campos de Criação de Instância
   const [newInstanceName, setNewInstanceName] = useState('');
-  const [useProxy, setUseProxy] = useState(false);
-  const [proxyHost, setProxyHost] = useState('');
-  const [proxyPort, setProxyPort] = useState('');
-  const [proxyUser, setProxyUser] = useState('');
-  const [proxyPass, setProxyPass] = useState('');
-  const [proxyProto, setProxyProto] = useState('http');
+  const [selectedProxyId, setSelectedProxyId] = useState<string>('');
 
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<{ base64?: string; pairingCode?: string } | null>(null);
@@ -50,7 +48,16 @@ export default function ConfiguracoesPage() {
   useEffect(() => {
     fetchUserData();
     fetchInstances();
+    fetchProxies();
   }, []);
+
+  // --- Buscar Proxies ---
+  const fetchProxies = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/proxies`);
+      if (res.ok) setAvailableProxies(await res.json());
+    } catch (err) { console.error("Erro ao carregar proxies", err); }
+  };
 
   // --- Funções do Perfil ---
   const fetchUserData = async () => {
@@ -146,12 +153,16 @@ export default function ConfiguracoesPage() {
 
       const payload: any = { name: newInstanceName, userId };
       
-      if (useProxy) {
-        payload.proxyHost = proxyHost;
-        payload.proxyPort = proxyPort;
-        payload.proxyUser = proxyUser;
-        payload.proxyPass = proxyPass;
-        payload.proxyProto = proxyProto;
+      // Injectar o proxy selecionado da lista disponível
+      if (selectedProxyId) {
+        const selectedProxy = availableProxies.find(p => p.id === selectedProxyId);
+        if (selectedProxy) {
+          payload.proxyHost = selectedProxy.host;
+          payload.proxyPort = String(selectedProxy.port);
+          payload.proxyUser = selectedProxy.username;
+          payload.proxyPass = selectedProxy.password;
+          payload.proxyProto = selectedProxy.protocol;
+        }
       }
 
       const res = await fetch(`${baseUrl}/instances`, {
@@ -162,14 +173,9 @@ export default function ConfiguracoesPage() {
 
       if (res.ok) {
         setNewInstanceName('');
-        setUseProxy(false);
-        setProxyHost('');
-        setProxyPort('');
-        setProxyUser('');
-        setProxyPass('');
+        setSelectedProxyId('');
         await fetchInstances();
       } else {
-        // CORREÇÃO AQUI: Lemos a mensagem de erro que o backend retornou
         const errorData = await res.json().catch(() => null);
         const errorMessage = errorData?.message || "Erro desconhecido ao criar a instância. Verifique os dados.";
         alert(`❌ ATENÇÃO:\n\n${errorMessage}`);
@@ -334,50 +340,28 @@ export default function ConfiguracoesPage() {
                             required
                           />
                         </div>
+                        
+                        <div className="flex-1 w-full">
+                          <label className="block text-sm font-bold text-slate-700 mb-2">Conexão Proxy</label>
+                          <select 
+                            value={selectedProxyId} 
+                            onChange={e => setSelectedProxyId(e.target.value)}
+                            className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#1FA84A] bg-white cursor-pointer"
+                          >
+                            <option value="">Nenhum (Conexão Direta)</option>
+                            {availableProxies.map(proxy => (
+                              <option key={proxy.id} value={proxy.id}>
+                                {proxy.name} ({proxy.host}:{proxy.port})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
                         <button type="submit" disabled={isCreatingInstance} className="bg-[#1FA84A] text-white px-8 py-3 rounded-xl font-bold shadow-sm hover:bg-green-600 transition-colors h-[46px] flex items-center gap-2 w-full md:w-auto justify-center">
                           {isCreatingInstance ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>}
                           Criar
                         </button>
                       </div>
-
-                      {/* TOGGLE PROXY */}
-                      <label className="flex items-center gap-2 cursor-pointer w-fit mb-4">
-                        <input type="checkbox" className="hidden" checked={useProxy} onChange={(e) => setUseProxy(e.target.checked)} />
-                        <div className={`w-10 h-5 rounded-full relative transition-colors ${useProxy ? 'bg-[#1FA84A]' : 'bg-slate-300'}`}>
-                          <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${useProxy ? 'left-6' : 'left-1'}`}></div>
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 select-none">Usar Proxy (Opcional)</span>
-                      </label>
-
-                      {/* CAMPOS DE PROXY */}
-                      {useProxy && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-white p-4 border border-slate-200 rounded-xl animate-in fade-in slide-in-from-top-2">
-                          <div className="col-span-full md:col-span-2 lg:col-span-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Host do Proxy</label>
-                            <input type="text" placeholder="192.168.1.1" value={proxyHost} onChange={e => setProxyHost(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Porta</label>
-                            <input type="text" placeholder="8080" value={proxyPort} onChange={e => setProxyPort(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Protocolo</label>
-                            <select value={proxyProto} onChange={e => setProxyProto(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A] bg-white">
-                              <option value="http">HTTP</option>
-                              <option value="https">HTTPS</option>
-                              <option value="socks5">SOCKS5</option>
-                            </select>
-                          </div>
-                          <div className="col-span-full md:col-span-1 lg:col-span-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Utilizador</label>
-                            <input type="text" placeholder="user123" value={proxyUser} onChange={e => setProxyUser(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" />
-                          </div>
-                          <div className="col-span-full md:col-span-1 lg:col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Senha</label>
-                            <input type="password" placeholder="••••••••" value={proxyPass} onChange={e => setProxyPass(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#1FA84A]" />
-                          </div>
-                        </div>
-                      )}
                     </form>
 
                     {isInstancesLoading ? (
@@ -396,7 +380,6 @@ export default function ConfiguracoesPage() {
                                 </span>
                               </div>
                               <p className="text-xs text-slate-400 mt-1 font-mono">ID: {inst.id}</p>
-                              {/* Mostra as credenciais de Proxy se existirem */}
                               {(inst.proxyHost || inst.proxyPort) && (
                                 <p className="text-[11px] font-bold text-blue-500 mt-1 uppercase tracking-wider">
                                   PROXY ATIVO: {inst.proxyHost}:{inst.proxyPort}
