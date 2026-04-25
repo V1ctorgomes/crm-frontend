@@ -85,7 +85,6 @@ export default function SolicitacoesPage() {
   const [isArchivedModalOpen, setIsArchivedModalOpen] = useState(false);
   const [archivedTickets, setArchivedTickets] = useState<Ticket[]>([]);
 
-  // Estados de Feedback (Notificações e Modais)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; } | null>(null);
 
@@ -96,7 +95,6 @@ export default function SolicitacoesPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Funções de Busca Separadas para suportar atualização em tempo real
   const fetchBoardData = async () => {
     try {
       const res = await fetch(`${baseUrl}/tickets/board`);
@@ -372,7 +370,6 @@ export default function SolicitacoesPage() {
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
-        {/* TOAST NOTIFICATION - CANTO SUPERIOR DIREITO */}
         {toast && (
           <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
             <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
@@ -388,7 +385,6 @@ export default function SolicitacoesPage() {
           </div>
         )}
 
-        {/* CABEÇALHO INTEGRADO */}
         <header className="px-6 md:px-10 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -401,7 +397,6 @@ export default function SolicitacoesPage() {
             <p className="text-slate-500 mt-1 font-medium">Acompanhe e gira as Ordens de Serviço (OS) ao longo do funil.</p>
           </div>
           
-          {/* BARRA DE BOTÕES HORIZONTAL */}
           <div className="flex flex-row items-center gap-3 overflow-x-auto no-scrollbar pb-2 xl:pb-0 w-full xl:w-auto">
             <div className="bg-white border border-slate-200/80 rounded-2xl flex items-center px-4 h-11 min-w-[220px] shadow-sm focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
@@ -593,7 +588,7 @@ export default function SolicitacoesPage() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 md:p-6 lg:p-10 animate-in fade-in duration-200" onClick={() => { setActiveTicket(null); setActiveTab('notes'); }}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl h-[90vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
             
-            {/* Lateral Esquerda: Info do Cliente (Perfil do Ticket) */}
+            {/* Lateral Esquerda: Info do Cliente */}
             <div className="w-[320px] bg-slate-50/80 border-r border-slate-200 flex flex-col shrink-0 hidden md:flex relative">
               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-200/50 to-transparent"></div>
               
@@ -720,20 +715,22 @@ export default function SolicitacoesPage() {
               ) : (
                 <div className="flex-1 flex flex-col bg-[#f8f9fa] p-8 overflow-y-auto">
                   
-                  {/* UPLOAD DE ARQUIVOS DENTRO DA OS (Design Igual a ArquivosPage) */}
+                  {/* UPLOAD DE ARQUIVOS DENTRO DA OS */}
                   {pendingFile ? (
                     <div className="bg-white border border-[#1FA84A]/30 shadow-md rounded-2xl p-6 flex flex-col lg:flex-row gap-6 items-center mb-8 animate-in fade-in">
-                      <div className="flex-1 flex items-center gap-4 w-full overflow-hidden">
+                      {/* FIX BUG: O flex-1 min-w-0 impede que o texto esmague os inputs vizinhos */}
+                      <div className="flex items-center gap-4 w-full lg:w-auto flex-1 min-w-0">
                         <div className="w-14 h-14 bg-[#e8f6ea] text-[#1FA84A] rounded-2xl flex items-center justify-center shadow-inner shrink-0">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                         </div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <h4 className="font-extrabold text-slate-800 text-base truncate block w-full">{pendingFile.name}</h4>
+                        <div className="overflow-hidden min-w-0 max-w-full lg:max-w-[250px]">
+                          <h4 className="font-extrabold text-slate-800 text-base truncate">{pendingFile.name}</h4>
                           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded mt-1 inline-block">{formatSize(pendingFile.size)}</span>
                         </div>
                       </div>
                       
-                      <div className="flex-1 w-full">
+                      {/* FIX BUG: flex-[2] dá a este input mais espaço de forma segura */}
+                      <div className="w-full lg:w-auto flex-[2]">
                         <input 
                           type="text" 
                           placeholder="Adicionar legenda descritiva (Opcional)" 
@@ -750,7 +747,7 @@ export default function SolicitacoesPage() {
                           {isUploadingFile ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" /></svg>
                           )}
-                          {isUploadingFile ? 'A Enviar...' : 'Fazer Upload'}
+                          {isUploadingFile ? 'Enviando...' : 'Upload'}
                         </button>
                       </div>
                     </div>
@@ -779,16 +776,14 @@ export default function SolicitacoesPage() {
                       {(activeTicket.files || []).map(file => (
                         <div key={file.id} className="bg-white border border-slate-200/80 rounded-2xl flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all group overflow-hidden">
                           
-                          <div className="p-5 flex items-start gap-4 overflow-hidden relative">
+                          <div className="p-5 flex items-start gap-4">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-inner border border-white/50 ${file.mimeType.includes('image') ? 'bg-gradient-to-br from-blue-100 to-blue-50 text-blue-500' : file.mimeType.includes('pdf') ? 'bg-gradient-to-br from-red-100 to-red-50 text-red-500' : 'bg-gradient-to-br from-slate-200 to-slate-100 text-slate-600'}`}>
                                {file.mimeType.includes('image') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clipRule="evenodd" /></svg>
                                 : file.mimeType.includes('pdf') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" /><path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" /></svg>
                                 : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M19.5 21a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-5.379a.75.75 0 0 1-.53-.22L11.47 3.66A2.25 2.25 0 0 0 9.879 3H4.5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h15Z" clipRule="evenodd" /></svg>}
                             </div>
-                            
-                            {/* FIX BUG OVERFLOW LONG TEXT */}
-                            <div className="flex-1 min-w-0 pr-10">
-                              <h4 className="font-bold text-xs text-slate-800 truncate block w-full" title={file.fileName}>{file.fileName}</h4>
+                            <div className="flex-1 min-w-0 pr-8">
+                              <h4 className="font-bold text-xs text-slate-800 truncate" title={file.fileName}>{file.fileName}</h4>
                               <div className="flex items-center gap-2 mt-0.5 mb-1.5">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{file.mimeType.split('/')[1] || 'DOC'}</span>
                                 <span className="text-[10px] text-slate-400">•</span>
@@ -801,7 +796,7 @@ export default function SolicitacoesPage() {
                               )}
                             </div>
                             
-                            {/* Ações (Abrir / Deletar) */}
+                            {/* Ações */}
                             <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white pl-1 shadow-sm rounded-md overflow-hidden border border-slate-100">
                                <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors" title="Descarregar Arquivo"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
                                <button onClick={() => handleDeleteFile(file.id)} className="w-8 h-8 bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors" title="Eliminar Arquivo"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>
@@ -932,7 +927,7 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO GERAL */}
+      {/* MODAL DE CONFIRMAÇÃO GERAL (TOAST STYLE) */}
       {confirmModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmModal(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
