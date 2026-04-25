@@ -129,9 +129,9 @@ export default function ContactsPage() {
       <main className="flex-1 overflow-y-auto p-6 md:p-10 pt-[80px] md:pt-10">
         <div className="max-w-7xl mx-auto">
           
-          {/* TOAST NOTIFICATION - MOVIDO PARA O CANTO SUPERIOR ESQUERDO */}
+          {/* TOAST NOTIFICATION - MOVIDO PARA O CANTO SUPERIOR DIREITO */}
           {toast && (
-            <div className={`fixed top-10 left-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
+            <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
               <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
                   {toast.type === 'success' ? (
