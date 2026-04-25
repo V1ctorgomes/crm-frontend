@@ -17,8 +17,10 @@ export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Estados de Feedback (Notificações)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   
+  // Estados do Modal de Edição
   const [isEditing, setIsEditing] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [editName, setEditName] = useState('');
@@ -26,6 +28,7 @@ export default function ContactsPage() {
   const [editCnpj, setEditCnpj] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Estados do Modal de Confirmação de Remoção
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -126,8 +129,9 @@ export default function ContactsPage() {
       <main className="flex-1 overflow-y-auto p-6 md:p-10 pt-[80px] md:pt-10">
         <div className="max-w-7xl mx-auto">
           
+          {/* TOAST NOTIFICATION - MOVIDO PARA O CANTO SUPERIOR ESQUERDO */}
           {toast && (
-            <div className={`fixed bottom-10 right-10 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300`}>
+            <div className={`fixed top-10 left-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
               <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
                   {toast.type === 'success' ? (
@@ -141,6 +145,7 @@ export default function ContactsPage() {
             </div>
           )}
 
+          {/* CABEÇALHO */}
           <header className="mb-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -162,6 +167,7 @@ export default function ContactsPage() {
             </div>
           </header>
 
+          {/* TABELA DE CONTACTOS */}
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -182,7 +188,11 @@ export default function ContactsPage() {
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 overflow-hidden">
-                            {contact.profilePictureUrl ? <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover"/> : contact.name?.substring(0, 2).toUpperCase()}
+                            {contact.profilePictureUrl ? (
+                              <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt={contact.name || ''}/>
+                            ) : (
+                              (contact.name || '?').substring(0, 2).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <div className="font-extrabold text-slate-800 text-[15px]">{contact.name || 'Sem nome'}</div>
@@ -194,7 +204,8 @@ export default function ContactsPage() {
                       <td className="py-4 px-6 text-slate-600 font-medium">{contact.email || '--'}</td>
                       <td className="py-4 px-6 text-slate-600 font-mono text-sm">{contact.cnpj || '--'}</td>
                       <td className="py-4 px-6">
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                        {/* AÇÕES SEM OPACIDADE ZERO (SEMPRE VISÍVEIS) */}
+                        <div className="flex items-center justify-center gap-2">
                           <button onClick={() => openEditModal(contact)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-xl transition-colors" title="Editar">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                           </button>
@@ -213,6 +224,7 @@ export default function ContactsPage() {
         </div>
       </main>
 
+      {/* MODAL DE EDIÇÃO */}
       {isEditing && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
@@ -247,6 +259,7 @@ export default function ContactsPage() {
         </div>
       )}
 
+      {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
       {contactToDelete && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setContactToDelete(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
