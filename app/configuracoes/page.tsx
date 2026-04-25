@@ -27,7 +27,6 @@ export default function ConfiguracoesPage() {
   
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ================= ESTADOS DAS CONEXÕES =================
@@ -42,6 +41,15 @@ export default function ConfiguracoesPage() {
 
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<{ base64?: string; pairingCode?: string } | null>(null);
+
+  // ================= FEEDBACK E MODAIS =================
+  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; } | null>(null);
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -72,7 +80,7 @@ export default function ConfiguracoesPage() {
         }
       }
     } catch (error) {
-      setProfileMessage({ type: 'error', text: 'Erro ao carregar dados do utilizador.' });
+      showFeedback('error', 'Erro ao carregar dados do utilizador.');
     } finally {
       setIsProfileLoading(false);
     }
@@ -91,7 +99,6 @@ export default function ConfiguracoesPage() {
     if (!user) return;
     
     setIsSavingProfile(true);
-    setProfileMessage(null);
 
     const formData = new FormData();
     formData.append('name', name);
@@ -106,13 +113,13 @@ export default function ConfiguracoesPage() {
       });
 
       if (res.ok) {
-        setProfileMessage({ type: 'success', text: 'Perfil atualizado com sucesso! (Recarregue a página se a foto não atualizar instantaneamente)' });
+        showFeedback('success', 'Perfil atualizado com sucesso! (Recarregue se a foto não mudar na hora)');
         setPassword('');
       } else {
-        setProfileMessage({ type: 'error', text: 'Falha ao atualizar perfil.' });
+        showFeedback('error', 'Falha ao atualizar perfil.');
       }
     } catch (error) {
-      setProfileMessage({ type: 'error', text: 'Erro de ligação ao servidor.' });
+      showFeedback('error', 'Erro de ligação ao servidor.');
     } finally {
       setIsSavingProfile(false);
     }
@@ -169,26 +176,39 @@ export default function ConfiguracoesPage() {
         setNewInstanceName('');
         setSelectedProxyId('');
         await fetchInstances();
+        showFeedback('success', 'Instância criada com sucesso!');
       } else {
         const errorData = await res.json().catch(() => null);
         const errorMessage = errorData?.message || "Erro desconhecido ao criar a instância. Verifique os dados.";
-        alert(`❌ ATENÇÃO:\n\n${errorMessage}`);
+        showFeedback('error', errorMessage);
       }
     } catch (error) {
-      alert("Erro de conexão com o servidor.");
+      showFeedback('error', "Erro de conexão com o servidor.");
     } finally {
       setIsCreatingInstance(false);
     }
   };
 
-  const handleDeleteInstance = async (instanceName: string) => {
-    if (!confirm("Tem a certeza que deseja excluir esta instância?")) return;
-    try {
-      await fetch(`${baseUrl}/instances/${instanceName}`, { method: 'DELETE' });
-      await fetchInstances();
-    } catch (error) {
-      console.error(error);
-    }
+  const handleDeleteInstance = (instanceName: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Excluir Instância?",
+      message: "Tem a certeza que deseja excluir esta conexão? A sua comunicação com o WhatsApp será interrompida.",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${baseUrl}/instances/${instanceName}`, { method: 'DELETE' });
+          if (res.ok) {
+            await fetchInstances();
+            showFeedback('success', 'Instância removida com sucesso.');
+          } else {
+            showFeedback('error', 'Não foi possível remover a instância.');
+          }
+        } catch (error) {
+          showFeedback('error', 'Erro de conexão ao remover.');
+        }
+        setConfirmModal(null);
+      }
+    });
   };
 
   const handleConnectInstance = async (name: string) => {
@@ -199,22 +219,38 @@ export default function ConfiguracoesPage() {
         if (data.base64 || data.pairingCode) {
           setQrCodeData(data);
         } else {
-          alert("Instância já conectada ou erro ao gerar código.");
+          showFeedback('error', "Instância já conectada ou erro ao gerar código.");
         }
       } else {
         const errData = await res.json();
-        alert(`Erro: ${errData.message || 'Não foi possível carregar o QR Code'}`);
+        showFeedback('error', errData.message || 'Não foi possível carregar o QR Code');
       }
     } catch (error) {
-      alert("Erro ao conectar à Evolution API.");
+      showFeedback('error', "Erro ao conectar à Evolution API.");
     }
   };
 
   return (
     <div className="flex h-screen bg-[#f4f7f6] font-sans overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full overflow-hidden">
+      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full overflow-hidden relative">
         
+        {/* TOAST NOTIFICATION - CANTO SUPERIOR DIREITO */}
+        {toast && (
+          <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
+            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                {toast.type === 'success' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                )}
+              </div>
+              <span className="font-bold text-sm">{toast.message}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-6 md:p-10">
           <div className="max-w-5xl mx-auto">
             
@@ -257,17 +293,6 @@ export default function ConfiguracoesPage() {
                   <div className="flex justify-center mt-20"><div className="w-10 h-10 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <form onSubmit={handleSaveProfile} className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-8 md:p-10 max-w-3xl">
-                    
-                    {profileMessage && (
-                      <div className={`mb-8 p-4 rounded-xl font-bold text-sm flex items-center gap-3 animate-in fade-in ${profileMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-                        {profileMessage.type === 'success' ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        )}
-                        {profileMessage.text}
-                      </div>
-                    )}
 
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 mb-10">
                       <div className="relative group cursor-pointer shrink-0" onClick={() => fileInputRef.current?.click()}>
@@ -474,6 +499,25 @@ export default function ConfiguracoesPage() {
             <button onClick={() => {setQrCodeData(null); fetchInstances();}} className="w-full bg-slate-100 text-slate-600 py-3.5 rounded-xl font-bold hover:bg-slate-200 hover:text-slate-800 transition-colors text-sm">
               Fechar Janela
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO GERAL */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmModal(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
+            <div className="p-8 text-center bg-gradient-to-b from-white to-slate-50">
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">{confirmModal.title}</h3>
+              <p className="text-[15px] font-medium text-slate-500 leading-relaxed px-2">{confirmModal.message}</p>
+            </div>
+            <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setConfirmModal(null)} className="flex-1 px-5 py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors text-sm">Cancelar</button>
+              <button onClick={confirmModal.onConfirm} className="flex-1 bg-red-500 text-white px-5 py-3.5 rounded-xl font-bold text-sm hover:bg-red-600 transition-all shadow-md">Sim, Confirmar</button>
+            </div>
           </div>
         </div>
       )}
