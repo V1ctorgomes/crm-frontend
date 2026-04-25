@@ -4,6 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+// CACHE GLOBAL: Sobrevive à desmontagem do componente quando navegamos entre páginas.
+// Isto garante que o nome e a foto não piscam durante a navegação.
+let globalUserCache: any = null;
+
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -11,29 +15,52 @@ export default function Sidebar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  // NOVO: Estado para controlar o carregamento e evitar o piscar do "Utilizador"
-  const [isUserLoading, setIsUserLoading] = useState(true); 
+  // Inicializa o estado diretamente com o cache (se existir). Zero piscadas na navegação.
+  const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
   
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const isActive = (path: string) => pathname?.includes(path);
 
   const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    // Limpa os caches no logout
+    globalUserCache = null;
+    localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     router.replace('/login');
   };
 
   useEffect(() => {
-    setIsUserLoading(true); // Inicia o carregamento
+    // 1. Tenta carregar do localStorage para uma abertura de site instantânea
+    if (!globalUserCache && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('crm_user_cache');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          globalUserCache = parsed;
+          setCurrentUser(parsed);
+        } catch (e) {}
+      }
+    }
+
+    // 2. Faz o fetch em background para garantir que a foto ou nome não foram alterados noutro local
     fetch(`${baseUrl}/users`)
       .then(res => res.json())
       .then(data => {
-        if (data && data.length > 0) setCurrentUser(data[0]);
+        if (data && data.length > 0) {
+          const user = data[0];
+          // Só atualiza o estado e o storage se os dados forem novos (evita re-renders desnecessários)
+          if (JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
+            globalUserCache = user;
+            setCurrentUser(user);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('crm_user_cache', JSON.stringify(user));
+            }
+          }
+        }
       })
-      .catch(err => console.error("Erro ao carregar utilizador:", err))
-      .finally(() => setIsUserLoading(false)); // Finaliza o carregamento independentemente de erro ou sucesso
+      .catch(err => console.error("Erro ao carregar utilizador:", err));
   }, [baseUrl]);
 
   useEffect(() => {
@@ -141,26 +168,15 @@ export default function Sidebar() {
           >
             <div className="flex items-center gap-3 overflow-hidden w-full">
               <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm shrink-0 overflow-hidden shadow-sm">
-                {isUserLoading ? (
-                  <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                ) : currentUser?.profilePictureUrl ? (
-                  <img src={currentUser.profilePictureUrl} alt="Perfil" className="w-full h-full object-cover" />
+                {currentUser?.profilePictureUrl ? (
+                  <img src={currentUser.profilePictureUrl} alt="Perfil" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
-                  (currentUser?.name || 'U').substring(0, 1).toUpperCase()
+                  (currentUser?.name || 'U').substring(0, 2).toUpperCase()
                 )}
               </div>
               <div className="flex flex-col text-left overflow-hidden w-full">
-                {isUserLoading ? (
-                  <>
-                    <div className="w-20 h-3.5 bg-slate-200 rounded animate-pulse mb-1"></div>
-                    <div className="w-12 h-2.5 bg-slate-200 rounded animate-pulse"></div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-sm font-bold text-slate-800 truncate">{currentUser?.name || 'Utilizador'}</span>
-                    <span className="text-[11px] font-medium text-slate-500 truncate">{currentUser?.role || 'Admin'}</span>
-                  </>
-                )}
+                <span className="text-sm font-bold text-slate-800 truncate">{currentUser?.name || 'Utilizador'}</span>
+                <span className="text-[11px] font-medium text-slate-500 truncate">{currentUser?.role === 'ADMIN' ? 'Administrador' : 'Equipa'}</span>
               </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`}>
