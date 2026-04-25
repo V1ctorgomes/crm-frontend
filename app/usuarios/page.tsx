@@ -16,6 +16,9 @@ export default function UsuariosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Estados de Feedback (Notificações)
+  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -27,14 +30,26 @@ export default function UsuariosPage() {
   const [formRole, setFormRole] = useState('USER');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Modal de Confirmação de Remoção
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`${baseUrl}/users`);
       if (res.ok) setUsers(await res.json());
-    } catch (err) { console.error(err); } finally { setIsLoading(false); }
+    } catch (err) { 
+      showFeedback('error', "Erro ao carregar a lista de utilizadores.");
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   useEffect(() => { fetchUsers(); }, []);
@@ -57,8 +72,8 @@ export default function UsuariosPage() {
   };
 
   const handleSave = async () => {
-    if (!formName || !formEmail) return alert("Nome e E-mail são obrigatórios.");
-    if (!editingUser && !formPassword) return alert("A senha é obrigatória para novos utilizadores.");
+    if (!formName || !formEmail) return showFeedback('error', "Nome e E-mail são obrigatórios.");
+    if (!editingUser && !formPassword) return showFeedback('error', "A senha é obrigatória para novos utilizadores.");
 
     setIsSaving(true);
     const body = { name: formName, email: formEmail, role: formRole, password: formPassword };
@@ -74,19 +89,32 @@ export default function UsuariosPage() {
       if (res.ok) {
         setIsModalOpen(false);
         fetchUsers();
+        showFeedback('success', editingUser ? "Utilizador atualizado!" : "Utilizador criado com sucesso!");
       } else {
         const err = await res.json();
-        alert(err.message || "Erro ao guardar.");
+        showFeedback('error', err.message || "Erro ao guardar alterações.");
       }
-    } catch (err) { console.error(err); } finally { setIsSaving(false); }
+    } catch (err) { 
+      showFeedback('error', "Erro de conexão ao servidor.");
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("⚠️ Tem a certeza que deseja remover este utilizador? Esta ação é irreversível.")) return;
+  const handleDelete = async () => {
+    if (!userToDelete) return;
     try {
-      const res = await fetch(`${baseUrl}/users/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchUsers();
-    } catch (err) { console.error(err); }
+      const res = await fetch(`${baseUrl}/users/${userToDelete.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showFeedback('success', "Utilizador removido da equipa.");
+        setUserToDelete(null);
+        fetchUsers();
+      } else {
+        showFeedback('error', "Não foi possível remover este utilizador.");
+      }
+    } catch (err) { 
+      showFeedback('error', "Erro de ligação ao servidor.");
+    }
   };
 
   const filteredUsers = users.filter(u => 
@@ -124,6 +152,22 @@ export default function UsuariosPage() {
       <main className="flex-1 overflow-y-auto p-6 md:p-10 pt-[80px] md:pt-10">
         <div className="max-w-7xl mx-auto">
           
+          {/* TOAST NOTIFICATION - CANTO SUPERIOR DIREITO */}
+          {toast && (
+            <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
+              <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {toast.type === 'success' ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                  )}
+                </div>
+                <span className="font-bold text-sm">{toast.message}</span>
+              </div>
+            </div>
+          )}
+
           {/* CABEÇALHO DA PÁGINA */}
           <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
             <div>
@@ -137,7 +181,6 @@ export default function UsuariosPage() {
               <p className="text-slate-500 mt-1 font-medium">Gira os utilizadores, permissões e contas de acesso ({users.length} no total).</p>
             </div>
             
-            {/* ÁREA DE AÇÕES E PESQUISA */}
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
               <div className="bg-white border border-slate-200/80 rounded-2xl flex items-center px-4 h-12 w-full sm:w-[320px] shadow-sm focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
@@ -148,11 +191,6 @@ export default function UsuariosPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )}
               </div>
 
               <button 
@@ -192,7 +230,6 @@ export default function UsuariosPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
                         </div>
                         <h4 className="font-bold text-slate-700 text-lg">Nenhum utilizador encontrado</h4>
-                        <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Não encontramos resultados para a sua pesquisa. Tente novamente.</p>
                       </td>
                     </tr>
                   ) : (
@@ -218,7 +255,8 @@ export default function UsuariosPage() {
                           {getRoleBadge(user.role)}
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                          {/* AÇÕES SEMPRE VISÍVEIS (REMOVIDO OPACIDADE ZERO) */}
+                          <div className="flex items-center justify-center gap-2">
                             <button 
                               onClick={() => openModal(user)} 
                               className="inline-flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-sm"
@@ -226,7 +264,7 @@ export default function UsuariosPage() {
                               Editar
                             </button>
                             <button 
-                              onClick={() => handleDelete(user.id)} 
+                              onClick={() => setUserToDelete(user)} 
                               className="inline-flex items-center justify-center bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-sm"
                             >
                               Remover
@@ -251,7 +289,6 @@ export default function UsuariosPage() {
             className="bg-white rounded-3xl shadow-2xl flex flex-col w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" 
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white flex justify-between items-start">
               <div className="flex gap-4 items-center">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0 ${editingUser ? 'bg-blue-50 text-blue-500' : 'bg-[#e8f6ea] text-[#1FA84A]'}`}>
@@ -271,7 +308,6 @@ export default function UsuariosPage() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-8 flex flex-col gap-6 bg-white">
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Nome Completo</label>
@@ -327,7 +363,6 @@ export default function UsuariosPage() {
               </div>
             </div>
             
-            {/* Modal Footer */}
             <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
               <button 
                 onClick={() => setIsModalOpen(false)} 
@@ -348,6 +383,26 @@ export default function UsuariosPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
+      {userToDelete && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setUserToDelete(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
+            <div className="p-8 text-center bg-gradient-to-b from-white to-slate-50">
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Remover Membro?</h3>
+              <p className="text-[15px] font-medium text-slate-500 leading-relaxed px-2">Tem a certeza que deseja remover <b>{userToDelete.name}</b> da equipa? Esta ação é irreversível.</p>
+            </div>
+            <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setUserToDelete(null)} className="flex-1 px-5 py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors text-sm">Cancelar</button>
+              <button onClick={handleDelete} className="flex-1 bg-red-500 text-white px-5 py-3.5 rounded-xl font-bold text-sm hover:bg-red-600 transition-all shadow-md">Sim, Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
