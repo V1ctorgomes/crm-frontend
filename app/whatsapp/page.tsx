@@ -37,7 +37,9 @@ export default function WhatsAppPage() {
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  
+  // Feedback System (Toast)
+  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
@@ -74,6 +76,11 @@ export default function WhatsAppPage() {
   const isCancelledRef = useRef<boolean>(false);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const handleSelectContact = (contact: Contact | null) => {
     setActiveContact(contact);
@@ -177,9 +184,13 @@ export default function WhatsAppPage() {
           const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const customMedia = msgData.customMedia || {};
+          
+          // Removemos todos os emojis automáticos
           let incomingText = customMedia.text !== undefined 
             ? customMedia.text 
-            : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || (msgData.message?.imageMessage ? "📷 Imagem" : msgData.message?.documentMessage ? "📄 Documento" : msgData.message?.audioMessage ? "🎵 Áudio" : "Mídia recebida"));
+            : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "");
+
+          let fallbackSidebarText = msgData.message?.imageMessage ? "Imagem" : msgData.message?.documentMessage ? "Documento" : msgData.message?.audioMessage ? "Áudio" : msgData.message?.videoMessage ? "Vídeo" : "Mídia";
 
           const newMessage: Message = {
             id: waId, text: incomingText, type: isFromMe ? 'sent' : 'received', time: timeNow, fromMe: isFromMe,
@@ -203,7 +214,7 @@ export default function WhatsAppPage() {
             const idx = prev.findIndex(c => c.number === contactNumber);
             const updated = [...prev];
             if (idx !== -1) {
-              updated[idx].lastMessage = incomingText;
+              updated[idx].lastMessage = incomingText || fallbackSidebarText;
               updated[idx].lastMessageTime = timeNow;
               if (msgData.profilePictureUrl) updated[idx].profilePictureUrl = msgData.profilePictureUrl;
               const item = updated.splice(idx, 1)[0];
@@ -238,18 +249,22 @@ export default function WhatsAppPage() {
         setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
         setActiveContact(null);
         localStorage.removeItem('lastActiveContact');
+        showFeedback('success', "Conversa excluída com sucesso.");
       } else {
-        setErrorBanner("Erro no servidor ao tentar apagar a conversa.");
+        showFeedback('error', "Erro no servidor ao tentar apagar a conversa.");
       }
     } catch (err) { 
-      setErrorBanner("Falha de conexão. Tente novamente."); 
+      showFeedback('error', "Falha de conexão ao apagar conversa."); 
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
-    if (file.size > 15 * 1024 * 1024) { setErrorBanner("Arquivo muito grande (máx 15MB)."); return; }
+    if (file.size > 15 * 1024 * 1024) { 
+      showFeedback('error', "Arquivo muito grande (máx 15MB)."); 
+      return; 
+    }
     setPreviewUrl(URL.createObjectURL(file));
     setPreviewFile(file);
   };
@@ -273,7 +288,7 @@ export default function WhatsAppPage() {
 
     const tempId = Date.now();
     const tempUrl = URL.createObjectURL(file);
-    const optimisticMsg: Message = { id: tempId, text: caption || "🎵 Áudio", type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: tempUrl, mimeType: file.type, fileName: file.name };
+    const optimisticMsg: Message = { id: tempId, text: caption || "", type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: tempUrl, mimeType: file.type, fileName: file.name };
 
     setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
 
@@ -281,7 +296,12 @@ export default function WhatsAppPage() {
       const idx = prev.findIndex(c => c.number === targetNumber);
       const updated = [...prev];
       if (idx !== -1) {
-        updated[idx].lastMessage = caption || "🎵 Áudio";
+        let fallbackText = 'Documento';
+        if (file.type.startsWith('image/')) fallbackText = 'Imagem';
+        else if (file.type.startsWith('video/')) fallbackText = 'Vídeo';
+        else if (file.type.startsWith('audio/')) fallbackText = 'Áudio';
+
+        updated[idx].lastMessage = caption || fallbackText;
         updated[idx].lastMessageTime = timeNow;
         const item = updated.splice(idx, 1)[0];
         updated.unshift(item);
@@ -294,9 +314,11 @@ export default function WhatsAppPage() {
       if (res.ok) {
          const savedData = await res.json();
          setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
+      } else {
+        showFeedback('error', "Falha ao enviar arquivo.");
       }
     } catch (error) { 
-      setErrorBanner("Erro ao enviar mídia."); 
+      showFeedback('error', "Erro de conexão ao enviar arquivo."); 
     } finally { 
       setIsSending(false); 
     }
@@ -338,7 +360,7 @@ export default function WhatsAppPage() {
 
       try {
         await fetch(`${baseUrl}/whatsapp/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: targetNumber, text: textToSend }) });
-      } catch (error) { setErrorBanner("Erro ao enviar mensagem."); } finally { setIsSending(false); }
+      } catch (error) { showFeedback('error', "Erro de conexão ao enviar mensagem."); } finally { setIsSending(false); }
     }
   };
 
@@ -377,7 +399,7 @@ export default function WhatsAppPage() {
         setRecordingTime(prev => prev + 1);
       }, 1000);
     } catch (err) {
-      setErrorBanner("Acesso ao microfone negado ou indisponível.");
+      showFeedback('error', "Acesso ao microfone negado ou indisponível.");
     }
   };
 
@@ -409,22 +431,15 @@ export default function WhatsAppPage() {
   };
 
   const handleCreateTicket = async () => {
-    if (!activeContact || stages.length === 0) return alert("Nenhuma fase de Kanban encontrada no sistema.");
+    if (!activeContact || stages.length === 0) return showFeedback('error', "Nenhuma fase de Kanban configurada no sistema.");
     const body = { contactNumber: activeContact.number, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, stageId: stages[0].id };
     try {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
         setIsNewTicketModalOpen(false);
-        const ticketAlert = document.createElement("div");
-        ticketAlert.className = "fixed bottom-10 right-10 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] font-bold transition-all animate-in fade-in slide-in-from-bottom-4";
-        ticketAlert.innerText = "Solicitação criada no Kanban!";
-        document.body.appendChild(ticketAlert);
-        setTimeout(() => {
-          ticketAlert.classList.add("fade-out");
-          setTimeout(() => ticketAlert.remove(), 300);
-        }, 3000);
+        showFeedback('success', "Solicitação criada no Kanban!");
       }
-    } catch (err) { setErrorBanner("Erro ao criar a solicitação."); }
+    } catch (err) { showFeedback('error', "Erro ao criar a solicitação."); }
   };
 
   const startChatWithContact = (contact: any) => {
@@ -492,6 +507,22 @@ export default function WhatsAppPage() {
       <Sidebar />
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
+        {/* TOAST NOTIFICATION - CANTO SUPERIOR DIREITO */}
+        {toast && (
+          <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
+            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                {toast.type === 'success' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                )}
+              </div>
+              <span className="font-bold text-sm">{toast.message}</span>
+            </div>
+          </div>
+        )}
+
         {hasInstances === null ? (
           <div className="flex-1 flex items-center justify-center bg-[#f4f7f6]">
             <div className="w-12 h-12 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin shadow-sm"></div>
@@ -512,14 +543,6 @@ export default function WhatsAppPage() {
           </div>
         ) : (
           <>
-            {errorBanner && (
-              <div className="absolute top-6 right-6 bg-red-500 text-white px-6 py-3.5 rounded-xl shadow-2xl z-[100] flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                <span className="font-bold text-sm">{errorBanner}</span>
-                <button onClick={() => setErrorBanner(null)} className="ml-2 font-black opacity-80 hover:opacity-100 transition-opacity">✕</button>
-              </div>
-            )}
-
             {/* BARRA LATERAL DE CONTATOS */}
             <div className={`w-full md:w-[340px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-4 bg-white border-b border-slate-100 shrink-0">
@@ -540,7 +563,7 @@ export default function WhatsAppPage() {
                 {filteredActiveContacts.map((contact) => (
                   <div key={contact.number} className={`flex items-center gap-3 p-3.5 cursor-pointer transition-all border-b border-slate-50/50 ${activeContact?.number === contact.number ? 'bg-green-50/50 border-l-4 border-l-[#1FA84A]' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`} onClick={() => handleSelectContact(contact)}>
                     {contact.profilePictureUrl ? (
-                      <img src={contact.profilePictureUrl} className="w-12 h-12 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="avatar" />
+                      <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-12 h-12 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="avatar" />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0 shadow-sm border border-slate-200">
                         {(contact.name || '?').substring(0, 2).toUpperCase()}
@@ -597,7 +620,7 @@ export default function WhatsAppPage() {
                     </button>
                     
                     {activeContact.profilePictureUrl ? (
-                      <img src={activeContact.profilePictureUrl} className="w-11 h-11 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="" />
+                      <img src={activeContact.profilePictureUrl} referrerPolicy="no-referrer" className="w-11 h-11 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="" />
                     ) : (
                       <div className="w-11 h-11 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center font-bold text-slate-600 shrink-0 shadow-sm border border-slate-200">
                         {activeContact.name.substring(0,2).toUpperCase()}
@@ -712,7 +735,7 @@ export default function WhatsAppPage() {
                           )
                         )}
 
-                        {msg.text && !(msg.mimeType?.startsWith('audio/') && msg.text === "🎵 Áudio") && (
+                        {msg.text && msg.text.trim() !== '' && (
                           <span className="text-[15px] text-[#111b21] leading-relaxed font-medium">
                             {chatSearchTerm ? msg.text.split(new RegExp(`(${chatSearchTerm})`, 'gi')).map((part, i) => part.toLowerCase() === chatSearchTerm.toLowerCase() ? <mark key={i} className="bg-yellow-300/80 text-black px-1 rounded">{part}</mark> : part) : msg.text}
                           </span>
@@ -827,7 +850,7 @@ export default function WhatsAppPage() {
             <div className="p-8 flex flex-col gap-5 bg-white">
               <div className="bg-slate-50/80 border border-slate-100 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
                  {activeContact?.profilePictureUrl ? (
-                    <img src={activeContact.profilePictureUrl} className="w-14 h-14 rounded-full object-cover shadow-sm border border-slate-200" alt="" />
+                    <img src={activeContact.profilePictureUrl} referrerPolicy="no-referrer" className="w-14 h-14 rounded-full object-cover shadow-sm border border-slate-200" alt="" />
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-white border border-slate-200 text-[#1FA84A] font-bold flex items-center justify-center shadow-sm">{(activeContact?.name || '?').substring(0, 2).toUpperCase()}</div>
                  )}
