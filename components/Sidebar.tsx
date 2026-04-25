@@ -1,161 +1,190 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  profilePictureUrl?: string;
+}
+
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
+  
+  const [user, setUser] = useState<User | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
   
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  // NOVO: Estado para controlar o carregamento do perfil
+  const [isUserLoading, setIsUserLoading] = useState(true);
+
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-  const isActive = (path: string) => pathname?.includes(path);
-
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-    localStorage.removeItem('lastActiveContact');
-    router.replace('/login');
-  };
-
   useEffect(() => {
-    fetch(`${baseUrl}/users`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.length > 0) setCurrentUser(data[0]);
-      })
-      .catch(err => console.error("Erro ao carregar utilizador:", err));
-  }, [baseUrl]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false);
+    const fetchUser = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/users`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setUser(data[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+      } finally {
+        setIsUserLoading(false); // Define que terminou de carregar, independentemente do resultado
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    fetchUser();
+  }, [baseUrl]);
+
+  const handleLogout = () => {
+    // Implementar a lógica real de logout (limpar tokens, cookies, etc.) no futuro
+    router.push('/login');
+  };
+
+  const navLinks = [
+    { name: 'Dashboard', path: '/dashboard', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg> },
+    { name: 'Base de Dados', path: '/contacts', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg> },
+    { name: 'Equipa', path: '/usuarios', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg> },
+    { name: 'Kanban', path: '/solicitacoes', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg> },
+    { name: 'WhatsApp', path: '/whatsapp', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" /></svg> },
+    { name: 'Arquivos', path: '/arquivos', icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" /></svg> }
+  ];
 
   return (
     <>
-      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40 shadow-sm">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600 p-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+      {/* Mobile Topbar */}
+      <div className="md:hidden fixed top-0 left-0 w-full h-[60px] bg-[#00171f] flex items-center justify-between px-4 z-40 border-b border-white/5">
+        <div className="flex items-center">
+          <img src="/logoBar.png" alt="Logo" className="h-[20px] object-contain ml-1" />
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white p-2 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d={isMobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"} />
+          </svg>
         </button>
-        <img src="/logo.png" alt="Logo" className="h-8 object-contain" />
-        <div className="w-8"></div>
       </div>
 
-      <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
-          <img src="/logo.png" alt="Logo" className="h-10 object-contain" />
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-          </button>
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+         <div className="md:hidden fixed inset-0 bg-[#00171f]/95 backdrop-blur-sm z-30 pt-[70px] px-4 flex flex-col justify-between pb-6 animate-in slide-in-from-top-4 duration-300">
+           <div className="flex flex-col gap-2">
+             {navLinks.map((link) => (
+               <Link key={link.name} href={link.path} onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-[15px] transition-all ${pathname.startsWith(link.path) ? 'bg-[#1FA84A] text-white shadow-md' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
+                 {link.icon}
+                 {link.name}
+               </Link>
+             ))}
+           </div>
+           
+           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white border border-white/10">
+                 {isUserLoading ? (
+                   <div className="w-5 h-5 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                 ) : user?.profilePictureUrl ? (
+                   <img src={user.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full rounded-full object-cover" alt="Avatar"/>
+                 ) : (
+                   (user?.name || '?').substring(0, 2).toUpperCase()
+                 )}
+               </div>
+               <div>
+                 {isUserLoading ? (
+                   <div className="w-24 h-4 bg-slate-700/50 rounded animate-pulse"></div>
+                 ) : (
+                   <p className="text-white font-bold text-sm">{user?.name || 'Utilizador'}</p>
+                 )}
+                 <Link href="/configuracoes" onClick={() => setIsMobileMenuOpen(false)} className="text-[#1FA84A] text-xs font-bold hover:text-white transition-colors">Configurações</Link>
+               </div>
+             </div>
+             <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-all">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" /></svg>
+             </button>
+           </div>
+         </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-[260px] bg-[#00171f] flex-col justify-between shrink-0 relative border-r border-[#00171f]">
+        <div>
+          <div className="h-[90px] flex items-center justify-center px-6 border-b border-white/5 mb-6">
+            <img src="/logoBar.png" alt="Logo" className="w-[140px] object-contain" />
+          </div>
+          <div className="px-4 flex flex-col gap-1.5">
+            {navLinks.map((link) => (
+              <Link key={link.name} href={link.path} className={`flex items-center gap-3.5 px-4 py-3.5 rounded-[14px] font-bold text-[14px] transition-all group relative overflow-hidden ${pathname.startsWith(link.path) ? 'bg-[#1FA84A] text-white shadow-[0_4px_12px_rgba(31,168,74,0.3)]' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+                {pathname.startsWith(link.path) && <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/30 rounded-r-md"></div>}
+                <div className={`${pathname.startsWith(link.path) ? 'text-white' : 'text-slate-500 group-hover:text-white transition-colors'}`}>
+                   {link.icon}
+                </div>
+                {link.name}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
-          <Link href="/dashboard" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/dashboard') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
-            <span className="text-[15px]">Visão Geral</span>
-          </Link>
-
-          <Link href="/contacts" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/contacts') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-            <span className="text-[15px]">Contactos</span>
-          </Link>
-
-          <Link href="/usuarios" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/usuarios') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
-            <span className="text-[15px]">Equipa</span>
-          </Link>
-
-          <Link href="/solicitacoes" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/solicitacoes') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
-            <span className="text-[15px]">Solicitações</span>
-          </Link>
-
-          <Link href="/whatsapp" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/whatsapp') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.84 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.08 1.157.148 1.74.205l.026.003 3.03 3.03v-3.048c1.16.082 2.33.14 3.51.171m-6.6-2.529a92.4 92.4 0 0 0 3.651-.01" /></svg>
-            <span className="text-[15px]">WhatsApp</span>
-          </Link>
-
-          <Link href="/arquivos" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/arquivos') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" /></svg>
-            <span className="text-[15px]">Arquivos</span>
-          </Link>
-
-          <Link href="/developer" className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-colors ${isActive('/developer') ? 'bg-[#e8f6ea] text-[#1FA84A] font-bold' : 'text-slate-600 hover:bg-slate-50 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-            </svg>
-            <span className="text-[15px]">Developer</span>
-          </Link>
-        </nav>
-
-        <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
-          
-          {/* Popup Menu */}
+        {/* PROFILE SECTION DESKTOP */}
+        <div className="p-4 mt-auto">
+          {/* Menu Popup de Configurações e Logout */}
           {isProfileMenuOpen && (
-            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-              <Link 
-                href="/configuracoes" 
-                onClick={() => setIsProfileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
+            <div className="absolute bottom-[90px] left-4 right-4 bg-[#0a232c] border border-white/10 rounded-2xl p-2 shadow-xl animate-in fade-in slide-in-from-bottom-2 z-50">
+              <Link href="/configuracoes" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition-colors text-sm font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                 Configurações
               </Link>
-              
-              <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
-              
-              <button 
-                onClick={handleLogout} 
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors text-left"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
-                </svg>
-                Sair da Conta
+              <div className="h-px w-full bg-white/5 my-1"></div>
+              <button onClick={handleLogout} className="flex items-center gap-3 w-full p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors text-sm font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" /></svg>
+                Encerrar Sessão
               </button>
             </div>
           )}
-
-          {/* Profile Toggle Button */}
-          <button 
+          
+          <div 
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
+            className={`w-full flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all border ${isProfileMenuOpen ? 'bg-white/10 border-white/20' : 'bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10'}`}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-sm shrink-0 overflow-hidden shadow-sm">
-                {currentUser?.profilePictureUrl ? (
-                  <img src={currentUser.profilePictureUrl} alt="Perfil" className="w-full h-full object-cover" />
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white shrink-0 border border-white/10 overflow-hidden">
+                {isUserLoading ? (
+                  <div className="w-5 h-5 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                ) : user?.profilePictureUrl ? (
+                  <img src={user.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="Avatar"/>
                 ) : (
-                  (currentUser?.name || 'U').substring(0, 1).toUpperCase()
+                  (user?.name || '?').substring(0, 2).toUpperCase()
                 )}
               </div>
-              <div className="flex flex-col text-left overflow-hidden">
-                <span className="text-sm font-bold text-slate-800 truncate">{currentUser?.name || 'Utilizador'}</span>
-                <span className="text-[11px] font-medium text-slate-500 truncate">{currentUser?.role || 'Admin'}</span>
+              <div className="overflow-hidden">
+                {isUserLoading ? (
+                   <div className="w-24 h-3.5 bg-slate-700/50 rounded animate-pulse mb-1.5 mt-0.5"></div>
+                ) : (
+                   <p className="text-white font-bold text-sm truncate w-full">{user?.name || 'Utilizador'}</p>
+                )}
+                
+                {isUserLoading ? (
+                   <div className="w-16 h-2.5 bg-slate-700/30 rounded animate-pulse"></div>
+                ) : (
+                   <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{user?.role === 'ADMIN' ? 'Administrador' : 'Gestor'}</p>
+                )}
               </div>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`}>
               <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
             </svg>
-          </button>
+          </div>
         </div>
       </aside>
 
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+      {/* Overlay invisível para fechar o menu popup quando clicar fora */}
+      {isProfileMenuOpen && (
+        <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setIsProfileMenuOpen(false)}></div>
       )}
     </>
   );
