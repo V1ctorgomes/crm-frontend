@@ -20,7 +20,8 @@ interface Ticket {
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
-const CHART_COLORS = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#0284c7'];
+// Paleta monocromática de azuis para o Gráfico de Pizza
+const BLUE_SHADES = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1d4ed8', '#1e40af', '#bfdbfe'];
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -94,18 +95,16 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
-            // Formato de data curto
+            // Formato igual ao Shadcn (ex: "12 Apr")
             const dateObj = new Date(t.createdAt);
             const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
-        // Top 6 marcas
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
         
-        // Mapeando dados de tendência
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
@@ -121,7 +120,7 @@ export default function DashboardPage() {
   const resolutionRate = (totalActiveOS + totalArchivedOS) > 0 
     ? Math.round((totalArchivedOS / (totalActiveOS + totalArchivedOS)) * 100) : 0;
 
-  const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, fill: stage.color || '#2563eb' }));
+  const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -324,7 +323,6 @@ export default function DashboardPage() {
                           />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                           <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                            {/* Label Flutuante no topo de cada barra */}
                             <LabelList 
                               dataKey="count" 
                               position="top" 
@@ -351,7 +349,7 @@ export default function DashboardPage() {
             {/* 3. GRÁFICOS SECUNDÁRIOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* Gráfico de Funil / Kanban */}
+              {/* Gráfico de Funil / Kanban (Com a cor AZUL) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Carga do Kanban</h3>
@@ -368,11 +366,8 @@ export default function DashboardPage() {
                           <XAxis type="number" hide />
                           <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} width={90} />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                          <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                          <Bar dataKey="Quantidade" fill="#2563eb" radius={[0, 4, 4, 0]} maxBarSize={32}>
                             <LabelList dataKey="Quantidade" position="right" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
-                            {funnelData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
-                            ))}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -381,7 +376,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Gráfico de Tipos de Cliente */}
+              {/* Gráfico de Tipos de Cliente (Com Tons de AZUL) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Perfil de Público</h3>
@@ -406,7 +401,7 @@ export default function DashboardPage() {
                             strokeWidth={2}
                           >
                             {customerTypeRanking.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                              <Cell key={`cell-${index}`} fill={BLUE_SHADES[index % BLUE_SHADES.length]} />
                             ))}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} />
