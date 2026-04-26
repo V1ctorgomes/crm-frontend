@@ -35,7 +35,7 @@ const PIE_COLORS = ['#1FA84A', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false); // FIX: Previne erros de SSR com Recharts
+  const [isMounted, setIsMounted] = useState(false);
   
   // Data States
   const [stages, setStages] = useState<Stage[]>([]);
@@ -51,7 +51,6 @@ export default function DashboardPage() {
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-  // Garante que os gráficos só tentem desenhar no client-side
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -60,7 +59,6 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // FIX: cache: 'no-store' força o Next.js a sempre pegar dados frescos do backend
         const fetchOpts = { cache: 'no-store' as RequestCache };
 
         const [resBoard, resArchived, resContacts, resUsers] = await Promise.all([
@@ -99,21 +97,17 @@ export default function DashboardPage() {
         const typeMap = new Map<string, number>();
         const timeMap = new Map<string, number>();
 
-        // Ordena por data mais antiga primeiro para o gráfico de tendência
         allTickets.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
         allTickets.forEach(t => {
-          // Processar Marcas
           if (t.marca) {
             const m = t.marca.toUpperCase().trim();
             brandMap.set(m, (brandMap.get(m) || 0) + 1);
           }
-          // Processar Tipos de Cliente
           if (t.customerType) {
             const ct = t.customerType.toUpperCase().trim();
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
-          // Processar Linha do Tempo (Data de Criação)
           if (t.createdAt) {
             const dateStr = new Date(t.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
@@ -124,7 +118,7 @@ export default function DashboardPage() {
           Array.from(brandMap.entries())
             .map(([name, count]) => ({ name, count }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 7) // Top 7
+            .slice(0, 7)
         );
 
         setCustomerTypeRanking(
@@ -151,7 +145,6 @@ export default function DashboardPage() {
     ? Math.round((totalArchivedOS / (totalActiveOS + totalArchivedOS)) * 100) 
     : 0;
 
-  // Dados Estruturados para o Recharts
   const funnelData = stages.map(stage => ({
     name: stage.name,
     Quantidade: stage.tickets.length,
@@ -274,11 +267,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* ================= 2. GRÁFICOS DE LINHA E BARRAS (MIDDLE) ================= */}
+            {/* ================= 2. GRÁFICOS DE LINHA E BARRAS ================= */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Gráfico de Evolução (AreaChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[400px]">
                 <div className="flex justify-between items-center mb-6 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Evolução de Solicitações</h3>
@@ -290,7 +283,7 @@ export default function DashboardPage() {
                      <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">Sem dados suficientes para tendência.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 25 }}>
                         <defs>
                           <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -298,8 +291,9 @@ export default function DashboardPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={15} />
+                        {/* FIX: tickFormatter impede a renderização de números decimais (0.5 OS) */}
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
                         <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="count" name="Novas OS" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" activeDot={{ r: 6, strokeWidth: 0, fill: '#2563eb' }} />
                       </AreaChart>
@@ -309,7 +303,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Gráfico de Ranking de Marcas (BarChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[400px]">
                  <div className="flex justify-between items-center mb-6 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Top Equipamentos (Marcas)</h3>
@@ -321,10 +315,11 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">Ainda não há marcas registadas nas OS.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={15} />
+                        {/* FIX: tickFormatter impede a renderização de números decimais */}
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
                         <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                         <Bar dataKey="count" name="OS Abertas" radius={[6, 6, 0, 0]} barSize={40}>
                           {brandRanking.map((entry, index) => (
@@ -339,11 +334,11 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* ================= 3. GRÁFICOS DE PIZZA E HORIZONTAL BARS (BOTTOM) ================= */}
+            {/* ================= 3. GRÁFICOS DE PIZZA E HORIZONTAL BARS ================= */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Gráfico de Funil / Estágios (Horizontal BarChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[350px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
                 <div className="flex justify-between items-center mb-6 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Gargalos do Funil (Kanban)</h3>
@@ -355,12 +350,13 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">Nenhuma fase configurada.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 30, left: 0, bottom: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                        <XAxis type="number" hide />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} width={120} />
+                        <XAxis type="number" hide allowDecimals={false} />
+                        {/* FIX: width={100} garante que os nomes das fases ("Novo", "Em Análise") tenham espaço perfeito */}
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13, fontWeight: 'bold' }} width={100} />
                         <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                        <Bar dataKey="Quantidade" radius={[0, 6, 6, 0]} barSize={24}>
+                        <Bar dataKey="Quantidade" radius={[0, 6, 6, 0]} barSize={28}>
                           {funnelData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
                           ))}
@@ -372,23 +368,24 @@ export default function DashboardPage() {
               </div>
 
               {/* Gráfico de Tipos de Cliente (PieChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[350px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
                 <div className="flex justify-between items-center mb-2 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Distribuição de Público</h3>
                     <p className="text-sm text-slate-500 font-medium mt-0.5">Tipos de clientes atendidos na sua operação.</p>
                   </div>
                 </div>
-                <div className="flex-1 w-full relative">
+                <div className="flex-1 w-full relative mt-4">
                   {customerTypeRanking.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-sm text-center">Ainda não há tipos de clientes<br/>registados nas OS.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      {/* FIX: Margem bottom adicionada para a legenda ter espaço e não ser cortada */}
+                      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 20 }}>
                         <Pie
                           data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
                           cx="50%"
-                          cy="50%"
+                          cy="45%"
                           innerRadius={80}
                           outerRadius={110}
                           paddingAngle={3}
@@ -400,7 +397,7 @@ export default function DashboardPage() {
                           ))}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={50} iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }} />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
