@@ -292,7 +292,6 @@ export default function DashboardPage() {
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={15} />
-                        {/* FIX: tickFormatter impede a renderização de números decimais (0.5 OS) */}
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
                         <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '4 4' }} />
                         <Area type="monotone" dataKey="count" name="Novas OS" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTrend)" activeDot={{ r: 6, strokeWidth: 0, fill: '#2563eb' }} />
@@ -315,13 +314,12 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">Ainda não há marcas registadas nas OS.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 25 }}>
+                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 25 }} barCategoryGap="20%">
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} dy={15} />
-                        {/* FIX: tickFormatter impede a renderização de números decimais */}
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
                         <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                        <Bar dataKey="count" name="OS Abertas" radius={[6, 6, 0, 0]} barSize={40}>
+                        <Bar dataKey="count" name="OS Abertas" radius={[6, 6, 0, 0]} maxBarSize={60}>
                           {brandRanking.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={index === 0 ? '#1FA84A' : '#64748b'} />
                           ))}
@@ -338,7 +336,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Gráfico de Funil / Estágios (Horizontal BarChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[400px]">
                 <div className="flex justify-between items-center mb-6 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Gargalos do Funil (Kanban)</h3>
@@ -350,13 +348,12 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">Nenhuma fase configurada.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 30, left: 0, bottom: 10 }}>
+                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 30, left: 0, bottom: 10 }} barCategoryGap="25%">
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis type="number" hide allowDecimals={false} />
-                        {/* FIX: width={100} garante que os nomes das fases ("Novo", "Em Análise") tenham espaço perfeito */}
                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13, fontWeight: 'bold' }} width={100} />
                         <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                        <Bar dataKey="Quantidade" radius={[0, 6, 6, 0]} barSize={28}>
+                        <Bar dataKey="Quantidade" radius={[0, 6, 6, 0]} maxBarSize={45}>
                           {funnelData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
                           ))}
@@ -368,7 +365,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Gráfico de Tipos de Cliente (PieChart) */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[380px]">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col min-h-[400px]">
                 <div className="flex justify-between items-center mb-2 shrink-0">
                   <div>
                     <h3 className="text-lg font-extrabold text-slate-800">Distribuição de Público</h3>
@@ -380,14 +377,13 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-sm text-center">Ainda não há tipos de clientes<br/>registados nas OS.</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      {/* FIX: Margem bottom adicionada para a legenda ter espaço e não ser cortada */}
-                      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 20 }}>
+                      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 30 }}>
                         <Pie
                           data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
                           cx="50%"
-                          cy="45%"
-                          innerRadius={80}
-                          outerRadius={110}
+                          cy="40%"
+                          innerRadius={75}
+                          outerRadius={105}
                           paddingAngle={3}
                           dataKey="value"
                           stroke="none"
