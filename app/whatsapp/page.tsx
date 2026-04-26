@@ -37,7 +37,7 @@ export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
   const [instances, setInstances] = useState<any[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('ALL');
-  const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false); // NOVO ESTADO
+  const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -191,7 +191,6 @@ export default function WhatsAppPage() {
 
           const customMedia = msgData.customMedia || {};
           
-          // Removemos todos os emojis automáticos
           let incomingText = customMedia.text !== undefined 
             ? customMedia.text 
             : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "");
@@ -529,57 +528,55 @@ export default function WhatsAppPage() {
   });
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f4f7f6] font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
       <Sidebar />
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
-        {/* TOAST NOTIFICATION - CANTO SUPERIOR DIREITO */}
+        {/* TOAST NOTIFICATION */}
         {toast && (
-          <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
-            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+          <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300">
+            <div className="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 border bg-white border-slate-200">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                 {toast.type === 'success' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                 )}
               </div>
-              <span className="font-bold text-sm">{toast.message}</span>
+              <span className="font-medium text-sm text-slate-800">{toast.message}</span>
             </div>
           </div>
         )}
 
         {hasInstances === null ? (
-          <div className="flex-1 flex items-center justify-center bg-[#f4f7f6]">
-            <div className="w-12 h-12 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin shadow-sm"></div>
+          <div className="flex-1 flex items-center justify-center bg-[#f8fafc]">
+            <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : hasInstances === false ? (
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#f4f7f6] p-6 text-center animate-in fade-in">
-             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-md border border-slate-100">
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-[#1FA84A]">
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#f8fafc] p-6 text-center animate-in fade-in">
+             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6 border border-slate-200">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-slate-400">
                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
                </svg>
              </div>
-             <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Nenhuma Instância Conectada</h2>
-             <p className="text-slate-500 mb-8 max-w-md text-sm font-medium leading-relaxed">Para começar a enviar e receber mensagens com os seus clientes, você precisa primeiro criar e conectar uma instância do WhatsApp.</p>
-             <Link href="/configuracoes" className="bg-[#1FA84A] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-green-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+             <h2 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">Nenhuma Instância Conectada</h2>
+             <p className="text-slate-500 mb-6 max-w-md text-sm">Para começar a enviar e receber mensagens com os seus clientes, você precisa primeiro criar e conectar uma instância do WhatsApp.</p>
+             <Link href="/configuracoes" className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-medium hover:bg-slate-800 transition-all flex items-center gap-2">
                Ir para Configurações
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
              </Link>
           </div>
         ) : (
           <>
             {/* BARRA LATERAL DE CONTATOS */}
-            <div className={`w-full md:w-[340px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-4 pb-3 bg-white border-b border-slate-100 shrink-0 flex flex-col gap-3">
-                
+            <div className={`w-full md:w-[320px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
+              <div className="p-4 border-b border-slate-100 shrink-0 flex flex-col gap-3">
                 <div className="flex items-center gap-2 w-full">
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl flex items-center px-4 h-11 shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all flex-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                  <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all flex-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                     <input 
                       type="text" 
-                      placeholder="Procurar ou iniciar conversa..." 
-                      className="bg-transparent border-none outline-none w-full pl-3 text-[14px] font-medium text-slate-700 placeholder:text-slate-400" 
+                      placeholder="Procurar conversa..." 
+                      className="bg-transparent border-none outline-none w-full pl-2 text-sm font-medium text-slate-900 placeholder:text-slate-400" 
                       value={customerSearch} 
                       onChange={e => setCustomerSearch(e.target.value)} 
                     />
@@ -589,34 +586,33 @@ export default function WhatsAppPage() {
                   {instances.length > 0 && (
                     <button 
                       onClick={() => setIsInstanceModalOpen(true)}
-                      className="w-11 h-11 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:text-[#1FA84A] hover:bg-green-50 hover:border-green-200 transition-all shrink-0 shadow-sm relative group"
-                      title="Filtrar por Caixa de Entrada"
+                      className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all shrink-0 relative"
+                      title="Caixas de Entrada"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
-                      {selectedInstance !== 'ALL' && <span className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></span>}
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
+                      {selectedInstance !== 'ALL' && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white"></span>}
                     </button>
                   )}
                 </div>
-
               </div>
               
               <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
                 {/* CONVERSAS ATIVAS */}
                 {filteredActiveContacts.map((contact) => (
-                  <div key={contact.number} className={`flex items-center gap-3 p-3.5 cursor-pointer transition-all border-b border-slate-50/50 ${activeContact?.number === contact.number ? 'bg-green-50/50 border-l-4 border-l-[#1FA84A]' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`} onClick={() => handleSelectContact(contact)}>
+                  <div key={contact.number} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-blue-50/50 border-l-2 border-l-blue-600' : 'hover:bg-slate-50 border-l-2 border-l-transparent'}`} onClick={() => handleSelectContact(contact)}>
                     {contact.profilePictureUrl ? (
-                      <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-12 h-12 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="avatar" />
+                      <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt="" />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-bold text-slate-500 shrink-0 shadow-sm border border-slate-200">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shrink-0 border border-slate-200 text-xs">
                         {(contact.name || '?').substring(0, 2).toUpperCase()}
                       </div>
                     )}
                     <div className="flex-1 overflow-hidden">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-extrabold text-slate-800 text-[15px] truncate">{contact.name}</span>
-                        <span className="text-[11px] font-bold text-slate-400 shrink-0">{contact.lastMessageTime}</span>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="font-semibold text-slate-900 text-sm truncate">{contact.name}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0">{contact.lastMessageTime}</span>
                       </div>
-                      <div className="text-[13px] font-medium text-slate-500 truncate">{contact.lastMessage || 'Nova Conversa'}</div>
+                      <div className="text-xs text-slate-500 truncate">{contact.lastMessage || 'Nova Conversa'}</div>
                     </div>
                   </div>
                 ))}
@@ -624,17 +620,17 @@ export default function WhatsAppPage() {
                 {/* RESULTADOS DE CLIENTES NOVOS DO CRM */}
                 {customerSearch && filteredNewContacts.length > 0 && (
                   <>
-                    <div className="px-5 py-2.5 bg-slate-50 border-y border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-widest sticky top-0 z-10">
-                      Resultados da Base de Dados
+                    <div className="px-4 py-2 bg-slate-50 border-y border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest sticky top-0 z-10">
+                      Base de Dados
                     </div>
                     {filteredNewContacts.map((customer) => (
-                      <div key={customer.number} className="flex items-center gap-3 p-3.5 cursor-pointer transition-all border-b border-slate-50 border-l-4 border-l-transparent hover:bg-slate-50" onClick={() => startChatWithContact(customer)}>
-                        <div className="w-12 h-12 rounded-full bg-[#e8f6ea] text-[#1FA84A] flex items-center justify-center font-bold shrink-0 shadow-sm border border-[#1FA84A]/20">
+                      <div key={customer.number} className="flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 border-l-2 border-l-transparent hover:bg-slate-50" onClick={() => startChatWithContact(customer)}>
+                        <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0 border border-blue-100 text-xs">
                           {(customer.name || '?').substring(0, 2).toUpperCase()}
                         </div>
                         <div className="flex flex-col flex-1 overflow-hidden">
-                          <span className="font-extrabold text-slate-800 text-[15px] truncate">{customer.name}</span>
-                          <span className="text-[12px] font-medium text-slate-500 font-mono mt-0.5 truncate">{customer.number || 'Sem número'}</span>
+                          <span className="font-semibold text-slate-900 text-sm truncate">{customer.name}</span>
+                          <span className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">{customer.number || 'Sem número'}</span>
                         </div>
                       </div>
                     ))}
@@ -642,138 +638,125 @@ export default function WhatsAppPage() {
                 )}
 
                 {customerSearch && filteredActiveContacts.length === 0 && filteredNewContacts.length === 0 && (
-                  <div className="p-8 text-center text-sm font-bold text-slate-400">Nenhum contato encontrado.</div>
+                  <div className="p-6 text-center text-sm font-medium text-slate-400">Nenhum contato encontrado.</div>
                 )}
               </div>
             </div>
 
             {/* ÁREA PRINCIPAL DO CHAT */}
-            <div className={`flex-1 flex-col relative bg-[#efeae2] overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`flex-1 flex-col relative bg-[#f8fafc] overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
               
-              {/* Background Pattern */}
-              <div className="absolute inset-0 z-0 opacity-40 pointer-events-none mix-blend-multiply" style={{ backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')", backgroundRepeat: 'repeat', backgroundSize: '400px' }}></div>
-
               {activeContact ? (
                 <>
                   {/* CABEÇALHO DO CHAT */}
-                  <div className="h-[76px] bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center px-4 md:px-6 shrink-0 z-20 shadow-sm">
-                    <button onClick={() => handleSelectContact(null)} className="md:hidden text-2xl text-slate-500 mr-4 hover:text-slate-800 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                  <div className="h-[68px] bg-white border-b border-slate-200 flex items-center px-4 md:px-6 shrink-0 z-20">
+                    <button onClick={() => handleSelectContact(null)} className="md:hidden text-slate-400 mr-3 hover:text-slate-700 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                     </button>
                     
                     {activeContact.profilePictureUrl ? (
-                      <img src={activeContact.profilePictureUrl} referrerPolicy="no-referrer" className="w-11 h-11 rounded-full object-cover shrink-0 shadow-sm border border-slate-100" alt="" />
+                      <img src={activeContact.profilePictureUrl} referrerPolicy="no-referrer" className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200" alt="" />
                     ) : (
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center font-bold text-slate-600 shrink-0 shadow-sm border border-slate-200">
+                      <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shrink-0 border border-slate-200 text-xs">
                         {activeContact.name.substring(0,2).toUpperCase()}
                       </div>
                     )}
                     
-                    <div className="ml-4 overflow-hidden flex-1">
-                      <h2 className="text-[16px] font-extrabold text-slate-800 leading-tight truncate">{activeContact.name}</h2>
-                      <span className="text-[12px] font-medium text-slate-500 font-mono leading-tight truncate block mt-0.5">
+                    <div className="ml-3 overflow-hidden flex-1">
+                      <h2 className="text-sm font-bold text-slate-900 leading-tight truncate">{activeContact.name}</h2>
+                      <span className="text-[11px] text-slate-500 font-mono leading-tight truncate block mt-0.5">
                         {activeContact.number}
-                        {activeContact.instanceName && <span className="ml-2 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
+                        {activeContact.instanceName && <span className="ml-2 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-1 sm:gap-2 ml-auto relative">
+                    <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                       <button
                         onClick={openNewTicketModal}
-                        className="h-10 px-4 rounded-xl flex items-center justify-center bg-[#1FA84A] text-white font-bold hover:bg-green-600 hover:shadow-md transition-all text-sm gap-2 whitespace-nowrap hidden sm:flex"
+                        className="h-9 px-3 rounded-md flex items-center justify-center bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors text-xs gap-1.5 whitespace-nowrap hidden sm:flex"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                         Criar OS
                       </button>
-
-                      {/* Botão simplificado para mobile */}
-                      <button
-                        onClick={openNewTicketModal}
-                        className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1FA84A] text-white hover:bg-green-600 transition-colors sm:hidden shadow-sm"
-                        title="Criar Nova Solicitação"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      <button onClick={openNewTicketModal} className="w-9 h-9 rounded-md flex items-center justify-center bg-slate-900 text-white hover:bg-slate-800 transition-colors sm:hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                       </button>
 
-                      <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
+                      <div className="w-px h-5 bg-slate-200 mx-1 hidden sm:block"></div>
 
-                      <button onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`} title="Pesquisar">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                      <button onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'}`} title="Pesquisar">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                       </button>
                       
-                      <button 
-                        onClick={() => setIsDeleteModalOpen(true)} 
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        title="Excluir Conversa"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                      <button onClick={() => setIsDeleteModalOpen(true)} className="w-9 h-9 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Excluir Conversa">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                       </button>
                     </div>
                   </div>
 
                   {isSearchChatOpen && (
-                    <div className="bg-white/95 backdrop-blur-md px-6 py-3 border-b border-slate-200 flex items-center gap-3 shrink-0 z-10 shadow-sm animate-in fade-in slide-in-from-top-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                      <input type="text" placeholder="Pesquisar nesta conversa..." className="flex-1 bg-transparent border-none outline-none text-[15px] font-medium text-slate-800 placeholder:text-slate-400" value={chatSearchTerm} onChange={e => setChatSearchTerm(e.target.value)} autoFocus />
-                      <button onClick={() => { setIsSearchChatOpen(false); setChatSearchTerm(''); }} className="text-slate-500 hover:text-slate-800 font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs uppercase tracking-widest transition-colors">Fechar</button>
+                    <div className="bg-white px-4 py-2 border-b border-slate-200 flex items-center gap-2 shrink-0 z-10">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                      <input type="text" placeholder="Procurar na conversa..." className="flex-1 bg-transparent border-none outline-none text-sm text-slate-800 placeholder:text-slate-400" value={chatSearchTerm} onChange={e => setChatSearchTerm(e.target.value)} autoFocus />
+                      <button onClick={() => { setIsSearchChatOpen(false); setChatSearchTerm(''); }} className="text-slate-500 hover:text-slate-800 text-xs font-medium px-2 py-1 rounded transition-colors">Fechar</button>
                     </div>
                   )}
 
                   {/* PRÉ-VISUALIZAÇÃO DE ARQUIVO */}
                   {previewFile && previewUrl && (
-                    <div className="absolute inset-0 top-[76px] bg-slate-100/95 backdrop-blur-md z-30 flex flex-col items-center justify-between animate-in fade-in duration-200">
-                      <div className="w-full flex justify-between p-6">
-                        <button onClick={cancelPreview} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-600 hover:text-red-500 hover:bg-red-50 shadow-sm transition-all">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    <div className="absolute inset-0 top-[68px] bg-slate-50/95 backdrop-blur-sm z-30 flex flex-col items-center justify-between">
+                      <div className="w-full flex justify-between p-4">
+                        <button onClick={cancelPreview} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 shadow-sm transition-all">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                         </button>
                       </div>
-                      <div className="flex-1 flex flex-col items-center justify-center w-full px-6 overflow-hidden">
-                          <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200 p-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
-                              {previewFile.type.startsWith('image/') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10"><path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clipRule="evenodd" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10"><path fillRule="evenodd" d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" clipRule="evenodd" /></svg>}
+                      <div className="flex-1 flex flex-col items-center justify-center w-full px-6">
+                          <div className="w-full max-w-sm bg-white rounded-xl shadow-lg border border-slate-200 p-8 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                              {previewFile.type.startsWith('image/') ? <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>}
                             </div>
-                            <h3 className="font-extrabold text-slate-800 text-xl break-all line-clamp-2">{previewFile.name}</h3>
-                            <span className="text-sm font-bold text-slate-400 mt-2 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-widest">{(previewFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                            <h3 className="font-semibold text-slate-800 text-base break-all line-clamp-2">{previewFile.name}</h3>
+                            <span className="text-xs text-slate-500 mt-1">{(previewFile.size / 1024 / 1024).toFixed(2)} MB</span>
                           </div>
                       </div>
-                      <div className="w-full bg-white/90 backdrop-blur-md p-6 border-t border-slate-200/80 shrink-0">
-                         <div className="w-full max-w-3xl mx-auto flex gap-3 items-center">
+                      <div className="w-full bg-white p-4 border-t border-slate-200 shrink-0">
+                         <div className="w-full max-w-2xl mx-auto flex gap-2 items-center">
                             <input 
                               type="text" 
-                              placeholder="Adicione uma legenda opcional..." 
-                              className="flex-1 bg-slate-50 border border-slate-200/80 rounded-2xl px-5 py-4 text-[15px] outline-none shadow-sm focus:border-[#1FA84A] focus:bg-white transition-colors" 
+                              placeholder="Adicione uma legenda..." 
+                              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
                               value={inputText} 
                               onChange={(e) => setInputText(e.target.value)} 
                               onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} 
                               autoFocus 
                             />
-                            <button onClick={handleSendMessage} disabled={isSending} className="w-14 h-14 rounded-full bg-[#1FA84A] text-white flex items-center justify-center shadow-lg hover:bg-green-600 hover:shadow-xl hover:-translate-y-0.5 transition-all shrink-0">
-                              {isSending ? <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
+                            <button onClick={handleSendMessage} disabled={isSending} className="h-10 px-4 rounded-md bg-slate-900 text-white font-medium text-sm flex items-center justify-center hover:bg-slate-800 transition-all shrink-0 disabled:opacity-50">
+                              {isSending ? 'A enviar...' : 'Enviar'}
                             </button>
                          </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-3 z-10 no-scrollbar">
-                    {filteredMessages.length === 0 && chatSearchTerm && <div className="text-center text-slate-600 font-medium mt-10 p-4 bg-white/80 rounded-2xl shadow-sm self-center max-w-sm">Nenhuma mensagem encontrada para <b>"{chatSearchTerm}"</b>.</div>}
+                  <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 no-scrollbar bg-slate-50/50">
+                    {filteredMessages.length === 0 && chatSearchTerm && <div className="text-center text-slate-500 text-sm mt-4">Nenhuma mensagem encontrada.</div>}
                     
                     {filteredMessages.map((msg) => (
-                      <div key={msg.id} className={`max-w-[90%] md:max-w-[65%] w-fit relative px-4 py-2.5 rounded-2xl shadow-sm flex flex-col break-words ${msg.fromMe ? 'self-end bg-[#d9fdd3] rounded-tr-none' : 'self-start bg-white rounded-tl-none border border-slate-100'}`}>
+                      <div key={msg.id} className={`max-w-[85%] md:max-w-[70%] w-fit relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-blue-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}>
                         
                         {msg.isMedia && msg.mediaData && (
                           msg.mimeType?.startsWith('audio/') ? (
-                            <div className="mt-1 mb-1"><audio controls src={msg.mediaData} className="w-[240px] md:w-[280px] h-[44px] outline-none rounded-xl" /></div>
+                            <div className="mt-1 mb-1"><audio controls src={msg.mediaData} className="w-[220px] md:w-[260px] h-[40px] outline-none" /></div>
                           ) : (
-                            <div className={`flex items-center gap-4 p-3 rounded-xl mb-2 mt-1 border ${msg.fromMe ? 'bg-[#c6efc1] border-[#aee8a6]' : 'bg-slate-50 border-slate-100'}`}>
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${msg.fromMe ? 'bg-white/60 text-[#1FA84A]' : 'bg-white text-slate-500'}`}>
-                                  {msg.mimeType?.includes('pdf') ? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" /></svg> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" /></svg>}
+                            <div className={`flex items-center gap-3 p-2 rounded-lg mb-1.5 mt-0.5 border ${msg.fromMe ? 'bg-blue-500 border-blue-400 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                                <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${msg.fromMe ? 'bg-blue-400/50' : 'bg-white border border-slate-200'}`}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                                 </div>
-                                <div className="flex flex-col overflow-hidden w-full min-w-[150px] max-w-[220px]">
-                                  <span className="text-[14px] font-extrabold text-slate-800 truncate tracking-tight">{msg.fileName || 'Documento'}</span>
-                                  <div className="flex items-center gap-2 mt-1.5">
-                                    <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest">{msg.mimeType?.split('/')[1] || 'ARQUIVO'}</span>
-                                    <button onClick={() => setViewerMessage(msg)} className="text-[11px] bg-white px-2.5 py-0.5 rounded shadow-sm border border-slate-200 text-slate-700 font-bold hover:text-[#1FA84A] transition-colors cursor-pointer">Abrir</button>
+                                <div className="flex flex-col overflow-hidden w-full min-w-[120px] max-w-[200px]">
+                                  <span className="text-sm font-semibold truncate">{msg.fileName || 'Ficheiro'}</span>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className={`text-[10px] font-mono uppercase ${msg.fromMe ? 'text-blue-100' : 'text-slate-500'}`}>{msg.mimeType?.split('/')[1] || 'DOC'}</span>
+                                    <button onClick={() => setViewerMessage(msg)} className={`text-[10px] font-medium px-2 py-0.5 rounded cursor-pointer ${msg.fromMe ? 'bg-blue-500 hover:bg-blue-400' : 'bg-white border border-slate-200 hover:bg-slate-50'}`}>Abrir</button>
                                   </div>
                                 </div>
                             </div>
@@ -781,44 +764,44 @@ export default function WhatsAppPage() {
                         )}
 
                         {msg.text && msg.text.trim() !== '' && (
-                          <span className="text-[15px] text-[#111b21] leading-relaxed font-medium">
-                            {chatSearchTerm ? msg.text.split(new RegExp(`(${chatSearchTerm})`, 'gi')).map((part, i) => part.toLowerCase() === chatSearchTerm.toLowerCase() ? <mark key={i} className="bg-yellow-300/80 text-black px-1 rounded">{part}</mark> : part) : msg.text}
+                          <span className="text-[14px] leading-relaxed">
+                            {chatSearchTerm ? msg.text.split(new RegExp(`(${chatSearchTerm})`, 'gi')).map((part, i) => part.toLowerCase() === chatSearchTerm.toLowerCase() ? <mark key={i} className="bg-yellow-300 text-black px-0.5 rounded">{part}</mark> : part) : msg.text}
                           </span>
                         )}
 
-                        <div className="text-[11px] text-slate-500/80 self-end mt-1.5 flex items-center gap-1 font-bold select-none float-right ml-4">
+                        <div className={`text-[10px] self-end mt-1 flex items-center gap-1 float-right ml-4 ${msg.fromMe ? 'text-blue-200' : 'text-slate-400'}`}>
                           {msg.time}
-                          {msg.fromMe && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-[#53bdeb]"><path fillRule="evenodd" d="M12.528 5.47a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4ZM7.528 11.47a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4Z" clipRule="evenodd" /></svg>}
+                          {msg.fromMe && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M10.414 4.086a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4Zm-4.95 4.95a.75.75 0 0 1 1.06 0l4 4a.75.75 0 1 1-1.06 1.06l-3.47-3.47-3.47 3.47a.75.75 0 0 1-1.06-1.06l4-4Z" clipRule="evenodd" /></svg>}
                         </div>
                       </div>
                     ))}
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* BARRA DE DIGITAÇÃO E AÇÕES */}
-                  <div className="bg-white/80 backdrop-blur-md p-4 md:px-6 flex items-center gap-3 shrink-0 z-10 border-t border-slate-200/80 shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+                  {/* BARRA DE DIGITAÇÃO */}
+                  <div className="bg-white p-3 md:px-4 flex items-center gap-2 shrink-0 z-10 border-t border-slate-200">
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*,application/pdf,video/*,audio/*" />
                     
                     {!isRecording && (
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors shrink-0 shadow-sm border border-slate-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 transform -rotate-45"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
                       </button>
                     )}
 
-                    <div className="flex-1 relative flex items-center h-14">
+                    <div className="flex-1 relative flex items-center h-10">
                       {isRecording ? (
-                        <div className="w-full h-full flex items-center justify-between bg-red-50 rounded-2xl px-6 border border-red-100 shadow-inner animate-in fade-in zoom-in-95">
-                          <div className="flex items-center gap-4">
-                            <div className="w-3.5 h-3.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.8)]"></div>
-                            <span className="text-red-600 font-extrabold text-[16px] tabular-nums tracking-widest">{formatRecordingTime(recordingTime)}</span>
+                        <div className="w-full h-full flex items-center justify-between bg-red-50 rounded-md px-4 border border-red-100 animate-in fade-in">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-red-600 font-medium text-sm tabular-nums">{formatRecordingTime(recordingTime)}</span>
                           </div>
-                          <button type="button" onClick={cancelRecording} className="text-slate-500 hover:text-red-600 font-bold text-xs transition-colors uppercase tracking-widest bg-white/50 px-3 py-1.5 rounded-lg">Cancelar</button>
+                          <button type="button" onClick={cancelRecording} className="text-red-600 hover:text-red-800 text-xs font-medium">Cancelar</button>
                         </div>
                       ) : (
                         <input 
                           type="text" 
-                          placeholder="Escreva uma mensagem..." 
-                          className="w-full h-full bg-white border border-slate-200/80 rounded-2xl px-5 text-[15px] font-medium outline-none shadow-sm focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all text-slate-800 placeholder:text-slate-400" 
+                          placeholder="Escreva a sua mensagem..." 
+                          className="w-full h-full bg-white border border-slate-300 rounded-md px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-slate-400" 
                           value={inputText} 
                           onChange={(e) => setInputText(e.target.value)} 
                           onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
@@ -828,29 +811,27 @@ export default function WhatsAppPage() {
                     </div>
 
                     {!inputText.trim() && !previewFile && !isRecording ? (
-                      <button type="button" onClick={startRecording} className="w-14 h-14 rounded-full bg-[#1FA84A] text-white flex items-center justify-center hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0 shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>
+                      <button type="button" onClick={startRecording} className="w-10 h-10 rounded-md bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" /></svg>
                       </button>
                     ) : isRecording ? (
-                      <button type="button" onClick={stopRecordingAndSend} disabled={isSending} className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0 shadow-md animate-in zoom-in">
-                         {isSending ? <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
+                      <button type="button" onClick={stopRecordingAndSend} disabled={isSending} className="w-10 h-10 rounded-md bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-colors shrink-0">
+                         {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 ml-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>}
                       </button>
                     ) : (
-                      <button type="button" onClick={() => handleSendMessage()} disabled={isSending || !inputText.trim()} className="w-14 h-14 rounded-full bg-[#1FA84A] text-white flex items-center justify-center disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0 shadow-md">
-                        {isSending ? <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 ml-1"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>}
+                      <button type="button" onClick={() => handleSendMessage()} disabled={isSending || !inputText.trim()} className="w-10 h-10 rounded-md bg-slate-900 text-white flex items-center justify-center disabled:opacity-50 hover:bg-slate-800 transition-colors shrink-0">
+                        {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 ml-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>}
                       </button>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center z-10 bg-[#f4f7f6]">
-                  <div className="w-[400px] text-center flex flex-col items-center bg-white/70 p-12 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/60 backdrop-blur-md animate-in fade-in slide-in-from-bottom-4">
-                    <div className="w-24 h-24 bg-gradient-to-br from-green-50 to-[#e8f6ea] rounded-full flex items-center justify-center shadow-inner mb-6 border border-[#1FA84A]/10">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-[#1FA84A]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.436 3 12c0 1.566.47 3.033 1.284 4.288l-1.127 3.125 3.328-1.087a9.123 9.123 0 0 0 5.515 1.924Z" /></svg>
-                    </div>
-                    <h2 className="text-[26px] font-black text-slate-800 mb-3 tracking-tight">Central de WhatsApp</h2>
-                    <p className="text-[14.5px] font-medium text-slate-500 leading-relaxed">Selecione um contacto na barra lateral ou procure um cliente na base de dados para começar a interagir.</p>
-                  </div>
+                <div className="flex-1 flex flex-col items-center justify-center z-10 bg-slate-50/50 p-6 text-center">
+                   <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm text-blue-600">
+                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+                   </div>
+                   <h2 className="text-xl font-bold text-slate-800 mb-2">Central de Mensagens</h2>
+                   <p className="text-sm text-slate-500 max-w-sm">Selecione um contacto na barra lateral ou inicie uma nova conversa para enviar mensagens, ficheiros e áudios.</p>
                 </div>
               )}
             </div>
@@ -858,36 +839,30 @@ export default function WhatsAppPage() {
         )}
       </main>
 
-      {/* MODAL DE CAIXAS DE ENTRADA (INSTÂNCIAS) */}
+      {/* MODAL DE CAIXAS DE ENTRADA */}
       {isInstanceModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsInstanceModalOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-b from-slate-50 to-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-[17px] text-slate-800">Caixas de Entrada</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Filtrar conversas</p>
-                </div>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+              <div className="flex flex-col">
+                 <h3 className="font-semibold text-lg text-slate-800">Caixas de Entrada</h3>
+                 <p className="text-xs text-slate-500">Filtrar conversas por instância</p>
               </div>
-              <button onClick={() => setIsInstanceModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              <button onClick={() => setIsInstanceModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
               </button>
             </div>
             
-            <div className="p-4 flex flex-col gap-2 max-h-[60vh] overflow-y-auto bg-slate-50/50">
+            <div className="p-4 flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
               <button 
                 onClick={() => { setSelectedInstance('ALL'); handleSelectContact(null); setIsInstanceModalOpen(false); }}
-                className={`flex items-center gap-3 w-full p-4 rounded-2xl border transition-all text-left ${selectedInstance === 'ALL' ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-200/60 hover:border-blue-300 hover:shadow-sm'}`}
+                className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all text-left ${selectedInstance === 'ALL' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-white border-slate-200 hover:border-slate-300'}`}
               >
-                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${selectedInstance === 'ALL' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M2.5 3A1.5 1.5 0 0 0 1 4.5v11A1.5 1.5 0 0 0 2.5 17h15a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 17.5 3h-15Zm7 3a.75.75 0 0 0-1.5 0v2.25H5.75a.75.75 0 0 0 0 1.5H8v2.25a.75.75 0 0 0 1.5 0V9.75h2.25a.75.75 0 0 0 0-1.5H9.5V6Z" clipRule="evenodd" /></svg>
+                 <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${selectedInstance === 'ALL' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
                  </div>
                  <div className="flex flex-col">
-                   <span className={`text-[14px] font-extrabold ${selectedInstance === 'ALL' ? 'text-blue-700' : 'text-slate-700'}`}>Todas as Caixas</span>
-                   <span className="text-[11px] font-medium text-slate-500">Visão geral unificada</span>
+                   <span className="text-sm font-medium">Todas as Caixas</span>
                  </div>
               </button>
 
@@ -895,14 +870,13 @@ export default function WhatsAppPage() {
                 <button 
                   key={inst.id}
                   onClick={() => { setSelectedInstance(inst.name); handleSelectContact(null); setIsInstanceModalOpen(false); }}
-                  className={`flex items-center gap-3 w-full p-4 rounded-2xl border transition-all text-left ${selectedInstance === inst.name ? 'bg-[#e8f6ea] border-[#1FA84A]/30 shadow-sm' : 'bg-white border-slate-200/60 hover:border-[#1FA84A]/40 hover:shadow-sm'}`}
+                  className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all text-left ${selectedInstance === inst.name ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-white border-slate-200 hover:border-slate-300'}`}
                 >
-                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-[14px] shrink-0 ${selectedInstance === inst.name ? 'bg-[#1FA84A] text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                   <div className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${selectedInstance === inst.name ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                       {inst.name.substring(0, 2).toUpperCase()}
                    </div>
                    <div className="flex flex-col">
-                     <span className={`text-[14px] font-extrabold ${selectedInstance === inst.name ? 'text-[#1FA84A]' : 'text-slate-700'}`}>{inst.name}</span>
-                     <span className="text-[11px] font-mono text-slate-400 mt-0.5">Instância Conectada</span>
+                     <span className="text-sm font-medium">{inst.name}</span>
                    </div>
                 </button>
               ))}
@@ -914,17 +888,17 @@ export default function WhatsAppPage() {
       {/* MODAL DE EXCLUSÃO DE CONVERSA */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsDeleteModalOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="p-8 text-center bg-gradient-to-b from-white to-slate-50">
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-10 h-10"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
               </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Excluir Conversa?</h3>
-              <p className="text-[15px] font-medium text-slate-500 leading-relaxed px-2">Tem a certeza que deseja apagar todas as mensagens desta conversa? Esta ação não pode ser desfeita.</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Excluir Conversa?</h3>
+              <p className="text-sm text-slate-500">Tem a certeza que deseja apagar todas as mensagens desta conversa? Esta ação é irreversível.</p>
             </div>
-            <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 px-5 py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors text-sm">Cancelar</button>
-              <button onClick={confirmDeleteConversation} className="flex-1 bg-red-500 text-white px-5 py-3.5 rounded-xl font-bold text-sm hover:bg-red-600 hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-md">Sim, Excluir</button>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 h-10 rounded-md font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white transition-colors text-sm">Cancelar</button>
+              <button onClick={confirmDeleteConversation} className="bg-red-600 text-white px-4 h-10 rounded-md font-medium text-sm hover:bg-red-700 transition-colors">Excluir</button>
             </div>
           </div>
         </div>
@@ -933,69 +907,63 @@ export default function WhatsAppPage() {
       {/* MODAL CRIAR OS */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsNewTicketModalOpen(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-b from-slate-50 to-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#e8f6ea] text-[#1FA84A] rounded-xl flex items-center justify-center shadow-inner">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                </div>
-                <h3 className="font-extrabold text-xl text-slate-800">Nova Solicitação (OS)</h3>
-              </div>
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-semibold text-lg text-slate-900">Nova Solicitação (OS)</h3>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-8 flex flex-col gap-5 bg-white">
-              <div className="bg-slate-50/80 border border-slate-100 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
-                 {activeContact?.profilePictureUrl ? (
-                    <img src={activeContact.profilePictureUrl} referrerPolicy="no-referrer" className="w-14 h-14 rounded-full object-cover shadow-sm border border-slate-200" alt="" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-white border border-slate-200 text-[#1FA84A] font-bold flex items-center justify-center shadow-sm">{(activeContact?.name || '?').substring(0, 2).toUpperCase()}</div>
-                 )}
-                 <div>
-                   <h4 className="font-extrabold text-slate-800 text-[16px]">{activeContact?.name || 'Cliente'}</h4>
-                   <span className="text-[12px] font-bold font-mono text-slate-500 bg-white px-2.5 py-1 rounded-md mt-1.5 inline-block border border-slate-200 shadow-sm">{activeContact?.number}</span>
-                 </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Nome do Cliente</label>
+                <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formNome} onChange={e => setFormNome(e.target.value)} />
               </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Detalhes do Registo</h4>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 ml-1">Nome do Cliente</label>
-                  <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-800 outline-none focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={formNome} onChange={e => setFormNome(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 ml-1">E-mail</label>
-                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-800 outline-none focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 ml-1">CPF / CNPJ</label>
-                  <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-mono text-slate-800 outline-none focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">E-mail</label>
+                <input type="email" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">CPF / CNPJ</label>
+                <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
               </div>
               <div className="flex gap-4">
-                <div className="flex-1"><label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Marca do Aparelho</label><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={formMarca} onChange={e => setFormMarca(e.target.value)} /></div>
-                <div className="flex-1"><label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Modelo</label><input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={formModelo} onChange={e => setFormModelo(e.target.value)} /></div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Marca</label>
+                  <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formMarca} onChange={e => setFormMarca(e.target.value)} />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Modelo</label>
+                  <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formModelo} onChange={e => setFormModelo(e.target.value)} />
+                </div>
               </div>
             </div>
-            <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-200/50 transition-colors text-sm">Cancelar</button>
-              <button onClick={handleCreateTicket} className="bg-[#1FA84A] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:shadow-lg hover:bg-green-600 transition-all text-sm">Criar Solicitação</button>
+            <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="px-4 h-10 rounded-md font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 bg-white transition-colors text-sm">Cancelar</button>
+              <button onClick={handleCreateTicket} className="bg-slate-900 text-white px-4 h-10 rounded-md font-medium hover:bg-slate-800 transition-colors text-sm">Criar OS</button>
             </div>
           </div>
         </div>
       )}
 
       {viewerMessage && viewerMessage.mediaData && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[999] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setViewerMessage(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center px-8 py-5 border-b border-slate-100 bg-white shrink-0">
-              <span className="font-extrabold text-slate-800 text-[16px] truncate max-w-[80%]">{viewerMessage.fileName || 'Visualizador de Arquivo'}</span>
-              <button onClick={() => setViewerMessage(null)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 6 18M6 6l12 12" /></svg></button>
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4 md:p-8 animate-in fade-in" onClick={() => setViewerMessage(null)}>
+          <div className="bg-white rounded-xl shadow-lg flex flex-col w-full max-w-4xl h-[80vh] overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <span className="font-semibold text-slate-800 text-sm truncate">{viewerMessage.fileName || 'Visualizador de Arquivo'}</span>
+              <button onClick={() => setViewerMessage(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-            <div className="flex-1 bg-[#f4f7f6] flex items-center justify-center overflow-hidden relative">
-              {viewerMessage.mimeType?.startsWith('image/') ? <img src={viewerMessage.mediaData} alt="" className="max-w-full max-h-full object-contain shadow-sm" /> : viewerMessage.mimeType?.startsWith('video/') ? <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full shadow-sm outline-none" /> : viewerMessage.mimeType?.includes('pdf') ? <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border-none bg-white" /> : <div className="text-slate-400 flex flex-col items-center bg-white p-12 rounded-3xl shadow-sm border border-slate-200"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-20 h-20 mb-4 text-slate-300"><path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" /></svg><span className="font-bold text-slate-700 text-lg">Pré-visualização indisponível</span><p className="text-sm text-slate-500 mt-1">Este tipo de ficheiro precisa de ser descarregado para abrir.</p></div>}
+            <div className="flex-1 bg-slate-50 flex items-center justify-center overflow-hidden p-4">
+              {viewerMessage.mimeType?.startsWith('image/') ? <img src={viewerMessage.mediaData} alt="" className="max-w-full max-h-full object-contain rounded" /> : viewerMessage.mimeType?.startsWith('video/') ? <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full outline-none rounded" /> : viewerMessage.mimeType?.includes('pdf') ? <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border border-slate-200 rounded bg-white" /> : <div className="text-slate-500 text-sm flex flex-col items-center">Pré-visualização não disponível para este formato.</div>}
             </div>
-            <div className="px-8 py-5 border-t border-slate-100 flex justify-end bg-white shrink-0"><a href={viewerMessage.mediaData} download={viewerMessage.fileName || 'download'} target="_blank" rel="noopener noreferrer" className="bg-[#1FA84A] text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-green-600 shadow-md hover:shadow-lg transition-all flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>Descarregar Arquivo</a></div>
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end bg-white">
+              <a href={viewerMessage.mediaData} download={viewerMessage.fileName || 'download'} target="_blank" rel="noopener noreferrer" className="bg-slate-900 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-slate-800 transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                Descarregar Arquivo
+              </a>
+            </div>
           </div>
         </div>
       )}
