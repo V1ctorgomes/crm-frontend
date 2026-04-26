@@ -94,18 +94,15 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
-            // Formato de data curto
             const dateObj = new Date(t.createdAt);
             const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
-        // Top 6 marcas
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
         
-        // Mapeando dados de tendência
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
@@ -123,7 +120,6 @@ export default function DashboardPage() {
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, fill: stage.color || '#2563eb' }));
 
-  // Tooltip customizado com aparência exata do Shadcn
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -262,10 +258,7 @@ export default function DashboardPage() {
                             tick={{ fill: '#64748b', fontSize: 12 }}
                             tickFormatter={(value) => value.slice(0, 5)}
                           />
-                          <Tooltip
-                            cursor={false}
-                            content={<CustomTooltip />}
-                          />
+                          <Tooltip cursor={false} content={<CustomTooltip />} />
                           <Area
                             dataKey="desktop"
                             type="natural"
@@ -294,7 +287,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* O NOVO GRÁFICO EXATO (Horizontal Bar Mixed) PARA FABRICANTE */}
+              {/* Gráfico de Ranking de Marcas (AGORA EM PÉ / VERTICAL) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Distribuição por Fabricante</h3>
@@ -307,34 +300,37 @@ export default function DashboardPage() {
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart 
-                          layout="vertical" 
                           data={brandRanking} 
-                          margin={{ top: 0, right: 35, left: 0, bottom: 0 }} 
-                          barCategoryGap="20%"
+                          margin={{ top: 20, right: 10, left: -25, bottom: 0 }} 
+                          barCategoryGap="25%"
                         >
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                          <XAxis type="number" hide />
-                          <YAxis 
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis 
                             dataKey="name" 
-                            type="category" 
                             axisLine={false} 
                             tickLine={false} 
-                            tickMargin={10} 
+                            tickMargin={12} 
                             tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
-                            width={90} 
+                          />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tickMargin={12} 
+                            tick={{ fill: '#64748b', fontSize: 12 }} 
+                            allowDecimals={false} 
                           />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                          <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={32}>
-                            {/* Label Flutuante estilo Shadcn Misto */}
+                          <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                            {/* Label Flutuante no topo de cada barra (igual ao Shadcn Mixed) */}
                             <LabelList 
                               dataKey="count" 
-                              position="right" 
+                              position="top" 
                               offset={8} 
-                              fill="#334155" 
+                              fill="#475569" 
                               fontSize={12} 
                               fontWeight={600} 
                             />
-                            {/* Cores mistas para cada barra */}
+                            {/* Cores mistas para cada barra em pé */}
                             {brandRanking.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                             ))}
@@ -374,7 +370,7 @@ export default function DashboardPage() {
                           <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} width={90} />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                           <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
-                            <LabelList dataKey="Quantidade" position="right" offset={8} fill="#334155" fontSize={12} fontWeight={600} />
+                            <LabelList dataKey="Quantidade" position="right" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
                             {funnelData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
                             ))}
