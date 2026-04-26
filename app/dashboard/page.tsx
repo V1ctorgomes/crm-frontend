@@ -94,15 +94,18 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
+            // Formato de data curto
             const dateObj = new Date(t.createdAt);
             const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
+        // Top 6 marcas
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
         
+        // Mapeando dados de tendência
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
@@ -287,7 +290,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Gráfico de Ranking de Marcas (AGORA EM PÉ / VERTICAL) */}
+              {/* Gráfico de Ranking de Marcas (Todas as barras com o mesmo azul) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Distribuição por Fabricante</h3>
@@ -320,8 +323,8 @@ export default function DashboardPage() {
                             allowDecimals={false} 
                           />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                          <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                            {/* Label Flutuante no topo de cada barra (igual ao Shadcn Mixed) */}
+                          <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                            {/* Label Flutuante no topo de cada barra */}
                             <LabelList 
                               dataKey="count" 
                               position="top" 
@@ -330,10 +333,6 @@ export default function DashboardPage() {
                               fontSize={12} 
                               fontWeight={600} 
                             />
-                            {/* Cores mistas para cada barra em pé */}
-                            {brandRanking.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
