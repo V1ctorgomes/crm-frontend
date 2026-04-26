@@ -14,7 +14,6 @@ import {
   Building2
 } from 'lucide-react';
 
-// Aqui definimos as rotas principais do seu CRM
 const mainMenuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { name: 'Kanban', icon: KanbanSquare, path: '/solicitacoes' },
@@ -48,7 +47,6 @@ export default function Sidebar() {
         </div>
         
         {mainMenuItems.map((item) => {
-          // Verifica se a rota atual é exatamente a do botão ou se é uma sub-rota
           const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
           const Icon = item.icon;
           
@@ -82,13 +80,20 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* Perfil de Utilizador e Logout no Rodapé */}
+      {/* Perfil de Utilizador com Foto Real */}
       <div className="p-4 border-t border-slate-100 shrink-0 mb-2">
         <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center border border-blue-200 shrink-0">
-              <span className="text-blue-700 font-bold text-sm">PV</span>
+            
+            {/* BOLINHA COM A FOTO */}
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0 relative">
+              <img 
+                src="https://github.com/shadcn.png" 
+                alt="Foto de perfil de Paulo Victor" 
+                className="w-full h-full object-cover"
+              />
             </div>
+
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-bold text-slate-900 truncate">Paulo Victor</span>
               <span className="text-[11px] font-medium text-slate-500 truncate">Administrador</span>
