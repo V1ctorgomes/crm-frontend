@@ -42,6 +42,7 @@ interface Ticket {
   contact?: Contact; 
   marca: string | null; 
   modelo: string | null; 
+  customerType: string | null;
   createdAt: string; 
   updatedAt: string;
   notes?: Note[]; 
@@ -70,6 +71,7 @@ export default function SolicitacoesPage() {
   const [formCpf, setFormCpf] = useState('');
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
+  const [formCustomerType, setFormCustomerType] = useState('');
   const [newNoteText, setNewNoteText] = useState('');
 
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -176,11 +178,24 @@ export default function SolicitacoesPage() {
 
   const handleCreateTicket = async () => {
     if (!selectedContactNumber || stages.length === 0) return showFeedback('error', "Selecione um cliente e garanta que existe uma fase ativa no funil.");
-    const body = { contactNumber: selectedContactNumber, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, stageId: stages[0].id };
+    const body = { 
+      contactNumber: selectedContactNumber, 
+      nome: formNome, 
+      email: formEmail, 
+      cpf: formCpf, 
+      marca: formMarca, 
+      modelo: formModelo, 
+      customerType: formCustomerType,
+      stageId: stages[0].id 
+    };
     try {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) { 
-        setIsNewTicketModalOpen(false); setFormMarca(''); setFormModelo(''); setSelectedContactNumber(''); 
+        setIsNewTicketModalOpen(false); 
+        setFormMarca(''); 
+        setFormModelo(''); 
+        setFormCustomerType('');
+        setSelectedContactNumber(''); 
         await fetchBoardData(); 
         showFeedback('success', 'Ordem de Serviço (OS) criada com sucesso!');
       }
@@ -353,7 +368,8 @@ export default function SolicitacoesPage() {
         t.contact?.name?.toLowerCase().includes(lowerSearch) ||
         t.contactNumber.includes(lowerSearch) ||
         t.marca?.toLowerCase().includes(lowerSearch) ||
-        t.modelo?.toLowerCase().includes(lowerSearch)
+        t.modelo?.toLowerCase().includes(lowerSearch) ||
+        t.customerType?.toLowerCase().includes(lowerSearch)
       );
     })
   }));
@@ -503,8 +519,9 @@ export default function SolicitacoesPage() {
                             <h4 className="font-extrabold text-slate-800 text-sm break-all group-hover:text-[#1FA84A] transition-colors">{ticket.contact?.name || ticket.contactNumber}</h4>
                           </div>
 
-                          {(ticket.marca || ticket.modelo) && (
+                          {(ticket.marca || ticket.modelo || ticket.customerType) && (
                             <div className="flex flex-wrap gap-1.5 mt-1">
+                              {ticket.customerType && <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded break-all uppercase tracking-wide">{ticket.customerType}</span>}
                               {ticket.marca && <span className="bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded break-all uppercase tracking-wide">{ticket.marca}</span>}
                               {ticket.modelo && <span className="bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded break-all uppercase tracking-wide">{ticket.modelo}</span>}
                             </div>
@@ -573,6 +590,11 @@ export default function SolicitacoesPage() {
                   <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all" value={formModelo} onChange={e => setFormModelo(e.target.value)} placeholder="Ex: iPhone 13" />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Tipo de Cliente (Opcional)</label>
+                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Consumidor Final, Lojista, Revenda..." />
+              </div>
             </div>
             
             <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
@@ -619,10 +641,13 @@ export default function SolicitacoesPage() {
                   </div>
                 </div>
 
-                {(activeTicket.marca || activeTicket.modelo) && (
+                {(activeTicket.marca || activeTicket.modelo || activeTicket.customerType) && (
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Informações do Aparelho</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Informações da OS</label>
                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
+                      {activeTicket.customerType && (
+                        <div><span className="text-[10px] text-slate-400 uppercase">Tipo de Cliente</span><p className="font-bold text-slate-700 text-sm">{activeTicket.customerType}</p></div>
+                      )}
                       {activeTicket.marca && (
                         <div><span className="text-[10px] text-slate-400 uppercase">Marca</span><p className="font-bold text-slate-700 text-sm">{activeTicket.marca}</p></div>
                       )}
@@ -912,7 +937,10 @@ export default function SolicitacoesPage() {
                         <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-50 border border-slate-100 px-2 py-0.5 rounded">{new Date(t.updatedAt).toLocaleDateString()}</span>
                       </div>
                       <h4 className="font-extrabold text-slate-800 break-all w-full text-base">{t.contact?.name || t.contactNumber}</h4>
-                      <p className="text-xs font-semibold text-slate-500 mt-1 line-clamp-1 break-all uppercase tracking-wider">{t.marca} {t.modelo}</p>
+                      <p className="text-xs font-semibold text-slate-500 mt-1 line-clamp-1 break-all uppercase tracking-wider">
+                        {t.customerType && <span className="text-[#1FA84A] font-bold mr-1">[{t.customerType}]</span>}
+                        {t.marca} {t.modelo}
+                      </p>
                       
                       <button onClick={() => handleToggleArchive(t.id, false)} className="mt-auto pt-4 flex items-center justify-center gap-2 w-full bg-blue-50 text-blue-600 py-3 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
