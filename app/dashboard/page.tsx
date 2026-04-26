@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
 import {
   Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, YAxis, Cell, PieChart, Pie, Legend, LabelList
+  BarChart, Bar, YAxis, Cell, PieChart, Pie, LabelList, Label
 } from 'recharts';
 import { 
   Activity, CheckCircle2, Users, TrendingUp, ExternalLink 
@@ -20,8 +20,8 @@ interface Ticket {
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
-// Paleta monocromática de azuis para o Gráfico de Pizza
-const BLUE_SHADES = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1d4ed8', '#1e40af', '#bfdbfe'];
+// Paleta de Cores Múltiplas (Para o Gráfico de Público)
+const CHART_COLORS = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#0284c7'];
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -95,13 +95,13 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
-            // Formato igual ao Shadcn (ex: "12 Apr")
             const dateObj = new Date(t.createdAt);
             const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
+        // Top Marcas e Público
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
         
@@ -122,16 +122,21 @@ export default function DashboardPage() {
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length }));
 
+  // Calculando o Total de Registos para o centro do Gráfico de Pizza
+  const totalCustomers = useMemo(() => {
+    return customerTypeRanking.reduce((acc, curr) => acc + curr.count, 0);
+  }, [customerTypeRanking]);
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl">
-          <span className="text-xs font-medium text-slate-500 mb-1">{label}</span>
+          <span className="text-xs font-medium text-slate-500 mb-1">{label || payload[0].name}</span>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload?.fill || '#2563eb' }}></span>
-                <span className="text-slate-700 font-medium">{entry.name === 'desktop' || entry.name === 'count' ? 'Registos' : entry.name === 'Quantidade' ? 'Em Fila' : entry.name}</span>
+                <span className="text-slate-700 font-medium">{entry.name === 'desktop' || entry.name === 'count' || entry.name === 'value' ? 'Registos' : entry.name === 'Quantidade' ? 'Em Fila' : entry.name}</span>
               </div>
               <span className="font-bold text-slate-900 font-mono">{entry.value}</span>
             </div>
@@ -349,7 +354,7 @@ export default function DashboardPage() {
             {/* 3. GRÁFICOS SECUNDÁRIOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* Gráfico de Funil / Kanban (Com a cor AZUL) */}
+              {/* Gráfico de Funil / Kanban (Barras com a cor AZUL) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Carga do Kanban</h3>
@@ -376,7 +381,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Gráfico de Tipos de Cliente (Com Tons de AZUL) */}
+              {/* Gráfico de Tipos de Cliente (Donut Chart Multicor com Texto no Centro) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
                 <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Perfil de Público</h3>
@@ -392,20 +397,50 @@ export default function DashboardPage() {
                           <Pie
                             data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
                             cx="50%"
-                            cy="45%"
-                            innerRadius={65}
-                            outerRadius={95}
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={100}
                             paddingAngle={2}
                             dataKey="value"
                             stroke="#ffffff"
-                            strokeWidth={2}
+                            strokeWidth={3}
                           >
+                            {/* Texto Central Dinâmico */}
+                            <Label
+                              content={({ viewBox }) => {
+                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                  return (
+                                    <text
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        className="fill-slate-900 text-3xl font-bold"
+                                      >
+                                        {totalCustomers.toLocaleString()}
+                                      </tspan>
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 24}
+                                        className="fill-slate-500 text-sm font-medium"
+                                      >
+                                        Registos
+                                      </tspan>
+                                    </text>
+                                  )
+                                }
+                              }}
+                            />
+                            {/* Cores Diferentes para cada fatia */}
                             {customerTypeRanking.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={BLUE_SHADES[index % BLUE_SHADES.length]} />
+                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
+                          <Tooltip content={<CustomTooltip />} cursor={false} />
                         </PieChart>
                       </ResponsiveContainer>
                     )}
