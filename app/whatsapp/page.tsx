@@ -37,6 +37,7 @@ export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
   const [instances, setInstances] = useState<any[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('ALL');
+  const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false); // NOVO ESTADO
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -572,31 +573,31 @@ export default function WhatsAppPage() {
             <div className={`w-full md:w-[340px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
               <div className="p-4 pb-3 bg-white border-b border-slate-100 shrink-0 flex flex-col gap-3">
                 
-                {/* SELETOR DE INSTÂNCIAS */}
-                {instances.length > 0 && (
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-4 h-11 text-[13px] font-bold text-slate-700 outline-none focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all cursor-pointer appearance-none"
-                    value={selectedInstance}
-                    onChange={(e) => { setSelectedInstance(e.target.value); handleSelectContact(null); }}
-                    style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
-                  >
-                    <option value="ALL">Todas as Caixas de Entrada</option>
-                    {instances.map(inst => (
-                      <option key={inst.id} value={inst.name}>{inst.name} (Instância)</option>
-                    ))}
-                  </select>
-                )}
-
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl flex items-center px-4 h-11 shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                  <input 
-                    type="text" 
-                    placeholder="Procurar ou iniciar conversa..." 
-                    className="bg-transparent border-none outline-none w-full pl-3 text-[14px] font-medium text-slate-700 placeholder:text-slate-400" 
-                    value={customerSearch} 
-                    onChange={e => setCustomerSearch(e.target.value)} 
-                  />
+                <div className="flex items-center gap-2 w-full">
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl flex items-center px-4 h-11 shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all flex-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                    <input 
+                      type="text" 
+                      placeholder="Procurar ou iniciar conversa..." 
+                      className="bg-transparent border-none outline-none w-full pl-3 text-[14px] font-medium text-slate-700 placeholder:text-slate-400" 
+                      value={customerSearch} 
+                      onChange={e => setCustomerSearch(e.target.value)} 
+                    />
+                  </div>
+                  
+                  {/* BOTÃO CAIXA DE ENTRADA (INSTÂNCIAS) */}
+                  {instances.length > 0 && (
+                    <button 
+                      onClick={() => setIsInstanceModalOpen(true)}
+                      className="w-11 h-11 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-500 hover:text-[#1FA84A] hover:bg-green-50 hover:border-green-200 transition-all shrink-0 shadow-sm relative group"
+                      title="Filtrar por Caixa de Entrada"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
+                      {selectedInstance !== 'ALL' && <span className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></span>}
+                    </button>
+                  )}
                 </div>
+
               </div>
               
               <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
@@ -856,6 +857,59 @@ export default function WhatsAppPage() {
           </>
         )}
       </main>
+
+      {/* MODAL DE CAIXAS DE ENTRADA (INSTÂNCIAS) */}
+      {isInstanceModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsInstanceModalOpen(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-b from-slate-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-[17px] text-slate-800">Caixas de Entrada</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Filtrar conversas</p>
+                </div>
+              </div>
+              <button onClick={() => setIsInstanceModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-4 flex flex-col gap-2 max-h-[60vh] overflow-y-auto bg-slate-50/50">
+              <button 
+                onClick={() => { setSelectedInstance('ALL'); handleSelectContact(null); setIsInstanceModalOpen(false); }}
+                className={`flex items-center gap-3 w-full p-4 rounded-2xl border transition-all text-left ${selectedInstance === 'ALL' ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-200/60 hover:border-blue-300 hover:shadow-sm'}`}
+              >
+                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${selectedInstance === 'ALL' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M2.5 3A1.5 1.5 0 0 0 1 4.5v11A1.5 1.5 0 0 0 2.5 17h15a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 17.5 3h-15Zm7 3a.75.75 0 0 0-1.5 0v2.25H5.75a.75.75 0 0 0 0 1.5H8v2.25a.75.75 0 0 0 1.5 0V9.75h2.25a.75.75 0 0 0 0-1.5H9.5V6Z" clipRule="evenodd" /></svg>
+                 </div>
+                 <div className="flex flex-col">
+                   <span className={`text-[14px] font-extrabold ${selectedInstance === 'ALL' ? 'text-blue-700' : 'text-slate-700'}`}>Todas as Caixas</span>
+                   <span className="text-[11px] font-medium text-slate-500">Visão geral unificada</span>
+                 </div>
+              </button>
+
+              {instances.map(inst => (
+                <button 
+                  key={inst.id}
+                  onClick={() => { setSelectedInstance(inst.name); handleSelectContact(null); setIsInstanceModalOpen(false); }}
+                  className={`flex items-center gap-3 w-full p-4 rounded-2xl border transition-all text-left ${selectedInstance === inst.name ? 'bg-[#e8f6ea] border-[#1FA84A]/30 shadow-sm' : 'bg-white border-slate-200/60 hover:border-[#1FA84A]/40 hover:shadow-sm'}`}
+                >
+                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-[14px] shrink-0 ${selectedInstance === inst.name ? 'bg-[#1FA84A] text-white shadow-md' : 'bg-slate-100 text-slate-500'}`}>
+                      {inst.name.substring(0, 2).toUpperCase()}
+                   </div>
+                   <div className="flex flex-col">
+                     <span className={`text-[14px] font-extrabold ${selectedInstance === inst.name ? 'text-[#1FA84A]' : 'text-slate-700'}`}>{inst.name}</span>
+                     <span className="text-[11px] font-mono text-slate-400 mt-0.5">Instância Conectada</span>
+                   </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE EXCLUSÃO DE CONVERSA */}
       {isDeleteModalOpen && (
