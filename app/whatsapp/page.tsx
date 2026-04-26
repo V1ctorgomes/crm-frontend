@@ -25,6 +25,7 @@ interface Contact {
   lastMessageTime: string;
   email?: string;
   cnpj?: string;
+  instanceName?: string;
 }
 
 interface Stage {
@@ -34,6 +35,8 @@ interface Stage {
 
 export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
+  const [instances, setInstances] = useState<any[]>([]);
+  const [selectedInstance, setSelectedInstance] = useState<string>('ALL');
 
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -112,8 +115,10 @@ export default function WhatsAppPage() {
             const userId = users[0].id;
             const resInstances = await fetch(`${baseUrl}/instances/user/${userId}`);
             if (resInstances.ok) {
-              const instances = await resInstances.json();
-              setHasInstances(instances.length > 0); 
+              const fetchedInstances = await resInstances.json();
+              const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
+              setInstances(connected);
+              setHasInstances(connected.length > 0); 
             } else setHasInstances(false);
           } else setHasInstances(false);
         }
@@ -216,6 +221,7 @@ export default function WhatsAppPage() {
             if (idx !== -1) {
               updated[idx].lastMessage = incomingText || fallbackSidebarText;
               updated[idx].lastMessageTime = timeNow;
+              updated[idx].instanceName = payload.instance;
               if (msgData.profilePictureUrl) updated[idx].profilePictureUrl = msgData.profilePictureUrl;
               const item = updated.splice(idx, 1)[0];
               updated.unshift(item);
@@ -278,6 +284,7 @@ export default function WhatsAppPage() {
   const sendDirectMedia = async (file: File, caption: string) => {
     if (!activeContact) return;
     const targetNumber = activeContact.number;
+    const targetInstance = activeContact.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
     const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setIsSending(true);
 
@@ -285,6 +292,7 @@ export default function WhatsAppPage() {
     formData.append('file', file);
     formData.append('number', targetNumber);
     formData.append('caption', caption);
+    if (targetInstance) formData.append('instanceName', targetInstance);
 
     const tempId = Date.now();
     const tempUrl = URL.createObjectURL(file);
@@ -303,6 +311,7 @@ export default function WhatsAppPage() {
 
         updated[idx].lastMessage = caption || fallbackText;
         updated[idx].lastMessageTime = timeNow;
+        if (targetInstance) updated[idx].instanceName = targetInstance;
         const item = updated.splice(idx, 1)[0];
         updated.unshift(item);
       }
@@ -331,6 +340,7 @@ export default function WhatsAppPage() {
     if (!inputText.trim() && !previewFile) return;
 
     const targetNumber = activeContact.number;
+    const targetInstance = activeContact.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
     const textToSend = inputText;
     
     if (previewFile) {
@@ -350,6 +360,7 @@ export default function WhatsAppPage() {
         if (idx !== -1) {
           updated[idx].lastMessage = textToSend;
           updated[idx].lastMessageTime = timeNow;
+          if (targetInstance) updated[idx].instanceName = targetInstance;
           const item = updated.splice(idx, 1)[0];
           updated.unshift(item);
         }
@@ -359,7 +370,11 @@ export default function WhatsAppPage() {
       setInputText('');
 
       try {
-        await fetch(`${baseUrl}/whatsapp/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: targetNumber, text: textToSend }) });
+        await fetch(`${baseUrl}/whatsapp/send`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }) 
+        });
       } catch (error) { showFeedback('error', "Erro de conexão ao enviar mensagem."); } finally { setIsSending(false); }
     }
   };
@@ -444,6 +459,7 @@ export default function WhatsAppPage() {
 
   const startChatWithContact = (contact: any) => {
     const existing = contacts.find(c => c.number === contact.number);
+    const targetInstance = selectedInstance !== 'ALL' ? selectedInstance : undefined;
 
     if (existing) {
       setContacts(prev => prev.map(c => c.number === contact.number ? { ...c, lastMessage: 'Nova Conversa', lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : c));
@@ -455,7 +471,8 @@ export default function WhatsAppPage() {
         lastMessage: 'Nova Conversa',
         lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         email: contact.email,
-        cnpj: contact.cnpj
+        cnpj: contact.cnpj,
+        instanceName: targetInstance
       };
       setContacts(prev => [newContact, ...prev]);
       setActiveContact(newContact);
@@ -469,14 +486,21 @@ export default function WhatsAppPage() {
     ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()))
     : activeMessages;
 
-  const activeContactsList = contacts.filter(c => c.lastMessage && c.lastMessage.trim() !== '');
+  const activeContactsList = contacts.filter(c => 
+    c.lastMessage && c.lastMessage.trim() !== '' &&
+    (selectedInstance === 'ALL' || c.instanceName === selectedInstance)
+  );
   
   const filteredActiveContacts = activeContactsList.filter(c => 
     (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || 
     (c.number || '').includes(customerSearch)
   );
 
-  const inactiveContactsList = contacts.filter(c => !c.lastMessage || c.lastMessage.trim() === '');
+  const inactiveContactsList = contacts.filter(c => 
+    (!c.lastMessage || c.lastMessage.trim() === '') &&
+    (selectedInstance === 'ALL' || !c.instanceName || c.instanceName === selectedInstance)
+  );
+  
   const availableToChat = [...inactiveContactsList];
 
   crmCustomers.forEach(cust => {
@@ -491,7 +515,8 @@ export default function WhatsAppPage() {
         lastMessage: '',
         lastMessageTime: '',
         email: cust.email,
-        cnpj: cust.company
+        cnpj: cust.company,
+        instanceName: undefined
       });
     }
   });
@@ -545,8 +570,24 @@ export default function WhatsAppPage() {
           <>
             {/* BARRA LATERAL DE CONTATOS */}
             <div className={`w-full md:w-[340px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-4 bg-white border-b border-slate-100 shrink-0">
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center px-4 h-12 shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all w-full">
+              <div className="p-4 pb-3 bg-white border-b border-slate-100 shrink-0 flex flex-col gap-3">
+                
+                {/* SELETOR DE INSTÂNCIAS */}
+                {instances.length > 0 && (
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-4 h-11 text-[13px] font-bold text-slate-700 outline-none focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all cursor-pointer appearance-none"
+                    value={selectedInstance}
+                    onChange={(e) => { setSelectedInstance(e.target.value); handleSelectContact(null); }}
+                    style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+                  >
+                    <option value="ALL">Todas as Caixas de Entrada</option>
+                    {instances.map(inst => (
+                      <option key={inst.id} value={inst.name}>{inst.name} (Instância)</option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl flex items-center px-4 h-11 shadow-sm focus-within:bg-white focus-within:border-[#1FA84A] focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all w-full">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-slate-400 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                   <input 
                     type="text" 
@@ -629,7 +670,10 @@ export default function WhatsAppPage() {
                     
                     <div className="ml-4 overflow-hidden flex-1">
                       <h2 className="text-[16px] font-extrabold text-slate-800 leading-tight truncate">{activeContact.name}</h2>
-                      <span className="text-[12px] font-medium text-slate-500 font-mono leading-tight truncate block mt-0.5">{activeContact.number}</span>
+                      <span className="text-[12px] font-medium text-slate-500 font-mono leading-tight truncate block mt-0.5">
+                        {activeContact.number}
+                        {activeContact.instanceName && <span className="ml-2 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
+                      </span>
                     </div>
                     
                     <div className="flex items-center gap-1 sm:gap-2 ml-auto relative">
