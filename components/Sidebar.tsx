@@ -1,29 +1,41 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  KanbanSquare, 
+  Users, 
+  MessageCircle, 
+  FolderOpen, 
+  Settings,
+  LogOut,
+  Building2
+} from 'lucide-react';
 
-// CACHE GLOBAL: Sobrevive à desmontagem do componente quando navegamos entre páginas.
-// Isto garante que o nome e a foto não piscam durante a navegação.
+// CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
 
+const mainMenuItems = [
+  { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { name: 'Kanban', icon: KanbanSquare, path: '/solicitacoes' },
+  { name: 'Contactos', icon: Users, path: '/contacts' },
+  { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
+  { name: 'Arquivos', icon: FolderOpen, path: '/arquivos' },
+];
+
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   
-  // Inicializa o estado diretamente com o cache (se existir). Zero piscadas na navegação.
+  // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
   
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-  const isActive = (path: string) => pathname?.includes(path);
-
+  // Lógica de Sair da Conta
   const handleLogout = () => {
-    // Limpa os caches no logout
     globalUserCache = null;
     localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
@@ -31,8 +43,8 @@ export default function Sidebar() {
     router.replace('/login');
   };
 
+  // Carregar os dados reais do Utilizador
   useEffect(() => {
-    // 1. Tenta carregar do localStorage para uma abertura de site instantânea
     if (!globalUserCache && typeof window !== 'undefined') {
       const stored = localStorage.getItem('crm_user_cache');
       if (stored) {
@@ -44,13 +56,11 @@ export default function Sidebar() {
       }
     }
 
-    // 2. Faz o fetch em background para garantir que a foto ou nome não foram alterados noutro local
     fetch(`${baseUrl}/users`)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
           const user = data[0];
-          // Só atualiza o estado e o storage se os dados forem novos (evita re-renders desnecessários)
           if (JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
             globalUserCache = user;
             setCurrentUser(user);
@@ -63,144 +73,97 @@ export default function Sidebar() {
       .catch(err => console.error("Erro ao carregar utilizador:", err));
   }, [baseUrl]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
-    <>
-      {/* HEADER MOBILE */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40 shadow-sm">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="text-2xl text-slate-600 p-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
-        </button>
-        <img src="/logo.png" alt="Logo" className="h-8 object-contain" />
-        <div className="w-8"></div>
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen hidden md:flex shrink-0">
+      
+      {/* Logótipo / Cabeçalho do Menu */}
+      <div className="h-[88px] flex items-center px-6 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-xl shadow-sm">
+            <Building2 className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-slate-900">
+            Workspace
+          </span>
+        </div>
       </div>
 
-      {/* ASIDE (MENU LATERAL) */}
-      <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="h-[80px] flex items-center px-6 border-b border-slate-100 shrink-0 mt-4 md:mt-0">
-          <img src="/logo.png" alt="Logo" className="h-10 object-contain" />
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-2xl text-slate-500 hover:text-slate-800 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-          </button>
+      {/* Navegação Principal */}
+      <div className="flex-1 py-6 px-4 flex flex-col gap-1 overflow-y-auto no-scrollbar">
+        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">
+          Menu Principal
         </div>
-
-        <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-1.5 no-scrollbar">
-          {/* Dashboard */}
-          <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/dashboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/dashboard') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/dashboard') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
-            <span className="text-sm">Visão Geral</span>
-          </Link>
-
-          {/* Contactos */}
-          <Link href="/contacts" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/contacts') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/contacts') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/contacts') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
-            <span className="text-sm">Contactos</span>
-          </Link>
-
-          {/* Equipa */}
-          <Link href="/usuarios" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/usuarios') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/usuarios') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/usuarios') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
-            <span className="text-sm">Equipa</span>
-          </Link>
-
-          {/* Solicitações */}
-          <Link href="/solicitacoes" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/solicitacoes') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/solicitacoes') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/solicitacoes') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
-            <span className="text-sm">Solicitações</span>
-          </Link>
-
-          {/* WhatsApp */}
-          <Link href="/whatsapp" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/whatsapp') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/whatsapp') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/whatsapp') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.84 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.08 1.157.148 1.74.205l.026.003 3.03 3.03v-3.048c1.16.082 2.33.14 3.51.171m-6.6-2.529a92.4 92.4 0 0 0 3.651-.01" /></svg>
-            <span className="text-sm">WhatsApp</span>
-          </Link>
-
-          {/* Arquivos */}
-          <Link href="/arquivos" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/arquivos') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/arquivos') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/arquivos') ? 2.5 : 2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" /></svg>
-            <span className="text-sm">Arquivos</span>
-          </Link>
-
-          {/* Developer */}
-          <Link href="/developer" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive('/developer') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={`w-[18px] h-[18px] shrink-0 ${isActive('/developer') ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive('/developer') ? 2.5 : 2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-            </svg>
-            <span className="text-sm">Developer</span>
-          </Link>
-        </nav>
-
-        {/* ÁREA DO PERFIL / RODAPÉ */}
-        <div className="p-4 border-t border-slate-100 shrink-0 relative" ref={profileMenuRef}>
+        
+        {mainMenuItems.map((item) => {
+          const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+          const Icon = item.icon;
           
-          {/* Popup Menu Profile */}
-          {isProfileMenuOpen && (
-            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-bottom-2">
-              <Link 
-                href="/configuracoes" 
-                onClick={() => setIsProfileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[18px] h-[18px] text-slate-400">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-                Configurações
-              </Link>
-              
-              <div className="h-[1px] bg-slate-100 my-1 w-full"></div>
-              
-              <button 
-                onClick={handleLogout} 
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[18px] h-[18px]">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
-                </svg>
-                Sair da Conta
-              </button>
-            </div>
-          )}
+          return (
+            <Link key={item.path} href={item.path}>
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                isActive 
+                  ? 'bg-blue-50 text-blue-700 font-semibold' 
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+              }`}>
+                <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-sm">{item.name}</span>
+              </div>
+            </Link>
+          );
+        })}
 
-          {/* Profile Toggle Button */}
-          <button 
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all duration-200 ${isProfileMenuOpen ? 'bg-slate-100 shadow-inner' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
-          >
-            <div className="flex items-center gap-3 overflow-hidden w-full">
-              {/* O novo círculo de perfil com gradiente e borda azul */}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0 overflow-hidden shadow-sm">
-                {currentUser?.profilePictureUrl ? (
-                  <img src={currentUser.profilePictureUrl} alt="Perfil" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                ) : (
-                  (currentUser?.name || 'U').substring(0, 2).toUpperCase()
-                )}
-              </div>
-              <div className="flex flex-col text-left overflow-hidden w-full">
-                <span className="text-sm font-bold text-slate-800 truncate">{currentUser?.name || 'Utilizador'}</span>
-                <span className="text-[11px] font-medium text-slate-500 truncate">{currentUser?.role === 'ADMIN' ? 'Administrador' : 'Equipa'}</span>
-              </div>
+        <div className="mt-8 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">
+          Administração
+        </div>
+        
+        <Link href="/configuracoes">
+          <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+            pathname === '/configuracoes' 
+              ? 'bg-blue-50 text-blue-700 font-semibold' 
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+          }`}>
+            <Settings className={`w-[18px] h-[18px] ${pathname === '/configuracoes' ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={pathname === '/configuracoes' ? 2.5 : 2} />
+            <span className="text-sm">Configurações</span>
+          </div>
+        </Link>
+      </div>
+
+      {/* Perfil de Utilizador Dinâmico */}
+      <div className="p-4 border-t border-slate-100 shrink-0 mb-2">
+        <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group">
+          <div className="flex items-center gap-3">
+            
+            {/* Bolinha com a Foto (Real ou Iniciais) */}
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-blue-600 font-bold shrink-0 relative">
+              {currentUser?.profilePictureUrl ? (
+                <img 
+                  src={currentUser.profilePictureUrl} 
+                  alt="Foto de perfil" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span>{(currentUser?.name || 'U').substring(0, 2).toUpperCase()}</span>
+              )}
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-[14px] h-[14px] text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-            </svg>
+
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-bold text-slate-900 truncate">
+                {currentUser?.name || 'Carregando...'}
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 truncate">
+                {currentUser?.role === 'ADMIN' ? 'Administrador' : 'Equipa'}
+              </span>
+            </div>
+          </div>
+          
+          {/* Botão de Logout a funcionar */}
+          <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-red-50 transition-colors group-hover:text-red-500 text-slate-400" title="Sair da Conta">
+            <LogOut className="w-[18px] h-[18px]" />
           </button>
         </div>
-      </aside>
-
-      {/* OVERLAY MOBILE */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-slate-900/40 z-40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileMenuOpen(false)}></div>
-      )}
-    </>
+      </div>
+      
+    </aside>
   );
 }
