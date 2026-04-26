@@ -4,14 +4,32 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
 import {
-  Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, YAxis, Cell, PieChart, Pie, LabelList, Label
+  Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, PieChart, Pie, Legend, LabelList, Label
 } from 'recharts';
 import { 
   Activity, CheckCircle2, Users, TrendingUp, ExternalLink 
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+// --- COMPONENTES SHADCN/UI RECRIADOS NATIVAMENTE ---
+const Card = ({ children, className }: any) => (
+  <div className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col ${className || ''}`}>{children}</div>
+);
+const CardHeader = ({ children, className }: any) => (
+  <div className={`flex flex-col space-y-1.5 p-6 pb-4 ${className || ''}`}>{children}</div>
+);
+const CardTitle = ({ children, className }: any) => (
+  <h3 className={`font-semibold leading-none tracking-tight text-lg ${className || ''}`}>{children}</h3>
+);
+const CardDescription = ({ children, className }: any) => (
+  <p className={`text-sm text-slate-500 ${className || ''}`}>{children}</p>
+);
+const CardContent = ({ children, className }: any) => (
+  <div className={`p-6 pt-0 flex-1 ${className || ''}`}>{children}</div>
+);
+// ---------------------------------------------------
 
 interface Contact { number: string; name: string; }
 interface Ticket {
@@ -20,8 +38,8 @@ interface Ticket {
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
-// Paleta de Cores Múltiplas (Para o Gráfico de Público)
-const CHART_COLORS = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#0284c7'];
+// Paleta Exclusiva de Tons de Azul
+const BLUE_SHADES = ['#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#1d4ed8'];
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -101,10 +119,8 @@ export default function DashboardPage() {
           }
         });
 
-        // Top Marcas e Público
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
-        
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
@@ -122,7 +138,6 @@ export default function DashboardPage() {
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length }));
 
-  // Calculando o Total de Registos para o centro do Gráfico de Pizza
   const totalCustomers = useMemo(() => {
     return customerTypeRanking.reduce((acc, curr) => acc + curr.count, 0);
   }, [customerTypeRanking]);
@@ -234,22 +249,18 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
               {/* Gráfico de Evolução (Area) */}
-              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6 pb-4">
-                  <h3 className="font-semibold leading-none tracking-tight text-lg">Evolução de Entradas</h3>
-                  <p className="text-sm text-slate-500">Mostrando volume total de solicitações</p>
-                </div>
-                
-                <div className="p-6 pt-0 flex-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Evolução de Entradas</CardTitle>
+                  <CardDescription>Mostrando volume total de solicitações</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="h-[250px] w-full">
                     {trendData.length === 0 ? (
                        <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={trendData}
-                          margin={{ left: 12, right: 12, top: 12, bottom: 0 }}
-                        >
+                        <AreaChart data={trendData} margin={{ left: 12, right: 12, top: 12, bottom: 0 }}>
                           <defs>
                             <linearGradient id="colorDesktop" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
@@ -257,110 +268,55 @@ export default function DashboardPage() {
                             </linearGradient>
                           </defs>
                           <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-                          <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tick={{ fill: '#64748b', fontSize: 12 }}
-                            tickFormatter={(value) => value.slice(0, 5)}
-                          />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => value.slice(0, 5)} />
                           <Tooltip cursor={false} content={<CustomTooltip />} />
-                          <Area
-                            dataKey="desktop"
-                            type="natural"
-                            fill="url(#colorDesktop)"
-                            fillOpacity={1}
-                            stroke="#2563eb"
-                            strokeWidth={2}
-                          />
+                          <Area dataKey="desktop" type="natural" fill="url(#colorDesktop)" fillOpacity={1} stroke="#2563eb" strokeWidth={2} />
                         </AreaChart>
                       </ResponsiveContainer>
                     )}
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="flex items-center p-6 pt-0">
-                  <div className="flex w-full items-start gap-2 text-sm">
-                    <div className="grid gap-2">
-                      <div className="flex items-center gap-2 leading-none font-medium">
-                        Crescimento do fluxo de assistência <TrendingUp className="h-4 w-4" />
-                      </div>
-                      <div className="flex items-center gap-2 leading-none text-slate-500">
-                        Exibindo histórico com base nas OS abertas
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gráfico de Ranking de Marcas (Todas as barras com o mesmo azul) */}
-              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6 pb-4">
-                  <h3 className="font-semibold leading-none tracking-tight text-lg">Distribuição por Fabricante</h3>
-                  <p className="text-sm text-slate-500">As marcas com maior volume de registos no sistema</p>
-                </div>
-                <div className="p-6 pt-0 flex-1">
+              {/* Gráfico de Ranking de Marcas (Tudo Azul) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Distribuição por Fabricante</CardTitle>
+                  <CardDescription>As marcas com maior volume de registos no sistema</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="h-[250px] w-full">
                     {brandRanking.length === 0 ? (
                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Aguardando registos.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart 
-                          data={brandRanking} 
-                          margin={{ top: 20, right: 10, left: -25, bottom: 0 }} 
-                          barCategoryGap="25%"
-                        >
+                        <BarChart data={brandRanking} margin={{ top: 20, right: 10, left: -25, bottom: 0 }} barCategoryGap="25%">
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis 
-                            dataKey="name" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tickMargin={12} 
-                            tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
-                          />
-                          <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tickMargin={12} 
-                            tick={{ fill: '#64748b', fontSize: 12 }} 
-                            allowDecimals={false} 
-                          />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} />
+                          <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
                           <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                           <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                            <LabelList 
-                              dataKey="count" 
-                              position="top" 
-                              offset={8} 
-                              fill="#475569" 
-                              fontSize={12} 
-                              fontWeight={600} 
-                            />
+                            <LabelList dataKey="count" position="top" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center p-6 pt-0">
-                  <div className="text-sm text-slate-500">
-                    Dados processados em tempo real do banco de dados.
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
             </div>
 
             {/* 3. GRÁFICOS SECUNDÁRIOS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* Gráfico de Funil / Kanban (Barras com a cor AZUL) */}
-              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6 pb-4">
-                  <h3 className="font-semibold leading-none tracking-tight text-lg">Carga do Kanban</h3>
-                  <p className="text-sm text-slate-500">Gargalos operacionais por etapa no funil</p>
-                </div>
-                <div className="p-6 pt-0 flex-1">
+              {/* Gráfico de Funil / Kanban (Tudo Azul) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Carga do Kanban</CardTitle>
+                  <CardDescription>Gargalos operacionais por etapa no funil</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="h-[250px] w-full">
                     {funnelData.length === 0 ? (
                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Funil vazio.</div>
@@ -378,16 +334,16 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                     )}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* Gráfico de Tipos de Cliente (Donut Chart Multicor com Texto no Centro) */}
-              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6 pb-4">
-                  <h3 className="font-semibold leading-none tracking-tight text-lg">Perfil de Público</h3>
-                  <p className="text-sm text-slate-500">Segmentação e origem das ordens de serviço</p>
-                </div>
-                <div className="p-6 pt-0 flex-1">
+              {/* Gráfico de Tipos de Cliente (Tons de Azul + Donut com Texto) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Perfil de Público</CardTitle>
+                  <CardDescription>Segmentação e origem das ordens de serviço</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="h-[250px] w-full">
                     {customerTypeRanking.length === 0 ? (
                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem registos de público.</div>
@@ -397,7 +353,7 @@ export default function DashboardPage() {
                           <Pie
                             data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
                             cx="50%"
-                            cy="50%"
+                            cy="45%"
                             innerRadius={70}
                             outerRadius={100}
                             paddingAngle={2}
@@ -405,29 +361,15 @@ export default function DashboardPage() {
                             stroke="#ffffff"
                             strokeWidth={3}
                           >
-                            {/* Texto Central Dinâmico */}
                             <Label
                               content={({ viewBox }) => {
                                 if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                   return (
-                                    <text
-                                      x={viewBox.cx}
-                                      y={viewBox.cy}
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                    >
-                                      <tspan
-                                        x={viewBox.cx}
-                                        y={viewBox.cy}
-                                        className="fill-slate-900 text-3xl font-bold"
-                                      >
+                                    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                      <tspan x={viewBox.cx} y={viewBox.cy} className="fill-slate-900 text-3xl font-bold">
                                         {totalCustomers.toLocaleString()}
                                       </tspan>
-                                      <tspan
-                                        x={viewBox.cx}
-                                        y={(viewBox.cy || 0) + 24}
-                                        className="fill-slate-500 text-sm font-medium"
-                                      >
+                                      <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-slate-500 text-sm font-medium">
                                         Registos
                                       </tspan>
                                     </text>
@@ -435,18 +377,18 @@ export default function DashboardPage() {
                                 }
                               }}
                             />
-                            {/* Cores Diferentes para cada fatia */}
                             {customerTypeRanking.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                              <Cell key={`cell-${index}`} fill={BLUE_SHADES[index % BLUE_SHADES.length]} />
                             ))}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} cursor={false} />
+                          <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     )}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
             </div>
           </div>
