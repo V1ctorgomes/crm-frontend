@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
 import {
   Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, YAxis, Cell, PieChart, Pie, Legend
+  BarChart, Bar, YAxis, Cell, PieChart, Pie, Legend, LabelList
 } from 'recharts';
 import { 
   Activity, CheckCircle2, Users, TrendingUp, ExternalLink 
@@ -94,17 +94,18 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
-            // Formato igual ao Shadcn (ex: "12 Apr")
+            // Formato de data curto
             const dateObj = new Date(t.createdAt);
             const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
+        // Top 6 marcas
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
         
-        // Mapeando a variável igual ao do código Shadcn (month e desktop)
+        // Mapeando dados de tendência
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
@@ -122,7 +123,7 @@ export default function DashboardPage() {
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, fill: stage.color || '#2563eb' }));
 
-  // Tooltip customizado reconstruindo a aparência exata do ChartTooltip do Shadcn
+  // Tooltip customizado com aparência exata do Shadcn
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -131,8 +132,8 @@ export default function DashboardPage() {
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 shrink-0 rounded-[2px] bg-blue-600"></span>
-                <span className="text-slate-700 font-medium">Solicitações</span>
+                <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload?.fill || '#2563eb' }}></span>
+                <span className="text-slate-700 font-medium">{entry.name === 'desktop' || entry.name === 'count' ? 'Registos' : entry.name === 'Quantidade' ? 'Em Fila' : entry.name}</span>
               </div>
               <span className="font-bold text-slate-900 font-mono">{entry.value}</span>
             </div>
@@ -229,9 +230,9 @@ export default function DashboardPage() {
             {/* 2. GRÁFICOS PRINCIPAIS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* O GRÁFICO EXATO DO SHADCN REPLICADO COM TAILWIND PURO */}
+              {/* Gráfico de Evolução (Area) */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Evolução de Entradas</h3>
                   <p className="text-sm text-slate-500">Mostrando volume total de solicitações</p>
                 </div>
@@ -248,8 +249,8 @@ export default function DashboardPage() {
                         >
                           <defs>
                             <linearGradient id="colorDesktop" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8}/>
-                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1}/>
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                             </linearGradient>
                           </defs>
                           <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -259,8 +260,8 @@ export default function DashboardPage() {
                             axisLine={false}
                             tickMargin={8}
                             tick={{ fill: '#64748b', fontSize: 12 }}
+                            tickFormatter={(value) => value.slice(0, 5)}
                           />
-                          {/* Note: O YAxis foi removido de propósito para ficar igual ao modelo Shadcn */}
                           <Tooltip
                             cursor={false}
                             content={<CustomTooltip />}
@@ -269,7 +270,7 @@ export default function DashboardPage() {
                             dataKey="desktop"
                             type="natural"
                             fill="url(#colorDesktop)"
-                            fillOpacity={0.4}
+                            fillOpacity={1}
                             stroke="#2563eb"
                             strokeWidth={2}
                           />
@@ -293,9 +294,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Gráfico de Ranking de Marcas (Mesma estética de cartão Shadcn) */}
+              {/* O NOVO GRÁFICO EXATO (Horizontal Bar Mixed) PARA FABRICANTE */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Distribuição por Fabricante</h3>
                   <p className="text-sm text-slate-500">As marcas com maior volume de registos no sistema</p>
                 </div>
@@ -305,14 +306,37 @@ export default function DashboardPage() {
                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Aguardando registos.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 0 }} barCategoryGap="25%">
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} />
-                          <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
-                          <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
-                          <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                        <BarChart 
+                          layout="vertical" 
+                          data={brandRanking} 
+                          margin={{ top: 0, right: 35, left: 0, bottom: 0 }} 
+                          barCategoryGap="20%"
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tickMargin={10} 
+                            tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
+                            width={90} 
+                          />
+                          <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
+                          <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                            {/* Label Flutuante estilo Shadcn Misto */}
+                            <LabelList 
+                              dataKey="count" 
+                              position="right" 
+                              offset={8} 
+                              fill="#334155" 
+                              fontSize={12} 
+                              fontWeight={600} 
+                            />
+                            {/* Cores mistas para cada barra */}
                             {brandRanking.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#94a3b8'} />
+                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                             ))}
                           </Bar>
                         </BarChart>
@@ -334,7 +358,7 @@ export default function DashboardPage() {
               
               {/* Gráfico de Funil / Kanban */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Carga do Kanban</h3>
                   <p className="text-sm text-slate-500">Gargalos operacionais por etapa no funil</p>
                 </div>
@@ -344,12 +368,13 @@ export default function DashboardPage() {
                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Funil vazio.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} barCategoryGap="20%">
+                        <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 35, left: 0, bottom: 0 }} barCategoryGap="20%">
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                          <XAxis type="number" hide allowDecimals={false} />
-                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12 }} width={100} />
-                          <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
+                          <XAxis type="number" hide />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} width={90} />
+                          <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                           <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                            <LabelList dataKey="Quantidade" position="right" offset={8} fill="#334155" fontSize={12} fontWeight={600} />
                             {funnelData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
                             ))}
@@ -363,7 +388,7 @@ export default function DashboardPage() {
 
               {/* Gráfico de Tipos de Cliente */}
               <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
-                <div className="flex flex-col space-y-1.5 p-6">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Perfil de Público</h3>
                   <p className="text-sm text-slate-500">Segmentação e origem das ordens de serviço</p>
                 </div>
