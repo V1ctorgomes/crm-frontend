@@ -7,7 +7,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { Activity, CheckCircle2, Users, TrendingUp } from 'lucide-react';
+import { 
+  Activity, CheckCircle2, Users, TrendingUp, 
+  BarChart3, PieChart as PieChartIcon, Filter, ExternalLink 
+} from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 interface Contact { number: string; name: string; }
 interface Ticket {
@@ -16,17 +21,19 @@ interface Ticket {
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
-// Paleta corporativa (Power BI style)
-const PIE_COLORS = ['#1e293b','#334155','#64748b','#94a3b8','#cbd5e1','#e2e8f0','#f1f5f9'];
+// Paleta baseada no shadcn/ui charts (Clean & Enterprise)
+const CHART_COLORS = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#0284c7'];
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
-
+  
+  // Data States
   const [stages, setStages] = useState<Stage[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isInstanceConnected, setIsInstanceConnected] = useState(false);
+  const [isInstanceConnected, setIsInstanceConnected] = useState<boolean>(false);
 
+  // BI Computed States
   const [totalActiveOS, setTotalActiveOS] = useState(0);
   const [totalArchivedOS, setTotalArchivedOS] = useState(0);
   const [brandRanking, setBrandRanking] = useState<{name: string, count: number}[]>([]);
@@ -52,19 +59,32 @@ export default function DashboardPage() {
         const activeStages: Stage[] = resBoard.ok ? await resBoard.json() : [];
         const archivedOS: Ticket[] = resArchived.ok ? await resArchived.json() : [];
         const fetchedContacts: Contact[] = resContacts.ok ? await resContacts.json() : [];
-
+        
         setStages(activeStages);
         setContacts(fetchedContacts);
 
+        if (resUsers.ok) {
+          const users = await resUsers.json();
+          if (users.length > 0) {
+            const resInst = await fetch(`${baseUrl}/instances/user/${users[0].id}`, fetchOpts);
+            if (resInst.ok) {
+              const instances = await resInst.json();
+              setIsInstanceConnected(instances.some((i: any) => i.status === 'connected'));
+            }
+          }
+        }
+
+        // Processamento de BI
         const activeCount = activeStages.reduce((acc, stage) => acc + stage.tickets.length, 0);
         setTotalActiveOS(activeCount);
         setTotalArchivedOS(archivedOS.length);
 
         const allTickets = [...activeStages.flatMap(s => s.tickets), ...archivedOS];
-
         const brandMap = new Map<string, number>();
         const typeMap = new Map<string, number>();
         const timeMap = new Map<string, number>();
+
+        allTickets.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
         allTickets.forEach(t => {
           if (t.marca) {
@@ -81,12 +101,12 @@ export default function DashboardPage() {
           }
         });
 
-        setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 7));
-        setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
+        setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
+        setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count, fill: '' })).sort((a, b) => b.count - a.count).map((item, i) => ({ ...item, fill: CHART_COLORS[i % CHART_COLORS.length] })));
         setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ date, count })));
 
       } catch (error) {
-        console.error(error);
+        console.error('Erro ao carregar BI:', error);
       } finally {
         setIsLoading(false);
       }
@@ -95,21 +115,26 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [baseUrl]);
 
-  const resolutionRate = (totalActiveOS + totalArchivedOS) > 0
+  const resolutionRate = (totalActiveOS + totalArchivedOS) > 0 
     ? Math.round((totalArchivedOS / (totalActiveOS + totalArchivedOS)) * 100) : 0;
 
-  const funnelData = stages.map(stage => ({
-    name: stage.name,
-    Quantidade: stage.tickets.length,
-    fill: '#64748b'
-  }));
+  const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, fill: stage.color || '#2563eb' }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload?.length) {
+  // Tooltip exato do shadcn/ui
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{payload[0].name}</p>
-          <p className="text-sm font-bold text-slate-900">{payload[0].value}</p>
+        <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl">
+          <span className="text-xs font-medium text-slate-500 mb-1">{label || payload[0].name}</span>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload.fill || '#2563eb' }}></span>
+                <span className="text-slate-700 font-medium">{entry.name === 'count' ? 'Registos' : entry.name === 'Quantidade' ? 'Em Fila' : entry.name}</span>
+              </div>
+              <span className="font-bold text-slate-900">{entry.value}</span>
+            </div>
+          ))}
         </div>
       );
     }
@@ -117,92 +142,228 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f8fafc]">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto px-8 py-8">
-
+      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
+        
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
+        <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Operational Intelligence</h1>
-            <p className="text-sm text-slate-500">Service performance overview</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-1">Acompanhe as métricas e o desempenho da sua operação.</p>
           </div>
+          
+          <div className="flex items-center gap-3">
+             <div className="bg-white border border-slate-200 px-3 py-2 rounded-md shadow-sm flex items-center gap-2.5">
+               <div className="relative flex h-2 w-2">
+                  {isInstanceConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isInstanceConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+               </div>
+               <span className="text-xs font-medium text-slate-600">{isInstanceConnected ? 'API Conectada' : 'Desconectado'}</span>
+             </div>
+             <Link href="/solicitacoes" className="bg-slate-900 text-white px-4 py-2 rounded-md font-medium shadow hover:bg-slate-800 transition-colors text-sm flex items-center gap-2">
+                Abrir Kanban <ExternalLink className="w-3.5 h-3.5" />
+             </Link>
+          </div>
+        </header>
 
-          <Link href="/solicitacoes" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-            Kanban
-          </Link>
-        </div>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-
-          {[
-            { label: 'OS em andamento', value: totalActiveOS, icon: <Activity size={18}/> },
-            { label: 'Finalizadas', value: totalArchivedOS, icon: <CheckCircle2 size={18}/> },
-            { label: 'Contactos', value: contacts.length, icon: <Users size={18}/> },
-            { label: 'Taxa de resolução', value: `${resolutionRate}%`, icon: <TrendingUp size={18}/> },
-          ].map((item, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="text-slate-400 mb-2">{item.icon}</div>
-              <div className="text-3xl font-black text-slate-900">{item.value}</div>
-              <div className="text-xs text-slate-500 mt-1">{item.label}</div>
+        {isLoading || !isMounted ? (
+          <div className="flex-1 flex justify-center items-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-slate-500 font-medium text-sm">A carregar dados...</span>
             </div>
-          ))}
-
-        </div>
-
-        {/* GRÁFICO PRINCIPAL */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-          <h3 className="text-sm font-semibold text-slate-700 mb-4">Evolução de solicitações</h3>
-
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-              <XAxis dataKey="date"/>
-              <YAxis allowDecimals={false}/>
-              <Tooltip content={<CustomTooltip/>}/>
-              <Area type="monotone" dataKey="count" stroke="#1e293b" fillOpacity={0.1} fill="#1e293b"/>
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* SECUNDÁRIOS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">Marcas</h3>
-
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={brandRanking}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                <XAxis dataKey="name"/>
-                <YAxis allowDecimals={false}/>
-                <Tooltip content={<CustomTooltip/>}/>
-                <Bar dataKey="count" fill="#334155" radius={[4,4,0,0]}/>
-              </BarChart>
-            </ResponsiveContainer>
           </div>
+        ) : (
+          <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
+            
+            {/* 1. KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">OS em Andamento</h3>
+                  <Activity className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{totalActiveOS}</div>
+                  <p className="text-xs text-slate-500 mt-1">Em processo no funil</p>
+                </div>
+              </div>
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">Tipos de cliente</h3>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">OS Finalizadas</h3>
+                  <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{totalArchivedOS}</div>
+                  <p className="text-xs text-slate-500 mt-1">Atendimentos concluídos</p>
+                </div>
+              </div>
 
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={customerTypeRanking.map(t => ({ name: t.name, value: t.count }))}
-                     dataKey="value"
-                     outerRadius={90}>
-                  {customerTypeRanking.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip/>}/>
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">Total de Clientes</h3>
+                  <Users className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{contacts.length}</div>
+                  <p className="text-xs text-slate-500 mt-1">Registos na base de contactos</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">Taxa de Resolução</h3>
+                  <TrendingUp className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{resolutionRate}%</div>
+                  <p className="text-xs text-slate-500 mt-1">Eficiência geral</p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* 2. GRÁFICOS PRINCIPAIS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              
+              {/* Gráfico de Evolução */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col min-h-[380px]">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
+                  <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
+                    Evolução de Entradas
+                  </h3>
+                  <p className="text-sm text-slate-500">Volume de solicitações criadas nos últimos dias.</p>
+                </div>
+                <div className="p-6 pt-0 flex-1 w-full">
+                  {trendData.length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        <Area type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorCount)" activeDot={{ r: 5, strokeWidth: 0, fill: '#2563eb' }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Gráfico de Ranking de Marcas */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col min-h-[380px]">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
+                  <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
+                    Distribuição por Fabricante
+                  </h3>
+                  <p className="text-sm text-slate-500">As marcas com maior volume de registos no sistema.</p>
+                </div>
+                <div className="p-6 pt-0 flex-1 w-full">
+                  {brandRanking.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Aguardando registos.</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barCategoryGap="25%">
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} tickFormatter={(val) => Number.isInteger(val) ? val : ''} />
+                        <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                          {brandRanking.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#94a3b8'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* 3. GRÁFICOS SECUNDÁRIOS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              
+              {/* Gráfico de Funil / Kanban */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col min-h-[360px]">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
+                  <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
+                    Carga do Kanban
+                  </h3>
+                  <p className="text-sm text-slate-500">Gargalos operacionais por etapa no funil de atendimento.</p>
+                </div>
+                <div className="p-6 pt-0 flex-1 w-full">
+                  {funnelData.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Funil vazio.</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} barCategoryGap="20%">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                        <XAxis type="number" hide allowDecimals={false} />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12 }} width={100} />
+                        <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
+                        <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                          {funnelData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Gráfico de Tipos de Cliente */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col min-h-[360px]">
+                <div className="flex flex-col space-y-1.5 p-6 pb-4">
+                  <h3 className="font-semibold leading-none tracking-tight flex items-center gap-2">
+                    Perfil de Público
+                  </h3>
+                  <p className="text-sm text-slate-500">Segmentação e origem das ordens de serviço.</p>
+                </div>
+                <div className="p-6 pt-0 flex-1 w-full">
+                  {customerTypeRanking.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem registos de público.</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                        <Pie
+                          data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
+                          cx="50%"
+                          cy="45%"
+                          innerRadius={65}
+                          outerRadius={95}
+                          paddingAngle={2}
+                          dataKey="value"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                        >
+                          {customerTypeRanking.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
-
-        </div>
+        )}
       </main>
     </div>
   );
