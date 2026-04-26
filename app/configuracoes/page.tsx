@@ -2,6 +2,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { 
+  User, 
+  Link as LinkIcon, 
+  Camera, 
+  Smartphone, 
+  Trash2, 
+  QrCode, 
+  AlertTriangle,
+  Loader2,
+  Plus,
+  ChevronLeft
+} from 'lucide-react';
 
 interface Instance {
   id: string;
@@ -18,7 +30,7 @@ export default function ConfiguracoesPage() {
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   // ================= ESTADOS DO PERFIL =================
-  const [user, setUser] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,12 +80,10 @@ export default function ConfiguracoesPage() {
         const data = await res.json();
         if (data && data.length > 0) {
           const currentUser = data[0];
-          setUser(currentUser);
+          setUserData(currentUser);
           setName(currentUser.name || '');
           setEmail(currentUser.email || '');
-          if (currentUser.profilePictureUrl) {
-            setPhotoPreview(currentUser.profilePictureUrl);
-          }
+          if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
         }
       }
     } catch (error) {
@@ -93,7 +103,7 @@ export default function ConfiguracoesPage() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!userData) return;
     setIsSavingProfile(true);
 
     const formData = new FormData();
@@ -103,7 +113,7 @@ export default function ConfiguracoesPage() {
     if (photoFile) formData.append('file', photoFile);
 
     try {
-      const res = await fetch(`${baseUrl}/users/${user.id}`, {
+      const res = await fetch(`${baseUrl}/users/${userData.id}`, {
         method: 'PUT',
         body: formData,
       });
@@ -227,7 +237,8 @@ export default function ConfiguracoesPage() {
         {toast && (
           <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300">
             <div className="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 border bg-white border-slate-200 text-sm font-medium text-slate-800">
-              {toast.type === 'success' ? '✅' : '❌'} {toast.message}
+               <div className={`w-2 h-2 rounded-full ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+               {toast.message}
             </div>
           </div>
         )}
@@ -239,21 +250,38 @@ export default function ConfiguracoesPage() {
 
         <div className="px-6 md:px-8 pb-12 flex flex-col gap-6">
           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-100 p-1 text-slate-500 w-full sm:w-auto self-start">
-            <button onClick={() => setActiveTab('perfil')} className={`inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'perfil' ? 'bg-white text-slate-950 shadow-sm' : 'hover:text-slate-900'}`}>O Meu Perfil</button>
-            <button onClick={() => setActiveTab('conexoes')} className={`inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'conexoes' ? 'bg-white text-slate-950 shadow-sm' : 'hover:text-slate-900'}`}>Conexões API</button>
+            <button 
+              onClick={() => setActiveTab('perfil')} 
+              className={`inline-flex items-center gap-2 justify-center px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'perfil' ? 'bg-white text-slate-950 shadow-sm' : 'hover:text-slate-900'}`}
+            >
+              <User className="w-4 h-4" /> O Meu Perfil
+            </button>
+            <button 
+              onClick={() => setActiveTab('conexoes')} 
+              className={`inline-flex items-center gap-2 justify-center px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'conexoes' ? 'bg-white text-slate-950 shadow-sm' : 'hover:text-slate-900'}`}
+            >
+              <LinkIcon className="w-4 h-4" /> Conexões API
+            </button>
           </div>
 
           <div className="max-w-4xl w-full">
             {activeTab === 'perfil' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {isProfileLoading ? (
-                  <div className="p-12 flex justify-center"><div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div></div>
+                  <div className="p-12 flex justify-center"><Loader2 className="w-8 h-8 text-slate-400 animate-spin" /></div>
                 ) : (
                   <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <form onSubmit={handleSaveProfile} className="p-6 flex flex-col gap-6">
                       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                        <div className="w-24 h-24 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                          {photoPreview ? <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" /> : <span className="text-2xl font-bold text-slate-400">{(name || 'U').substring(0, 2).toUpperCase()}</span>}
+                        <div className="w-24 h-24 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 cursor-pointer group relative" onClick={() => fileInputRef.current?.click()}>
+                          {photoPreview ? (
+                            <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-2xl font-bold text-slate-400">{(name || 'U').substring(0, 2).toUpperCase()}</span>
+                          )}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <Camera className="w-6 h-6 text-white" />
+                          </div>
                         </div>
                         <input type="file" ref={fileInputRef} onChange={handlePhotoSelect} accept="image/*" className="hidden" />
                         <div className="flex-1 text-center sm:text-left pt-2">
@@ -276,7 +304,10 @@ export default function ConfiguracoesPage() {
                         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
                       </div>
                       <div className="pt-4 flex justify-end">
-                        <button type="submit" disabled={isSavingProfile} className="bg-slate-900 text-white px-6 h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-70">{isSavingProfile ? 'A guardar...' : 'Guardar Alterações'}</button>
+                        <button type="submit" disabled={isSavingProfile} className="bg-slate-900 text-white px-6 h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center gap-2">
+                          {isSavingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Guardar Alterações
+                        </button>
                       </div>
                     </form>
                   </div>
@@ -288,7 +319,9 @@ export default function ConfiguracoesPage() {
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-6">
                 {!selectedProvider ? (
                   <div onClick={() => setSelectedProvider('evolution')} className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 flex items-center gap-6 cursor-pointer hover:border-blue-400 transition-all group">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">📱</div>
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+                      <Smartphone className="w-8 h-8" />
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-lg text-slate-900">WhatsApp Oficial</h3>
                       <p className="text-sm text-slate-500">Gestão via Evolution API.</p>
@@ -297,24 +330,29 @@ export default function ConfiguracoesPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-6">
-                    <button onClick={() => setSelectedProvider(null)} className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors w-fit">← Voltar</button>
+                    <button onClick={() => setSelectedProvider(null)} className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors w-fit flex items-center gap-1">
+                      <ChevronLeft className="w-4 h-4" /> Voltar
+                    </button>
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                       <form onSubmit={handleCreateInstance} className="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                         <div className="space-y-1">
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Instância</label>
-                          <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proxy (Opcional)</label>
-                          <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                          <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                             <option value="">Nenhum Proxy</option>
                             {availableProxies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
-                        <button type="submit" disabled={isCreatingInstance} className="md:col-span-2 bg-slate-900 text-white h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors">Criar Instância</button>
+                        <button type="submit" disabled={isCreatingInstance} className="md:col-span-2 bg-slate-900 text-white h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
+                          {isCreatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          Criar Instância
+                        </button>
                       </form>
                       <div className="p-6">
-                        {isInstancesLoading ? <div className="flex justify-center"><div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div></div> : (
+                        {isInstancesLoading ? <div className="flex justify-center"><Loader2 className="w-6 h-6 text-slate-400 animate-spin" /></div> : (
                           <div className="flex flex-col gap-3">
                             {instances.map(inst => (
                               <div key={inst.id} className="border p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -326,8 +364,8 @@ export default function ConfiguracoesPage() {
                                   <p className="text-xs text-slate-400 font-mono mt-1">{inst.id}</p>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
-                                  {inst.status !== 'connected' && <button onClick={() => handleConnectInstance(inst.name)} className="h-8 px-3 rounded-md border border-slate-200 text-xs font-bold hover:bg-slate-50">Ligar</button>}
-                                  <button onClick={() => handleDeleteInstance(inst.name)} className="h-8 px-3 rounded-md border border-slate-200 text-xs font-bold text-red-600 hover:bg-red-50">Remover</button>
+                                  {inst.status !== 'connected' && <button onClick={() => handleConnectInstance(inst.name)} className="h-8 px-3 rounded-md border border-slate-200 text-xs font-bold hover:bg-slate-50 flex items-center gap-1.5"><QrCode className="w-3.5 h-3.5" /> Ligar</button>}
+                                  <button onClick={() => handleDeleteInstance(inst.name)} className="h-8 px-3 rounded-md border border-slate-200 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-1.5"><Trash2 className="w-3.5 h-3.5" /> Remover</button>
                                 </div>
                               </div>
                             ))}
@@ -346,7 +384,7 @@ export default function ConfiguracoesPage() {
       {qrCodeData && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4" onClick={() => setQrCodeData(null)}>
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full flex flex-col items-center text-center" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-4">Ligar WhatsApp</h3>
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><QrCode className="w-5 h-5 text-blue-600" /> Ligar WhatsApp</h3>
             {qrCodeData.base64 && <img src={qrCodeData.base64.startsWith('data:') ? qrCodeData.base64 : `data:image/png;base64,${qrCodeData.base64}`} alt="QR Code" className="w-56 h-56 border p-2 rounded" />}
             <button onClick={() => setQrCodeData(null)} className="mt-6 w-full bg-slate-900 text-white h-10 rounded-md font-medium">Fechar</button>
           </div>
@@ -354,8 +392,9 @@ export default function ConfiguracoesPage() {
       )}
 
       {confirmModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4" onClick={() => setConfirmModal(null)}>
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
+            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-4" />
             <h3 className="font-bold text-lg mb-2">{confirmModal.title}</h3>
             <p className="text-sm text-slate-500 mb-6">{confirmModal.message}</p>
             <div className="flex gap-2">
