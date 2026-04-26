@@ -1,31 +1,15 @@
-"use client"
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Link from 'next/link';
 import {
-  Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie, Legend
+  Area, AreaChart, CartesianGrid, XAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, YAxis, Cell, PieChart, Pie, Legend
 } from 'recharts';
 import { 
   Activity, CheckCircle2, Users, TrendingUp, ExternalLink 
 } from 'lucide-react';
-
-// --- IMPORTAÇÕES OFICIAIS DO SHADCN/UI ---
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,14 +21,6 @@ interface Ticket {
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
 const CHART_COLORS = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#0284c7'];
-
-// Configuração do Chart (Shadcn UI)
-const chartConfig = {
-  count: {
-    label: "Solicitações",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig;
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +36,7 @@ export default function DashboardPage() {
   const [totalArchivedOS, setTotalArchivedOS] = useState(0);
   const [brandRanking, setBrandRanking] = useState<{name: string, count: number}[]>([]);
   const [customerTypeRanking, setCustomerTypeRanking] = useState<{name: string, count: number}[]>([]);
-  const [trendData, setTrendData] = useState<{date: string, count: number}[]>([]);
+  const [trendData, setTrendData] = useState<{month: string, desktop: number}[]>([]);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -118,16 +94,18 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
           if (t.createdAt) {
-            // Formato DD/MM
+            // Formato igual ao Shadcn (ex: "12 Apr")
             const dateObj = new Date(t.createdAt);
-            const dateStr = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+            const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             timeMap.set(dateStr, (timeMap.get(dateStr) || 0) + 1);
           }
         });
 
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
-        setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count, fill: '' })).sort((a, b) => b.count - a.count).map((item, i) => ({ ...item, fill: CHART_COLORS[i % CHART_COLORS.length] })));
-        setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ date, count })));
+        setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
+        
+        // Mapeando a variável igual ao do código Shadcn (month e desktop)
+        setTrendData(Array.from(timeMap.entries()).map(([date, count]) => ({ month: date, desktop: count })));
 
       } catch (error) {
         console.error('Erro ao carregar BI:', error);
@@ -144,13 +122,33 @@ export default function DashboardPage() {
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, fill: stage.color || '#2563eb' }));
 
+  // Tooltip customizado reconstruindo a aparência exata do ChartTooltip do Shadcn
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl">
+          <span className="text-xs font-medium text-slate-500 mb-1">{label}</span>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 shrink-0 rounded-[2px] bg-blue-600"></span>
+                <span className="text-slate-700 font-medium">Solicitações</span>
+              </div>
+              <span className="font-bold text-slate-900 font-mono">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
         
-        {/* HEADER */}
         <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
@@ -183,138 +181,151 @@ export default function DashboardPage() {
             
             {/* 1. KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-500">OS em Andamento</CardTitle>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">OS em Andamento</h3>
                   <Activity className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="text-2xl font-bold">{totalActiveOS}</div>
                   <p className="text-xs text-slate-500 mt-1">Em processo no funil</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-500">OS Finalizadas</CardTitle>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">OS Finalizadas</h3>
                   <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="text-2xl font-bold">{totalArchivedOS}</div>
                   <p className="text-xs text-slate-500 mt-1">Atendimentos concluídos</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-500">Total de Clientes</CardTitle>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">Total de Clientes</h3>
                   <Users className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="text-2xl font-bold">{contacts.length}</div>
                   <p className="text-xs text-slate-500 mt-1">Registos na base de contactos</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-500">Taxa de Resolução</CardTitle>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+                <div className="flex flex-row items-center justify-between space-y-0 mb-2">
+                  <h3 className="tracking-tight text-sm font-medium text-slate-500">Taxa de Resolução</h3>
                   <TrendingUp className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="text-2xl font-bold">{resolutionRate}%</div>
-                  <p className="text-xs text-slate-500 mt-1">Eficiência geral do serviço</p>
-                </CardContent>
-              </Card>
-
+                  <p className="text-xs text-slate-500 mt-1">Eficiência geral</p>
+                </div>
+              </div>
             </div>
 
             {/* 2. GRÁFICOS PRINCIPAIS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
-              {/* Gráfico de Evolução de Entradas (Componente Exato Shadcn/ui) */}
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle>Evolução de Entradas</CardTitle>
-                  <CardDescription>
-                    Mostrando volume total de solicitações por dia
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                    <AreaChart
-                      accessibilityLayer
-                      data={trendData}
-                      margin={{
-                        left: 12,
-                        right: 12,
-                      }}
-                    >
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        tickFormatter={(value) => value.slice(0, 5)}
-                      />
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent indicator="line" />}
-                      />
-                      <Area
-                        dataKey="count"
-                        type="natural"
-                        fill="var(--color-count)"
-                        fillOpacity={0.4}
-                        stroke="var(--color-count)"
-                      />
-                    </AreaChart>
-                  </ChartContainer>
-                </CardContent>
-                <CardFooter>
+              {/* O GRÁFICO EXATO DO SHADCN REPLICADO COM TAILWIND PURO */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
+                <div className="flex flex-col space-y-1.5 p-6">
+                  <h3 className="font-semibold leading-none tracking-tight text-lg">Evolução de Entradas</h3>
+                  <p className="text-sm text-slate-500">Mostrando volume total de solicitações</p>
+                </div>
+                
+                <div className="p-6 pt-0 flex-1">
+                  <div className="h-[250px] w-full">
+                    {trendData.length === 0 ? (
+                       <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={trendData}
+                          margin={{ left: 12, right: 12, top: 12, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorDesktop" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="month"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tick={{ fill: '#64748b', fontSize: 12 }}
+                          />
+                          {/* Note: O YAxis foi removido de propósito para ficar igual ao modelo Shadcn */}
+                          <Tooltip
+                            cursor={false}
+                            content={<CustomTooltip />}
+                          />
+                          <Area
+                            dataKey="desktop"
+                            type="natural"
+                            fill="url(#colorDesktop)"
+                            fillOpacity={0.4}
+                            stroke="#2563eb"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center p-6 pt-0">
                   <div className="flex w-full items-start gap-2 text-sm">
                     <div className="grid gap-2">
                       <div className="flex items-center gap-2 leading-none font-medium">
-                        Evolução das OS registadas <TrendingUp className="h-4 w-4" />
+                        Crescimento do fluxo de assistência <TrendingUp className="h-4 w-4" />
                       </div>
-                      <div className="flex items-center gap-2 leading-none text-muted-foreground">
-                        Exibindo histórico da base de dados
+                      <div className="flex items-center gap-2 leading-none text-slate-500">
+                        Exibindo histórico com base nas OS abertas
                       </div>
                     </div>
                   </div>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
 
-              {/* Gráfico de Ranking de Marcas */}
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle>Distribuição por Fabricante</CardTitle>
-                  <CardDescription>
-                    As marcas com maior volume de registos no sistema
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 pb-4">
-                  {brandRanking.length === 0 ? (
-                    <div className="h-[250px] flex items-center justify-center text-slate-400 text-sm">Aguardando registos.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 0 }} barCategoryGap="25%">
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
-                        <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                          {brandRanking.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#94a3b8'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Gráfico de Ranking de Marcas (Mesma estética de cartão Shadcn) */}
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
+                <div className="flex flex-col space-y-1.5 p-6">
+                  <h3 className="font-semibold leading-none tracking-tight text-lg">Distribuição por Fabricante</h3>
+                  <p className="text-sm text-slate-500">As marcas com maior volume de registos no sistema</p>
+                </div>
+                <div className="p-6 pt-0 flex-1">
+                  <div className="h-[250px] w-full">
+                    {brandRanking.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-slate-400 text-sm">Aguardando registos.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={brandRanking} margin={{ top: 10, right: 10, left: -25, bottom: 0 }} barCategoryGap="25%">
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} />
+                          <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
+                          <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
+                          <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                            {brandRanking.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 0 ? '#2563eb' : '#94a3b8'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center p-6 pt-0">
+                  <div className="text-sm text-slate-500">
+                    Dados processados em tempo real do banco de dados.
+                  </div>
+                </div>
+              </div>
 
             </div>
 
@@ -322,70 +333,70 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
               {/* Gráfico de Funil / Kanban */}
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle>Carga do Kanban</CardTitle>
-                  <CardDescription>
-                    Gargalos operacionais por etapa no funil
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 pb-4">
-                  {funnelData.length === 0 ? (
-                    <div className="h-[250px] flex items-center justify-center text-slate-400 text-sm">Funil vazio.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} barCategoryGap="20%">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                        <XAxis type="number" hide allowDecimals={false} />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12 }} width={100} />
-                        <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                        <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
-                          {funnelData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
+                <div className="flex flex-col space-y-1.5 p-6">
+                  <h3 className="font-semibold leading-none tracking-tight text-lg">Carga do Kanban</h3>
+                  <p className="text-sm text-slate-500">Gargalos operacionais por etapa no funil</p>
+                </div>
+                <div className="p-6 pt-0 flex-1">
+                  <div className="h-[250px] w-full">
+                    {funnelData.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-slate-400 text-sm">Funil vazio.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }} barCategoryGap="20%">
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                          <XAxis type="number" hide allowDecimals={false} />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12 }} width={100} />
+                          <Tooltip cursor={{ fill: '#f1f5f9' }} content={<CustomTooltip />} />
+                          <Bar dataKey="Quantidade" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                            {funnelData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Gráfico de Tipos de Cliente */}
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle>Perfil de Público</CardTitle>
-                  <CardDescription>
-                    Segmentação e origem das ordens de serviço
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 pb-4">
-                  {customerTypeRanking.length === 0 ? (
-                    <div className="h-[250px] flex items-center justify-center text-slate-400 text-sm">Sem registos de público.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                        <Pie
-                          data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
-                          cx="50%"
-                          cy="45%"
-                          innerRadius={65}
-                          outerRadius={95}
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="#ffffff"
-                          strokeWidth={2}
-                        >
-                          {customerTypeRanking.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
+                <div className="flex flex-col space-y-1.5 p-6">
+                  <h3 className="font-semibold leading-none tracking-tight text-lg">Perfil de Público</h3>
+                  <p className="text-sm text-slate-500">Segmentação e origem das ordens de serviço</p>
+                </div>
+                <div className="p-6 pt-0 flex-1">
+                  <div className="h-[250px] w-full">
+                    {customerTypeRanking.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem registos de público.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                          <Pie
+                            data={customerTypeRanking.map(type => ({ name: type.name, value: type.count }))}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={65}
+                            outerRadius={95}
+                            paddingAngle={2}
+                            dataKey="value"
+                            stroke="#ffffff"
+                            strokeWidth={2}
+                          >
+                            {customerTypeRanking.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
 
             </div>
           </div>
