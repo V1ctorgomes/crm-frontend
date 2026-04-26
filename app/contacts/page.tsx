@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 
+export const dynamic = 'force-dynamic';
+
 interface Contact {
   number: string;
   name: string;
@@ -123,94 +125,106 @@ export default function ContactsPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f4f7f6] font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-10 pt-[80px] md:pt-10">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
+        
+        {/* TOAST NOTIFICATION */}
+        {toast && (
+          <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300">
+            <div className="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 border bg-white border-slate-200">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                {toast.type === 'success' ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                )}
+              </div>
+              <span className="font-medium text-sm text-slate-800">{toast.message}</span>
+            </div>
+          </div>
+        )}
+
+        {/* CABEÇALHO */}
+        <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Contactos</h1>
+            <p className="text-slate-500 text-sm mt-1">Faça a gestão da sua base de clientes ({contacts.length} registados).</p>
+          </div>
           
-          {/* TOAST NOTIFICATION - MOVIDO PARA O CANTO SUPERIOR DIREITO */}
-          {toast && (
-            <div className={`fixed top-10 right-10 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300`}>
-              <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 'bg-white border-red-100 text-red-700'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {toast.type === 'success' ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
-                  )}
-                </div>
-                <span className="font-bold text-sm">{toast.message}</span>
-              </div>
-            </div>
-          )}
+          <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full xl:w-[350px] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 mr-2 shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Procurar por nome, número ou e-mail..." 
+              className="bg-transparent border-none outline-none w-full text-sm font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </header>
 
-          {/* CABEÇALHO */}
-          <header className="mb-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shadow-md text-white font-bold">C</div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Base de Dados</span>
-              </div>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Lista de Contactos</h1>
-              <p className="text-slate-500 mt-1 font-medium">Faça a gestão dos seus clientes ({contacts.length} registados).</p>
-            </div>
-            
-            <div className="bg-white border border-slate-200/80 rounded-2xl flex items-center px-4 h-12 w-full xl:w-[400px] shadow-sm focus-within:ring-4 focus-within:ring-[#1FA84A]/10 transition-all">
-              <input 
-                type="text" 
-                placeholder="Procurar por nome, número ou e-mail..." 
-                className="bg-transparent border-none outline-none w-full text-sm font-medium text-slate-700"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </header>
-
-          {/* TABELA DE CONTACTOS */}
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
+          
+          {/* TABELA DE CONTACTOS (ESTILO CARD DO DASHBOARD) */}
+          <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 uppercase text-[11px] font-bold text-slate-400 tracking-widest">
-                    <th className="py-5 px-6">Cliente</th>
-                    <th className="py-5 px-6">WhatsApp</th>
-                    <th className="py-5 px-6">E-mail</th>
-                    <th className="py-5 px-6">CNPJ / CPF</th>
-                    <th className="py-5 px-6 text-center">Ações</th>
+                  <tr className="border-b border-slate-200 bg-slate-50/50 hover:bg-slate-50/50">
+                    <th className="h-12 px-4 align-middle font-medium text-slate-500">Cliente</th>
+                    <th className="h-12 px-4 align-middle font-medium text-slate-500">WhatsApp</th>
+                    <th className="h-12 px-4 align-middle font-medium text-slate-500">E-mail</th>
+                    <th className="h-12 px-4 align-middle font-medium text-slate-500">CNPJ / CPF</th>
+                    <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {isLoading ? (
-                    <tr><td colSpan={5} className="p-20 text-center"><div className="w-10 h-10 border-4 border-[#1FA84A] border-t-transparent rounded-full animate-spin mx-auto"></div></td></tr>
+                    <tr>
+                      <td colSpan={5} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                          <span className="text-slate-500 font-medium text-sm">A carregar contactos...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredContacts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="h-32 text-center text-slate-500 text-sm">
+                        Nenhum contacto encontrado.
+                      </td>
+                    </tr>
                   ) : filteredContacts.map((contact) => (
-                    <tr key={contact.number} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 overflow-hidden">
+                    <tr key={contact.number} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-700 text-xs overflow-hidden shrink-0">
                             {contact.profilePictureUrl ? (
                               <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt={contact.name || ''}/>
                             ) : (
                               (contact.name || '?').substring(0, 2).toUpperCase()
                             )}
                           </div>
-                          <div>
-                            <div className="font-extrabold text-slate-800 text-[15px]">{contact.name || 'Sem nome'}</div>
-                            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Cliente</div>
+                          <div className="flex flex-col max-w-[150px] sm:max-w-[250px]">
+                            <span className="font-semibold text-slate-900 truncate">{contact.name || 'Sem nome'}</span>
+                            <span className="text-[12px] text-slate-500 truncate">Registado via WhatsApp</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-6 font-mono text-sm text-slate-600">{contact.number}</td>
-                      <td className="py-4 px-6 text-slate-600 font-medium">{contact.email || '--'}</td>
-                      <td className="py-4 px-6 text-slate-600 font-mono text-sm">{contact.cnpj || '--'}</td>
-                      <td className="py-4 px-6">
-                        {/* AÇÕES SEM OPACIDADE ZERO (SEMPRE VISÍVEIS) */}
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => openEditModal(contact)} className="p-2 hover:bg-blue-50 text-blue-600 rounded-xl transition-colors" title="Editar">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.number}</td>
+                      <td className="p-4 align-middle text-slate-600 truncate max-w-[150px]">{contact.email || '--'}</td>
+                      <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.cnpj || '--'}</td>
+                      <td className="p-4 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEditModal(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors" title="Editar">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
                           </button>
-                          <button onClick={() => setContactToDelete(contact)} className="p-2 hover:bg-red-50 text-red-500 rounded-xl transition-colors" title="Remover">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          <button onClick={() => setContactToDelete(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remover">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                           </button>
                         </div>
                       </td>
@@ -220,39 +234,61 @@ export default function ContactsPage() {
               </table>
             </div>
           </div>
-
         </div>
       </main>
 
       {/* MODAL DE EDIÇÃO */}
       {isEditing && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-b from-slate-50 to-white">
-              <h3 className="font-extrabold text-xl text-slate-800">Editar Registo</h3>
-              <button onClick={() => setIsEditing(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={() => setIsEditing(false)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
+            <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100">
+              <h3 className="font-semibold leading-none tracking-tight text-lg">Editar Registo</h3>
+              <p className="text-sm text-slate-500">Atualize as informações do cliente abaixo.</p>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none text-slate-700">Nome do Contacto</label>
+                <input 
+                  type="text" 
+                  className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none text-slate-700">Correio Eletrónico</label>
+                <input 
+                  type="email" 
+                  className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+                  value={editEmail} 
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none text-slate-700">CNPJ / CPF</label>
+                <input 
+                  type="text" 
+                  className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 font-mono" 
+                  value={editCnpj} 
+                  onChange={(e) => setEditCnpj(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-2 p-6 pt-0">
+              <button onClick={() => setIsEditing(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">
+                Cancelar
               </button>
-            </div>
-            <div className="p-8 flex flex-col gap-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Nome</label>
-                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-800 outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={editName} onChange={(e) => setEditName(e.target.value)}/>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">E-mail</label>
-                <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-800 outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={editEmail} onChange={(e) => setEditEmail(e.target.value)}/>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">CNPJ / CPF</label>
-                <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-[15px] font-mono text-slate-800 outline-none focus:bg-white focus:border-[#1FA84A] focus:ring-4 focus:ring-[#1FA84A]/10 transition-all shadow-sm" value={editCnpj} onChange={(e) => setEditCnpj(e.target.value)}/>
-              </div>
-            </div>
-            <div className="px-8 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-              <button onClick={() => setIsEditing(false)} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-200/50 transition-colors text-sm">Cancelar</button>
-              <button onClick={handleSaveContact} disabled={isSaving} className="bg-[#1FA84A] text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 shadow-md hover:shadow-lg transition-all text-sm flex items-center gap-2">
-                {isSaving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                Guardar Dados
+              <button onClick={handleSaveContact} disabled={isSaving} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2 disabled:pointer-events-none disabled:opacity-50">
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                    A guardar...
+                  </>
+                ) : (
+                  'Guardar Dados'
+                )}
               </button>
             </div>
           </div>
@@ -261,18 +297,21 @@ export default function ContactsPage() {
 
       {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
       {contactToDelete && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setContactToDelete(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100" onClick={e => e.stopPropagation()}>
-            <div className="p-8 text-center bg-gradient-to-b from-white to-slate-50">
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Remover Contacto?</h3>
-              <p className="text-[15px] font-medium text-slate-500 leading-relaxed px-2">Esta ação apagará permanentemente o contacto <b>{contactToDelete.name || contactToDelete.number}</b> e todo o seu histórico de chat.</p>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={() => setContactToDelete(null)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
+            <div className="flex flex-col space-y-2 p-6 pb-4">
+              <h3 className="font-semibold tracking-tight text-lg text-slate-900">Remover Contacto?</h3>
+              <p className="text-sm text-slate-500">
+                Tem a certeza que pretende eliminar <b>{contactToDelete.name || contactToDelete.number}</b>? Esta ação removerá o contacto permanentemente.
+              </p>
             </div>
-            <div className="p-6 bg-white border-t border-slate-100 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setContactToDelete(null)} className="flex-1 px-5 py-3.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors text-sm">Cancelar</button>
-              <button onClick={handleDeleteContact} className="flex-1 bg-red-500 text-white px-5 py-3.5 rounded-xl font-bold text-sm hover:bg-red-600 transition-all shadow-md">Sim, Eliminar</button>
+            <div className="flex items-center justify-end gap-2 p-6 pt-0">
+              <button onClick={() => setContactToDelete(null)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">
+                Cancelar
+              </button>
+              <button onClick={handleDeleteContact} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shadow-sm">
+                Eliminar
+              </button>
             </div>
           </div>
         </div>
