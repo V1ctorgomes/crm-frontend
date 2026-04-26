@@ -142,10 +142,11 @@ export default function DashboardPage() {
     return customerTypeRanking.reduce((acc, curr) => acc + curr.count, 0);
   }, [customerTypeRanking]);
 
+  // Tooltip Flutuante Moderno
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl">
+        <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl z-50">
           <span className="text-xs font-medium text-slate-500 mb-1">{label || payload[0].name}</span>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
@@ -160,6 +161,21 @@ export default function DashboardPage() {
       );
     }
     return null;
+  };
+
+  // Renderizador de Legenda Customizado com Flexbox (Alinhamento perfeito)
+  const renderCustomLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 pt-2">
+        {payload.map((entry: any, index: number) => (
+          <li key={`item-${index}`} className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+            <span className="text-xs font-medium text-slate-600">{entry.value}</span>
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   return (
@@ -337,7 +353,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Gráfico de Tipos de Cliente (Tons de Azul + Donut com Texto) */}
+              {/* Gráfico de Tipos de Cliente (Tons de Azul + Donut com Texto Centrado perfeitamente) */}
               <Card>
                 <CardHeader>
                   <CardTitle>Perfil de Público</CardTitle>
@@ -366,10 +382,11 @@ export default function DashboardPage() {
                                 if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                                   return (
                                     <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                      <tspan x={viewBox.cx} y={viewBox.cy} className="fill-slate-900 text-3xl font-bold">
+                                      {/* y alterado manualmente para forçar o alinhamento perfeito no centro */}
+                                      <tspan x={viewBox.cx} y={(viewBox.cy || 0) - 4} className="fill-slate-900 text-3xl font-bold">
                                         {totalCustomers.toLocaleString()}
                                       </tspan>
-                                      <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-slate-500 text-sm font-medium">
+                                      <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-slate-500 text-sm font-medium">
                                         Registos
                                       </tspan>
                                     </text>
@@ -382,7 +399,8 @@ export default function DashboardPage() {
                             ))}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} cursor={false} />
-                          <Legend verticalAlign="bottom" height={30} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
+                          {/* LEGENDA CUSTOMIZADA E PERFEITAMENTE ALINHADA COM FLEXBOX */}
+                          <Legend content={renderCustomLegend} verticalAlign="bottom" />
                         </PieChart>
                       </ResponsiveContainer>
                     )}
