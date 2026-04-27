@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { 
+  CheckCircle2, Circle, Clock, Trash2, Calendar, Bell, X
+} from 'lucide-react';
 
 interface Contact { 
   number: string; 
@@ -11,11 +14,8 @@ interface Contact {
   cnpj?: string; 
 }
 
-interface Note { 
-  id: string; 
-  text: string; 
-  createdAt: string; 
-}
+interface Note { id: string; text: string; createdAt: string; }
+interface Task { id: string; title: string; dueDate: string; isCompleted: boolean; createdAt: string; }
 
 interface TicketFile {
   id: string;
@@ -46,10 +46,11 @@ interface Ticket {
   createdAt: string; 
   updatedAt: string;
   notes?: Note[]; 
+  tasks?: Task[]; // NOVO
   files?: TicketFile[];
   isArchived: boolean; 
-  resolution?: string; // NOVO
-  resolutionReason?: string; // NOVO
+  resolution?: string; 
+  resolutionReason?: string; 
   stage?: Stage; 
 }
 
@@ -65,7 +66,7 @@ export default function SolicitacoesPage() {
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   
-  const [activeTab, setActiveTab] = useState<'notes' | 'files'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'files' | 'tasks'>('notes');
 
   const [selectedContactNumber, setSelectedContactNumber] = useState('');
   const [formNome, setFormNome] = useState('');
@@ -74,7 +75,10 @@ export default function SolicitacoesPage() {
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
+
   const [newNoteText, setNewNoteText] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDate, setNewTaskDate] = useState('');
 
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
@@ -86,7 +90,6 @@ export default function SolicitacoesPage() {
   const [newStageName, setNewStageName] = useState('');
   const [newStageColor, setNewStageColor] = useState(PREDEFINED_COLORS[0]);
 
-  // NOVOS ESTADOS PARA O ENCERRAMENTO DA OS
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [closeResolution, setCloseResolution] = useState<'SUCCESS' | 'CANCELLED'>('SUCCESS');
   const [closeReason, setCloseReason] = useState('');
@@ -96,6 +99,9 @@ export default function SolicitacoesPage() {
 
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; } | null>(null);
+
+  // ESTADO NOTIFICAÇÕES
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -199,67 +205,91 @@ export default function SolicitacoesPage() {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) { 
         setIsNewTicketModalOpen(false); 
-        setFormMarca(''); 
-        setFormModelo(''); 
-        setFormCustomerType('');
-        setSelectedContactNumber(''); 
+        setFormMarca(''); setFormModelo(''); setFormCustomerType(''); setSelectedContactNumber(''); 
         await fetchBoardData(); 
         showFeedback('success', 'Ordem de Serviço (OS) criada com sucesso!');
       }
     } catch (err) { showFeedback('error', 'Erro de conexão ao criar OS.'); }
   };
 
+  // --- MÉTODOS DE TAREFAS ---
+  const handleAddTask = async () => {
+    if (!newTaskTitle.trim() || !newTaskDate || !activeTicket) return;
+    try {
+      const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/tasks`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ title: newTaskTitle, dueDate: newTaskDate }) 
+      });
+      if (res.ok) { 
+        setNewTaskTitle(''); setNewTaskDate(''); 
+        await refreshActiveTicket(); 
+        showFeedback('success', 'Lembrete agendado!');
+      }
+    } catch (err) { showFeedback('error', 'Erro ao agendar lembrete.'); }
+  };
+
+  const handleToggleTask = async (taskId: string, isCompleted: boolean) => {
+    try {
+      await fetch(`${baseUrl}/tickets/tasks/${taskId}`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ isCompleted: !isCompleted }) 
+      });
+      await refreshActiveTicket();
+      await fetchBoardData(); // Para atualizar notificações no header
+    } catch (err) { showFeedback('error', 'Erro ao atualizar tarefa.'); }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Apagar Lembrete?",
+      message: "Tem a certeza que deseja apagar este lembrete?",
+      onConfirm: async () => {
+        try {
+          await fetch(`${baseUrl}/tickets/tasks/${taskId}`, { method: 'DELETE' });
+          await refreshActiveTicket(); 
+          await fetchBoardData();
+          showFeedback('success', 'Lembrete apagado.'); 
+        } catch (err) { showFeedback('error', 'Erro ao apagar.'); }
+        setConfirmModal(null);
+      }
+    });
+  };
+
+  // --- NOTAS, FICHEIROS E ARQUIVAMENTO ---
   const handleAddNote = async () => {
     if (!newNoteText.trim() || !activeTicket) return;
     try {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newNoteText }) });
-      if (res.ok) { 
-        setNewNoteText(''); 
-        await refreshActiveTicket(); 
-        showFeedback('success', 'Nota adicionada ao histórico!');
-      }
+      if (res.ok) { setNewNoteText(''); await refreshActiveTicket(); showFeedback('success', 'Nota adicionada ao histórico!'); }
     } catch (err) { showFeedback('error', 'Erro ao adicionar nota.'); }
   };
 
   const handleDeleteNote = (noteId: string) => {
     setConfirmModal({
-      isOpen: true,
-      title: "Apagar Nota?",
-      message: "Tem a certeza que deseja apagar esta nota? Esta ação é irreversível.",
+      isOpen: true, title: "Apagar Nota?", message: "Tem a certeza que deseja apagar esta nota? Esta ação é irreversível.",
       onConfirm: async () => {
         try {
           const res = await fetch(`${baseUrl}/tickets/notes/${noteId}`, { method: 'DELETE' });
-          if (res.ok) { 
-            await refreshActiveTicket(); 
-            showFeedback('success', 'Nota apagada.'); 
-          }
+          if (res.ok) { await refreshActiveTicket(); showFeedback('success', 'Nota apagada.'); }
         } catch (err) { showFeedback('error', 'Erro ao apagar nota.'); }
         setConfirmModal(null);
       }
     });
   };
 
-  // ATUALIZADO: Processa o encerramento da OS
   const handleToggleArchive = async (ticketId: string, archive: boolean, resolution?: string, reason?: string) => {
     try {
       await fetch(`${baseUrl}/tickets/${ticketId}/archive`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ isArchived: archive, resolution, resolutionReason: reason }) 
       });
-      
-      setActiveTicket(null); 
-      setIsCloseModalOpen(false);
-      setCloseReason('');
-      setCloseResolution('SUCCESS');
-      
+      setActiveTicket(null); setIsCloseModalOpen(false); setCloseReason(''); setCloseResolution('SUCCESS');
       await fetchBoardData();
-      if (!archive) {
-        openArchivedModal(); 
-        showFeedback('success', 'OS restaurada para o funil.');
-      } else {
-        showFeedback('success', 'OS encerrada e enviada para o Histórico.');
-      }
+      if (!archive) { openArchivedModal(); showFeedback('success', 'OS restaurada para o funil.'); } 
+      else showFeedback('success', 'OS encerrada e enviada para o Histórico.');
     } catch (err) { showFeedback('error', 'Erro ao processar OS.'); }
   };
 
@@ -267,8 +297,7 @@ export default function SolicitacoesPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 15 * 1024 * 1024) { showFeedback('error', "Arquivo muito grande (máx 15MB)."); return; }
-    setPendingFile(file);
-    setFileDescription('');
+    setPendingFile(file); setFileDescription('');
   };
 
   const confirmUploadFile = async () => {
@@ -280,27 +309,19 @@ export default function SolicitacoesPage() {
 
     try {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/files`, { method: 'POST', body: formData });
-      if (res.ok) {
-        setPendingFile(null); setFileDescription(''); 
-        await refreshActiveTicket();
-        showFeedback('success', 'Arquivo anexado com sucesso!');
-      } else { showFeedback('error', "Erro ao enviar ficheiro."); }
+      if (res.ok) { setPendingFile(null); setFileDescription(''); await refreshActiveTicket(); showFeedback('success', 'Arquivo anexado com sucesso!'); } 
+      else showFeedback('error', "Erro ao enviar ficheiro.");
     } catch (error) { showFeedback('error', "Erro de conexão."); } 
     finally { setIsUploadingFile(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
   const handleDeleteFile = (fileId: string) => {
     setConfirmModal({
-      isOpen: true,
-      title: "Remover Anexo?",
-      message: "Tem a certeza que deseja apagar este ficheiro? Não poderá ser recuperado.",
+      isOpen: true, title: "Remover Anexo?", message: "Tem a certeza que deseja apagar este ficheiro? Não poderá ser recuperado.",
       onConfirm: async () => {
         try {
           const res = await fetch(`${baseUrl}/tickets/files/${fileId}`, { method: 'DELETE' });
-          if (res.ok) { 
-            await refreshActiveTicket(); 
-            showFeedback('success', 'Ficheiro removido.'); 
-          }
+          if (res.ok) { await refreshActiveTicket(); showFeedback('success', 'Ficheiro removido.'); }
         } catch (error) { showFeedback('error', 'Erro ao remover ficheiro.'); }
         setConfirmModal(null);
       }
@@ -317,11 +338,7 @@ export default function SolicitacoesPage() {
     if (!newStageName.trim()) return;
     try {
       const res = await fetch(`${baseUrl}/tickets/stages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newStageName, color: newStageColor }) });
-      if (res.ok) { 
-        setNewStageName(''); setNewStageColor(PREDEFINED_COLORS[0]); 
-        openStageManager(); fetchBoardData(); 
-        showFeedback('success', 'Fase criada com sucesso!');
-      }
+      if (res.ok) { setNewStageName(''); setNewStageColor(PREDEFINED_COLORS[0]); openStageManager(); fetchBoardData(); showFeedback('success', 'Fase criada com sucesso!'); }
     } catch (err) { showFeedback('error', 'Erro ao criar fase.'); }
   };
 
@@ -334,19 +351,12 @@ export default function SolicitacoesPage() {
 
   const handleDeleteStage = (id: string) => {
     setConfirmModal({
-      isOpen: true,
-      title: "Apagar Fase?",
-      message: "Tem a certeza que deseja apagar esta fase permanentemente? As suas OS poderão ser afetadas.",
+      isOpen: true, title: "Apagar Fase?", message: "Tem a certeza que deseja apagar esta fase permanentemente? As suas OS poderão ser afetadas.",
       onConfirm: async () => {
         try {
           const res = await fetch(`${baseUrl}/tickets/stages/${id}`, { method: 'DELETE' });
-          if (res.ok) {
-            openStageManager(); fetchBoardData();
-            showFeedback('success', 'Fase removida permanentemente.');
-          } else {
-            const data = await res.json();
-            showFeedback('error', data.message || "Erro ao apagar fase.");
-          }
+          if (res.ok) { openStageManager(); fetchBoardData(); showFeedback('success', 'Fase removida permanentemente.'); } 
+          else { const data = await res.json(); showFeedback('error', data.message || "Erro ao apagar fase."); }
         } catch (err) { showFeedback('error', 'Erro de conexão.'); }
         setConfirmModal(null);
       }
@@ -355,15 +365,12 @@ export default function SolicitacoesPage() {
 
   const handleReorder = async (index: number, direction: 'up' | 'down') => {
     const newStages = [...allStages];
-    if (direction === 'up' && index > 0) {
-      [newStages[index - 1], newStages[index]] = [newStages[index], newStages[index - 1]];
-    } else if (direction === 'down' && index < newStages.length - 1) {
-      [newStages[index + 1], newStages[index]] = [newStages[index], newStages[index + 1]];
-    } else return;
+    if (direction === 'up' && index > 0) { [newStages[index - 1], newStages[index]] = [newStages[index], newStages[index - 1]]; } 
+    else if (direction === 'down' && index < newStages.length - 1) { [newStages[index + 1], newStages[index]] = [newStages[index], newStages[index + 1]]; } 
+    else return;
 
     const payload = newStages.map((s, i) => ({ id: s.id, order: i + 1 }));
     setAllStages(newStages); 
-
     try {
       await fetch(`${baseUrl}/tickets/stages/reorder`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stages: payload }) });
       fetchBoardData();
@@ -397,6 +404,15 @@ export default function SolicitacoesPage() {
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
+  // SISTEMA DE NOTIFICAÇÕES (TAREFAS VENCIDAS OU DE HOJE)
+  const pendingTasks = stages.flatMap(s => s.tickets).flatMap(t => t.tasks ? t.tasks.map(task => ({ ...task, ticket: t })) : []).filter(task => {
+    if (task.isCompleted) return false;
+    const dueDate = new Date(task.dueDate);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    return dueDate <= endOfToday;
+  }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
       <Sidebar />
@@ -406,20 +422,14 @@ export default function SolicitacoesPage() {
         {toast && (
           <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[9999] animate-in slide-in-from-top-5 fade-in duration-300">
             <div className="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 border bg-white border-slate-200">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                {toast.type === 'success' ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"/></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                )}
-              </div>
+              <div className={`w-2 h-2 rounded-full ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="font-medium text-sm text-slate-800">{toast.message}</span>
             </div>
           </div>
         )}
 
         {/* CABEÇALHO DO KANBAN */}
-        <header className="px-6 md:px-8 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <header className="px-6 md:px-8 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Painel Kanban</h1>
             <p className="text-slate-500 text-sm mt-1">Acompanhe e gira as Ordens de Serviço ao longo do funil.</p>
@@ -438,19 +448,66 @@ export default function SolicitacoesPage() {
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto">
+              
+              {/* SINO DE NOTIFICAÇÕES */}
+              <button 
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
+                className={`h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-md hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm shrink-0 relative ${isNotificationsOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : ''}`}
+              >
+                <Bell className="w-4 h-4" />
+                {pendingTasks.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-sm border border-white animate-in zoom-in">
+                    {pendingTasks.length}
+                  </span>
+                )}
+              </button>
+
               <button onClick={openArchivedModal} className="h-10 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-md hover:bg-slate-50 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 flex-1 sm:flex-none justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                <span className="hidden sm:inline">Histórico</span>
+                Histórico
               </button>
               <button onClick={openStageManager} className="h-10 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-md hover:bg-slate-50 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 flex-1 sm:flex-none justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>
-                <span className="hidden sm:inline">Fases</span>
+                Fases
               </button>
               <button onClick={() => setIsNewTicketModalOpen(true)} className="h-10 px-4 bg-slate-900 text-white font-medium rounded-md hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2 text-sm shrink-0 flex-1 sm:flex-none justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                 Nova OS
               </button>
             </div>
+
+            {/* DROPDOWN DE NOTIFICAÇÕES */}
+            {isNotificationsOpen && (
+              <div className="absolute top-[80px] right-6 md:right-8 w-[320px] bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden animate-in slide-in-from-top-2 fade-in">
+                <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-semibold text-slate-900 text-sm">Lembretes para Hoje</h3>
+                  <button onClick={() => setIsNotificationsOpen(false)} className="text-slate-400 hover:text-slate-700"><X className="w-4 h-4" /></button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto p-2">
+                  {pendingTasks.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-slate-500">Nenhum lembrete pendente para hoje. Tudo em dia! 🎉</div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {pendingTasks.map(task => {
+                        const isOverdue = new Date(task.dueDate) < new Date();
+                        return (
+                          <div 
+                            key={task.id} 
+                            onClick={() => { setActiveTicket(task.ticket); setActiveTab('tasks'); setIsNotificationsOpen(false); }}
+                            className="p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-100 flex flex-col gap-1"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-medium text-slate-800 text-sm line-clamp-1">{task.title}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isOverdue ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                                {new Date(task.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <span className="text-xs text-slate-500 truncate">OS-{task.ticket.id.split('-')[0].toUpperCase()} • {task.ticket.contact?.name || task.ticket.contactNumber}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -496,27 +553,30 @@ export default function SolicitacoesPage() {
                     {stage.tickets.length === 0 && searchTerm ? (
                       <p className="text-xs text-slate-400 text-center mt-4 font-medium">Nenhum resultado nesta fase.</p>
                     ) : (
-                      stage.tickets.map((ticket) => (
+                      stage.tickets.map((ticket) => {
+                        const pendingTicketTasks = ticket.tasks?.filter(t => !t.isCompleted) || [];
+                        const hasOverdue = pendingTicketTasks.some(t => new Date(t.dueDate) < new Date());
+
+                        return (
                         <div 
                           key={ticket.id} 
                           draggable 
                           onDragStart={(e) => handleDragStart(e, ticket.id, stage.id)} 
-                          onClick={() => {setActiveTicket(ticket); setActiveTab('notes');}}
+                          onClick={() => {setActiveTicket(ticket); setActiveTab('tasks');}}
                           className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-blue-400 transition-colors w-full overflow-hidden group"
                         >
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded font-mono">OS-{ticket.id.split('-')[0].toUpperCase()}</span>
                             <div className="flex gap-1.5">
-                              {(ticket.files || []).length > 0 && (
-                                <span className="text-[10px] text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.242z" clipRule="evenodd" /></svg>
-                                  {ticket.files!.length}
+                              {pendingTicketTasks.length > 0 && (
+                                <span className={`text-[10px] ${hasOverdue ? 'text-red-600 bg-red-50 border-red-100' : 'text-blue-600 bg-blue-50 border-blue-100'} border px-1.5 py-0.5 rounded font-medium flex items-center gap-1`}>
+                                  <Clock className="w-3 h-3" />
+                                  {pendingTicketTasks.length}
                                 </span>
                               )}
-                              {(ticket.notes || []).length > 0 && (
-                                <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902.848.137 1.705.248 2.57.331v3.443a.75.75 0 001.28.53l3.58-3.579a22.54 22.54 0 004.14-.46 3.25 3.25 0 002.43-2.903V5.426c0-1.413-.993-2.67-2.43-2.902A41.289 41.289 0 0010 2zm0 7a1 1 0 100-2 1 1 0 000 2zM8 8a1 1 0 11-2 0 1 1 0 012 0zm5 1a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
-                                  {ticket.notes!.length}
+                              {(ticket.files || []).length > 0 && (
+                                <span className="text-[10px] text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                                  Anexo
                                 </span>
                               )}
                             </div>
@@ -541,7 +601,7 @@ export default function SolicitacoesPage() {
                             </div>
                           )}
                         </div>
-                      ))
+                      )})
                     )}
                   </div>
                 </div>
@@ -608,7 +668,7 @@ export default function SolicitacoesPage() {
 
       {/* ================= MODAL DA OS (DETALHES) ================= */}
       {activeTicket && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setActiveTicket(null); setActiveTab('notes'); }}>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setActiveTicket(null); setActiveTab('tasks'); }}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[85vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
             
             {/* Lateral Esquerda: Info do Cliente */}
@@ -659,7 +719,6 @@ export default function SolicitacoesPage() {
                    onClick={() => setIsCloseModalOpen(true)} 
                    className="w-full flex items-center justify-center gap-2 text-slate-50 bg-slate-900 hover:bg-slate-800 py-2.5 rounded-md text-sm font-medium transition-colors"
                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                     Encerrar Solicitação
                  </button>
               </div>
@@ -670,6 +729,16 @@ export default function SolicitacoesPage() {
               
               <div className="px-6 border-b border-slate-200 flex justify-between items-end shrink-0 pt-4">
                 <div className="flex gap-6">
+                  {/* NOVA ABA DE TAREFAS */}
+                  <button 
+                    onClick={() => setActiveTab('tasks')} 
+                    className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'tasks' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Lembretes
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'tasks' ? 'bg-slate-100 text-slate-900' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                      {activeTicket.tasks?.filter(t => !t.isCompleted).length || 0}
+                    </span>
+                  </button>
                   <button 
                     onClick={() => setActiveTab('notes')} 
                     className={`pb-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'notes' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
@@ -684,10 +753,69 @@ export default function SolicitacoesPage() {
                     <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'files' ? 'bg-slate-100 text-slate-900' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>{(activeTicket.files || []).length}</span>
                   </button>
                 </div>
-                <button onClick={() => { setActiveTicket(null); setActiveTab('notes'); }} className="mb-2 text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+                <button onClick={() => { setActiveTicket(null); setActiveTab('tasks'); }} className="mb-2 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
               </div>
 
-              {activeTab === 'notes' ? (
+              {/* CONTEÚDO DA ABA TAREFAS */}
+              {activeTab === 'tasks' ? (
+                <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50/50">
+                  <div className="flex-1 p-6 overflow-y-auto">
+                    {(activeTicket.tasks || []).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                         <Calendar className="w-10 h-10 mb-2 opacity-50" />
+                         <p className="text-sm font-medium">Sem agendamentos para esta OS.</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {(activeTicket.tasks || []).map(task => {
+                           const isOverdue = new Date(task.dueDate) < new Date() && !task.isCompleted;
+                           return (
+                             <div key={task.id} className={`bg-white p-4 rounded-lg border shadow-sm group flex items-start gap-4 transition-all ${task.isCompleted ? 'border-slate-200 opacity-60' : isOverdue ? 'border-red-200' : 'border-slate-200 hover:border-blue-300'}`}>
+                               <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`mt-0.5 shrink-0 ${task.isCompleted ? 'text-green-500' : 'text-slate-300 hover:text-blue-500'}`}>
+                                 {task.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                               </button>
+                               <div className="flex-1 min-w-0">
+                                 <h4 className={`text-sm font-medium ${task.isCompleted ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{task.title}</h4>
+                                 <div className="flex items-center gap-2 mt-1">
+                                   <Clock className={`w-3.5 h-3.5 ${isOverdue ? 'text-red-500' : 'text-slate-400'}`} />
+                                   <span className={`text-[11px] font-semibold ${isOverdue ? 'text-red-600' : 'text-slate-500'}`}>
+                                     {new Date(task.dueDate).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                     {isOverdue ? ' (Atrasado)' : ''}
+                                   </span>
+                                 </div>
+                               </div>
+                               <button onClick={() => handleDeleteTask(task.id)} className="text-slate-400 hover:text-red-500 p-2 rounded-md hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                                 <Trash2 className="w-4 h-4" />
+                               </button>
+                             </div>
+                           );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4 border-t border-slate-200 bg-white shrink-0">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input 
+                        type="text" 
+                        placeholder="O que precisa ser feito? (Ex: Ligar ao cliente)" 
+                        className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+                        value={newTaskTitle} 
+                        onChange={e => setNewTaskTitle(e.target.value)} 
+                      />
+                      <input 
+                        type="datetime-local" 
+                        className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+                        value={newTaskDate} 
+                        onChange={e => setNewTaskDate(e.target.value)} 
+                      />
+                      <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-6 disabled:opacity-50">
+                        Agendar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'notes' ? (
                 <div className="flex-1 flex flex-col h-full overflow-hidden">
                   <div className="flex-1 p-6 overflow-y-auto">
                     {(activeTicket.notes || []).length === 0 && (
@@ -701,7 +829,7 @@ export default function SolicitacoesPage() {
                         <div key={note.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm group w-[90%] flex flex-col relative">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-[11px] font-medium text-slate-500">{new Date(note.createdAt).toLocaleString('pt-PT')}</span>
-                            <button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>
+                            <button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 className="w-4 h-4" /></button>
                           </div>
                           <p className="text-slate-700 text-sm whitespace-pre-wrap break-all">{note.text}</p>
                         </div>
@@ -784,7 +912,7 @@ export default function SolicitacoesPage() {
                           </div>
                           <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
-                             <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg></button>
+                             <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       ))}
@@ -814,14 +942,12 @@ export default function SolicitacoesPage() {
                     onClick={() => setCloseResolution('SUCCESS')}
                     className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'SUCCESS' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50 text-slate-500'}`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span className="text-sm font-medium">Resolvido (Ganho)</span>
                   </button>
                   <button 
                     onClick={() => setCloseResolution('CANCELLED')}
                     className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'CANCELLED' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500'}`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span className="text-sm font-medium">Cancelado (Perdido)</span>
                   </button>
                 </div>
@@ -891,7 +1017,7 @@ export default function SolicitacoesPage() {
                       {stage.isActive ? 'Desativar' : 'Ativar'}
                     </button>
                     <button onClick={() => handleDeleteStage(stage.id)} className="text-slate-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -913,7 +1039,7 @@ export default function SolicitacoesPage() {
                   <h3 className="font-semibold leading-none tracking-tight text-lg">Histórico de Solicitações</h3>
                   <p className="text-sm text-slate-500">Registo de OS encerradas (Ganhas ou Canceladas).</p>
                </div>
-               <button onClick={() => setIsArchivedModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+               <button onClick={() => setIsArchivedModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
             </div>
             
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
@@ -963,7 +1089,7 @@ export default function SolicitacoesPage() {
           <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <Trash2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">{confirmModal.title}</h3>
               <p className="text-sm text-slate-500">{confirmModal.message}</p>
