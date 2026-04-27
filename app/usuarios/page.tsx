@@ -11,6 +11,7 @@ interface User {
   email: string;
   role: string;
   createdAt: string;
+  profilePictureUrl?: string; // Adicionado para suportar a foto de perfil
 }
 
 export default function UsuariosPage() {
@@ -127,24 +128,12 @@ export default function UsuariosPage() {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'ADMIN': 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">Administrador</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-200">Administrador</span>;
       case 'DEVELOPER': 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Developer</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-purple-50 text-purple-700 border border-purple-200">Developer</span>;
       default: 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Utilizador</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-200">Utilizador</span>;
     }
-  };
-
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      'from-blue-100 to-blue-50 text-blue-700 border-blue-200',
-      'from-emerald-100 to-emerald-50 text-emerald-700 border-emerald-200',
-      'from-amber-100 to-amber-50 text-amber-700 border-amber-200',
-      'from-purple-100 to-purple-50 text-purple-700 border-purple-200',
-      'from-rose-100 to-rose-50 text-rose-700 border-rose-200'
-    ];
-    const index = name.length % colors.length;
-    return colors[index];
   };
 
   return (
@@ -235,9 +224,16 @@ export default function UsuariosPage() {
                       <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="p-4 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-full bg-gradient-to-br border flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 ${getAvatarColor(user.name)}`}>
-                              {user.name.substring(0, 2).toUpperCase()}
+                            
+                            {/* AQUI ESTÁ A LÓGICA DA FOTOGRAFIA DO UTILIZADOR */}
+                            <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs overflow-hidden shrink-0">
+                              {user.profilePictureUrl ? (
+                                <img src={user.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt={user.name} />
+                              ) : (
+                                user.name.substring(0, 2).toUpperCase()
+                              )}
                             </div>
+
                             <div className="flex flex-col max-w-[150px] sm:max-w-[250px]">
                               <span className="font-semibold text-slate-900 truncate">{user.name}</span>
                               <span className="text-[12px] text-slate-500 truncate">
@@ -330,10 +326,10 @@ export default function UsuariosPage() {
             </div>
             
             <div className="flex items-center justify-end gap-2 p-6 pt-0">
-              <button onClick={() => setIsModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">
+              <button onClick={() => setIsModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2 border border-slate-200 shadow-sm">
                 Cancelar
               </button>
-              <button onClick={handleSave} disabled={isSaving} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2 disabled:pointer-events-none disabled:opacity-50">
+              <button onClick={handleSave} disabled={isSaving} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2 disabled:pointer-events-none disabled:opacity-50 shadow-sm">
                 {isSaving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
@@ -352,17 +348,20 @@ export default function UsuariosPage() {
       {userToDelete && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={() => setUserToDelete(null)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
-            <div className="flex flex-col space-y-2 p-6 pb-4">
+            <div className="flex flex-col space-y-2 p-6 pb-4 text-center">
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-2 border border-red-100">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
               <h3 className="font-semibold tracking-tight text-lg text-slate-900">Remover Membro?</h3>
               <p className="text-sm text-slate-500">
                 Tem a certeza que pretende eliminar <b>{userToDelete.name}</b> da equipa? Esta ação revogará os seus acessos imediatamente.
               </p>
             </div>
-            <div className="flex items-center justify-end gap-2 p-6 pt-0">
-              <button onClick={() => setUserToDelete(null)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">
+            <div className="flex items-center justify-end gap-2 p-6 pt-0 bg-slate-50 border-t border-slate-100 mt-2">
+              <button onClick={() => setUserToDelete(null)} className="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 border border-slate-200 h-10 px-4 py-2 bg-white">
                 Cancelar
               </button>
-              <button onClick={handleDelete} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shadow-sm">
+              <button onClick={handleDelete} className="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shadow-sm">
                 Eliminar
               </button>
             </div>
