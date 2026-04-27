@@ -66,6 +66,7 @@ export default function WhatsAppPage() {
   const [formCpf, setFormCpf] = useState('');
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
+  const [formCustomerType, setFormCustomerType] = useState(''); // NOVO ESTADO AQUI
 
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   
@@ -442,12 +443,25 @@ export default function WhatsAppPage() {
     setFormCpf(activeContact.cnpj || ''); 
     setFormMarca(''); 
     setFormModelo('');
+    setFormCustomerType(''); // RESETA O TIPO DE CLIENTE AQUI
     setIsNewTicketModalOpen(true);
   };
 
   const handleCreateTicket = async () => {
     if (!activeContact || stages.length === 0) return showFeedback('error', "Nenhuma fase de Kanban configurada no sistema.");
-    const body = { contactNumber: activeContact.number, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, stageId: stages[0].id };
+    
+    // PAYLOAD ATUALIZADO COM O CUSTOMER TYPE
+    const body = { 
+      contactNumber: activeContact.number, 
+      nome: formNome, 
+      email: formEmail, 
+      cpf: formCpf, 
+      marca: formMarca, 
+      modelo: formModelo, 
+      customerType: formCustomerType, // ADICIONADO AQUI
+      stageId: stages[0].id 
+    };
+
     try {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
@@ -936,6 +950,10 @@ export default function WhatsAppPage() {
                   <label className="text-sm font-medium text-slate-700">Modelo</label>
                   <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formModelo} onChange={e => setFormModelo(e.target.value)} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Tipo de Cliente (Opcional)</label>
+                <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
