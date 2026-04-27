@@ -55,7 +55,7 @@ export function LoginForm() {
     <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative">
       <div className="w-full max-w-[420px] mx-auto flex flex-col">
         
-        {/* Logo */}
+        {/* Logo Atualizado para logoBar.png */}
         <div className="mb-10">
           <Image 
             src="/logoBar.png" 
