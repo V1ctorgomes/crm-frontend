@@ -48,6 +48,8 @@ interface Ticket {
   notes?: Note[]; 
   files?: TicketFile[];
   isArchived: boolean; 
+  resolution?: string; // NOVO
+  resolutionReason?: string; // NOVO
   stage?: Stage; 
 }
 
@@ -83,6 +85,11 @@ export default function SolicitacoesPage() {
   const [allStages, setAllStages] = useState<Stage[]>([]);
   const [newStageName, setNewStageName] = useState('');
   const [newStageColor, setNewStageColor] = useState(PREDEFINED_COLORS[0]);
+
+  // NOVOS ESTADOS PARA O ENCERRAMENTO DA OS
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [closeResolution, setCloseResolution] = useState<'SUCCESS' | 'CANCELLED'>('SUCCESS');
+  const [closeReason, setCloseReason] = useState('');
 
   const [isArchivedModalOpen, setIsArchivedModalOpen] = useState(false);
   const [archivedTickets, setArchivedTickets] = useState<Ticket[]>([]);
@@ -232,16 +239,26 @@ export default function SolicitacoesPage() {
     });
   };
 
-  const handleToggleArchive = async (ticketId: string, archive: boolean) => {
+  // ATUALIZADO: Processa o encerramento da OS
+  const handleToggleArchive = async (ticketId: string, archive: boolean, resolution?: string, reason?: string) => {
     try {
-      await fetch(`${baseUrl}/tickets/${ticketId}/archive`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isArchived: archive }) });
+      await fetch(`${baseUrl}/tickets/${ticketId}/archive`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ isArchived: archive, resolution, resolutionReason: reason }) 
+      });
+      
       setActiveTicket(null); 
+      setIsCloseModalOpen(false);
+      setCloseReason('');
+      setCloseResolution('SUCCESS');
+      
       await fetchBoardData();
       if (!archive) {
         openArchivedModal(); 
         showFeedback('success', 'OS restaurada para o funil.');
       } else {
-        showFeedback('success', 'OS arquivada.');
+        showFeedback('success', 'OS encerrada e enviada para o Histórico.');
       }
     } catch (err) { showFeedback('error', 'Erro ao processar OS.'); }
   };
@@ -422,8 +439,8 @@ export default function SolicitacoesPage() {
 
             <div className="flex gap-2 w-full sm:w-auto">
               <button onClick={openArchivedModal} className="h-10 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-md hover:bg-slate-50 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 flex-1 sm:flex-none justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>
-                <span className="hidden sm:inline">Arquivados</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                <span className="hidden sm:inline">Histórico</span>
               </button>
               <button onClick={openStageManager} className="h-10 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-md hover:bg-slate-50 transition-colors text-sm flex items-center gap-2 shadow-sm shrink-0 flex-1 sm:flex-none justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" /></svg>
@@ -582,7 +599,7 @@ export default function SolicitacoesPage() {
             </div>
             
             <div className="flex items-center justify-end gap-2 p-6 pt-0">
-              <button onClick={() => setIsNewTicketModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">Cancelar</button>
+              <button onClick={() => setIsNewTicketModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2 border border-slate-200">Cancelar</button>
               <button onClick={handleCreateTicket} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2">Criar OS</button>
             </div>
           </div>
@@ -638,8 +655,12 @@ export default function SolicitacoesPage() {
               </div>
 
               <div className="p-4 border-t border-slate-200 bg-white">
-                 <button onClick={() => handleToggleArchive(activeTicket.id, true)} className="w-full flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 py-2 rounded-md text-sm font-medium transition-colors">
-                    Arquivar OS
+                 <button 
+                   onClick={() => setIsCloseModalOpen(true)} 
+                   className="w-full flex items-center justify-center gap-2 text-slate-50 bg-slate-900 hover:bg-slate-800 py-2.5 rounded-md text-sm font-medium transition-colors"
+                 >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    Encerrar Solicitação
                  </button>
               </div>
             </div>
@@ -729,7 +750,7 @@ export default function SolicitacoesPage() {
                       />
                       
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => { setPendingFile(null); setFileDescription(''); if(fileInputRef.current) fileInputRef.current.value=''; }} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-9 px-4">Cancelar</button>
+                        <button onClick={() => { setPendingFile(null); setFileDescription(''); if(fileInputRef.current) fileInputRef.current.value=''; }} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-9 px-4 border border-slate-200">Cancelar</button>
                         <button onClick={confirmUploadFile} disabled={isUploadingFile} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-9 px-4">
                           {isUploadingFile ? 'Enviando...' : 'Upload'}
                         </button>
@@ -771,6 +792,62 @@ export default function SolicitacoesPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= NOVO MODAL DE ENCERRAMENTO DE OS ================= */}
+      {isCloseModalOpen && activeTicket && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsCloseModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 flex flex-col space-y-1.5">
+              <h3 className="font-semibold leading-none tracking-tight text-lg">Encerrar Solicitação</h3>
+              <p className="text-sm text-slate-500">A OS será removida do Kanban e guardada no histórico.</p>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-5">
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-slate-900">Qual foi o desfecho deste atendimento?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setCloseResolution('SUCCESS')}
+                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'SUCCESS' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span className="text-sm font-medium">Resolvido (Ganho)</span>
+                  </button>
+                  <button 
+                    onClick={() => setCloseResolution('CANCELLED')}
+                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'CANCELLED' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span className="text-sm font-medium">Cancelado (Perdido)</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Motivo / Observações Finais</label>
+                <textarea 
+                  className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" 
+                  placeholder={closeResolution === 'SUCCESS' ? 'Ex: Equipamento reparado e entregue...' : 'Ex: Cliente não aprovou o orçamento...'}
+                  value={closeReason}
+                  onChange={e => setCloseReason(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-2 p-6 pt-0 bg-slate-50 border-t border-slate-100 mt-2">
+              <button onClick={() => setIsCloseModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 border border-slate-200 bg-white h-10 px-4 py-2">
+                Cancelar
+              </button>
+              <button 
+                onClick={() => handleToggleArchive(activeTicket.id, true, closeResolution, closeReason)} 
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2 shadow-sm"
+              >
+                Confirmar Encerramento
+              </button>
             </div>
           </div>
         </div>
@@ -827,14 +904,14 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* ================= MODAL DE ARQUIVADOS ================= */}
+      {/* ================= MODAL HISTÓRICO (ARQUIVADOS) ================= */}
       {isArchivedModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsArchivedModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
                <div className="flex flex-col space-y-1.5">
-                  <h3 className="font-semibold leading-none tracking-tight text-lg">Solicitações Arquivadas</h3>
-                  <p className="text-sm text-slate-500">Histórico de OS concluídas ou inativas.</p>
+                  <h3 className="font-semibold leading-none tracking-tight text-lg">Histórico de Solicitações</h3>
+                  <p className="text-sm text-slate-500">Registo de OS encerradas (Ganhas ou Canceladas).</p>
                </div>
                <button onClick={() => setIsArchivedModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
             </div>
@@ -842,23 +919,34 @@ export default function SolicitacoesPage() {
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
               {archivedTickets.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                    <p className="font-medium text-sm">Nenhuma OS arquivada.</p>
+                    <p className="font-medium text-sm">Nenhuma OS no histórico.</p>
                  </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {archivedTickets.map(t => (
                     <div key={t.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full flex flex-col">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">{t.stage?.name || 'Fase'}</span>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${t.resolution === 'SUCCESS' ? 'bg-green-50 text-green-700 border-green-200' : t.resolution === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          {t.resolution === 'SUCCESS' ? 'Ganho' : t.resolution === 'CANCELLED' ? 'Cancelado' : 'Encerrado'}
+                        </span>
                         <span className="text-[10px] text-slate-400 font-mono">{new Date(t.updatedAt).toLocaleDateString()}</span>
                       </div>
+                      
                       <h4 className="font-semibold text-slate-900 text-sm truncate">{t.contact?.name || t.contactNumber}</h4>
                       <p className="text-[11px] text-slate-500 mt-1 truncate">
                         {t.customerType && `[${t.customerType}] `} {t.marca} {t.modelo}
                       </p>
+
+                      {t.resolutionReason && (
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          <p className="text-xs text-slate-600 line-clamp-2" title={t.resolutionReason}>
+                            <span className="font-semibold text-slate-700">Motivo: </span>{t.resolutionReason}
+                          </p>
+                        </div>
+                      )}
                       
                       <button onClick={() => handleToggleArchive(t.id, false)} className="mt-4 flex items-center justify-center gap-2 w-full bg-slate-100 text-slate-700 py-2 rounded-md text-xs font-medium hover:bg-slate-200 transition-colors">
-                        Restaurar OS
+                        Restaurar para Funil
                       </button>
                     </div>
                   ))}
