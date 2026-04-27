@@ -46,7 +46,7 @@ interface Ticket {
   createdAt: string; 
   updatedAt: string;
   notes?: Note[]; 
-  tasks?: Task[]; // NOVO
+  tasks?: Task[];
   files?: TicketFile[];
   isArchived: boolean; 
   resolution?: string; 
@@ -215,11 +215,15 @@ export default function SolicitacoesPage() {
   // --- MÉTODOS DE TAREFAS ---
   const handleAddTask = async () => {
     if (!newTaskTitle.trim() || !newTaskDate || !activeTicket) return;
+    
+    // Converte a string do input para o formato ISO correto considerando o fuso horário do utilizador
+    const dateWithTimezone = new Date(newTaskDate).toISOString();
+
     try {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/tasks`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ title: newTaskTitle, dueDate: newTaskDate }) 
+        body: JSON.stringify({ title: newTaskTitle, dueDate: dateWithTimezone }) 
       });
       if (res.ok) { 
         setNewTaskTitle(''); setNewTaskDate(''); 
@@ -482,7 +486,7 @@ export default function SolicitacoesPage() {
                 </div>
                 <div className="max-h-[300px] overflow-y-auto p-2">
                   {pendingTasks.length === 0 ? (
-                    <div className="p-6 text-center text-sm text-slate-500">Nenhum lembrete pendente para hoje. Tudo em dia! 🎉</div>
+                    <div className="p-6 text-center text-sm text-slate-500">Nenhum lembrete pendente para hoje. Tudo em dia!</div>
                   ) : (
                     <div className="flex flex-col gap-1">
                       {pendingTasks.map(task => {
@@ -729,7 +733,6 @@ export default function SolicitacoesPage() {
               
               <div className="px-6 border-b border-slate-200 flex justify-between items-end shrink-0 pt-4">
                 <div className="flex gap-6">
-                  {/* NOVA ABA DE TAREFAS */}
                   <button 
                     onClick={() => setActiveTab('tasks')} 
                     className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'tasks' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
