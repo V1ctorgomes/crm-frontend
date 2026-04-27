@@ -96,7 +96,7 @@ export default function Sidebar() {
           <Menu className="w-6 h-6" />
         </button>
         <div className="flex items-center">
-          <img src="/logo.png" alt="Logótipo" className="h-7 object-contain" />
+          <img src="/logoBar.png" alt="Logótipo" className="h-7 object-contain" />
         </div>
         <div className="w-10"></div> {/* Espaçador para centralizar o logo */}
       </div>
@@ -107,7 +107,7 @@ export default function Sidebar() {
         {/* Logótipo / Cabeçalho do Menu */}
         <div className="h-[60px] md:h-[88px] flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
           <div className="flex items-center">
-             <img src="/logo.png" alt="Logótipo do CRM" className="h-8 object-contain" />
+             <img src="/logoBar.png" alt="Logótipo do CRM" className="h-8 object-contain" />
           </div>
           {/* Botão fechar apenas no mobile */}
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
