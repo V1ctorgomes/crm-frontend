@@ -58,7 +58,7 @@ export function LoginForm() {
         {/* Logo */}
         <div className="mb-10">
           <Image 
-            src="/logo.png" 
+            src="/logoBar.png" 
             alt="Logo do CRM" 
             width={160} 
             height={45} 
