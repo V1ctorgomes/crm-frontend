@@ -42,7 +42,6 @@ export default function WhatsAppPage() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   
-  // Feedback System (Toast)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -66,10 +65,10 @@ export default function WhatsAppPage() {
   const [formCpf, setFormCpf] = useState('');
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
-  const [formCustomerType, setFormCustomerType] = useState(''); // NOVO ESTADO AQUI
+  const [formCustomerType, setFormCustomerType] = useState(''); 
+  const [formTicketType, setFormTicketType] = useState(''); // NOVO CAMPO: Tipo de OS
 
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
-  
   const [customerSearch, setCustomerSearch] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -443,14 +442,14 @@ export default function WhatsAppPage() {
     setFormCpf(activeContact.cnpj || ''); 
     setFormMarca(''); 
     setFormModelo('');
-    setFormCustomerType(''); // RESETA O TIPO DE CLIENTE AQUI
+    setFormCustomerType(''); 
+    setFormTicketType(''); // Reseta o tipo de solicitação
     setIsNewTicketModalOpen(true);
   };
 
   const handleCreateTicket = async () => {
     if (!activeContact || stages.length === 0) return showFeedback('error', "Nenhuma fase de Kanban configurada no sistema.");
     
-    // PAYLOAD ATUALIZADO COM O CUSTOMER TYPE
     const body = { 
       contactNumber: activeContact.number, 
       nome: formNome, 
@@ -458,7 +457,8 @@ export default function WhatsAppPage() {
       cpf: formCpf, 
       marca: formMarca, 
       modelo: formModelo, 
-      customerType: formCustomerType, // ADICIONADO AQUI
+      customerType: formCustomerType, 
+      ticketType: formTicketType, // Enviando o tipo de solicitação para a API
       stageId: stages[0].id 
     };
 
@@ -951,9 +951,16 @@ export default function WhatsAppPage() {
                   <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formModelo} onChange={e => setFormModelo(e.target.value)} />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Tipo de Cliente (Opcional)</label>
-                <input type="text" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
+              
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium leading-none text-slate-700">Tipo de Cliente</label>
+                  <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium leading-none text-slate-700">Tipo de OS</label>
+                  <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formTicketType} onChange={e => setFormTicketType(e.target.value)} placeholder="Ex: Orçamento" />
+                </div>
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">

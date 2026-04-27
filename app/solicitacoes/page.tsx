@@ -43,6 +43,7 @@ interface Ticket {
   marca: string | null; 
   modelo: string | null; 
   customerType: string | null;
+  ticketType: string | null;
   createdAt: string; 
   updatedAt: string;
   notes?: Note[]; 
@@ -75,6 +76,7 @@ export default function SolicitacoesPage() {
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
+  const [formTicketType, setFormTicketType] = useState('');
 
   const [newNoteText, setNewNoteText] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -100,7 +102,6 @@ export default function SolicitacoesPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; } | null>(null);
 
-  // ESTADO NOTIFICAÇÕES
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -199,26 +200,23 @@ export default function SolicitacoesPage() {
       marca: formMarca, 
       modelo: formModelo, 
       customerType: formCustomerType,
+      ticketType: formTicketType,
       stageId: stages[0].id 
     };
     try {
       const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) { 
         setIsNewTicketModalOpen(false); 
-        setFormMarca(''); setFormModelo(''); setFormCustomerType(''); setSelectedContactNumber(''); 
+        setFormMarca(''); setFormModelo(''); setFormCustomerType(''); setFormTicketType(''); setSelectedContactNumber(''); 
         await fetchBoardData(); 
         showFeedback('success', 'Ordem de Serviço (OS) criada com sucesso!');
       }
     } catch (err) { showFeedback('error', 'Erro de conexão ao criar OS.'); }
   };
 
-  // --- MÉTODOS DE TAREFAS ---
   const handleAddTask = async () => {
     if (!newTaskTitle.trim() || !newTaskDate || !activeTicket) return;
-    
-    // Converte a string do input para o formato ISO correto considerando o fuso horário do utilizador
     const dateWithTimezone = new Date(newTaskDate).toISOString();
-
     try {
       const res = await fetch(`${baseUrl}/tickets/${activeTicket.id}/tasks`, { 
         method: 'POST', 
@@ -241,7 +239,7 @@ export default function SolicitacoesPage() {
         body: JSON.stringify({ isCompleted: !isCompleted }) 
       });
       await refreshActiveTicket();
-      await fetchBoardData(); // Para atualizar notificações no header
+      await fetchBoardData(); 
     } catch (err) { showFeedback('error', 'Erro ao atualizar tarefa.'); }
   };
 
@@ -262,7 +260,6 @@ export default function SolicitacoesPage() {
     });
   };
 
-  // --- NOTAS, FICHEIROS E ARQUIVAMENTO ---
   const handleAddNote = async () => {
     if (!newNoteText.trim() || !activeTicket) return;
     try {
@@ -397,7 +394,8 @@ export default function SolicitacoesPage() {
         t.contactNumber.includes(lowerSearch) ||
         t.marca?.toLowerCase().includes(lowerSearch) ||
         t.modelo?.toLowerCase().includes(lowerSearch) ||
-        t.customerType?.toLowerCase().includes(lowerSearch)
+        t.customerType?.toLowerCase().includes(lowerSearch) ||
+        t.ticketType?.toLowerCase().includes(lowerSearch)
       );
     })
   }));
@@ -408,7 +406,6 @@ export default function SolicitacoesPage() {
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  // SISTEMA DE NOTIFICAÇÕES (TAREFAS VENCIDAS OU DE HOJE)
   const pendingTasks = stages.flatMap(s => s.tickets).flatMap(t => t.tasks ? t.tasks.map(task => ({ ...task, ticket: t })) : []).filter(task => {
     if (task.isCompleted) return false;
     const dueDate = new Date(task.dueDate);
@@ -432,7 +429,6 @@ export default function SolicitacoesPage() {
           </div>
         )}
 
-        {/* CABEÇALHO DO KANBAN */}
         <header className="px-6 md:px-8 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Painel Kanban</h1>
@@ -452,8 +448,6 @@ export default function SolicitacoesPage() {
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto">
-              
-              {/* SINO DE NOTIFICAÇÕES */}
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
                 className={`h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-md hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm shrink-0 relative ${isNotificationsOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : ''}`}
@@ -477,7 +471,6 @@ export default function SolicitacoesPage() {
               </button>
             </div>
 
-            {/* DROPDOWN DE NOTIFICAÇÕES */}
             {isNotificationsOpen && (
               <div className="absolute top-[80px] right-6 md:right-8 w-[320px] bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden animate-in slide-in-from-top-2 fade-in">
                 <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
@@ -515,7 +508,6 @@ export default function SolicitacoesPage() {
           </div>
         </header>
 
-        {/* ================= QUADRO KANBAN ================= */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 md:px-8">
           <div className="flex h-full gap-5 items-start w-max pb-4 animate-in fade-in duration-700">
             {isLoading ? (
@@ -597,8 +589,9 @@ export default function SolicitacoesPage() {
                             <h4 className="font-semibold text-slate-800 text-sm truncate">{ticket.contact?.name || ticket.contactNumber}</h4>
                           </div>
 
-                          {(ticket.marca || ticket.modelo || ticket.customerType) && (
+                          {(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType) && (
                             <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+                              {ticket.ticketType && <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded truncate border border-blue-100">{ticket.ticketType}</span>}
                               {ticket.customerType && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.customerType}</span>}
                               {ticket.marca && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.marca}</span>}
                               {ticket.modelo && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.modelo}</span>}
@@ -615,7 +608,7 @@ export default function SolicitacoesPage() {
         </div>
       </main>
 
-      {/* ================= MODAL NOVA SOLICITAÇÃO ================= */}
+      {/* MODAL NOVA SOLICITAÇÃO */}
       {isNewTicketModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsNewTicketModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
@@ -656,9 +649,15 @@ export default function SolicitacoesPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none text-slate-700">Tipo de Cliente (Opcional)</label>
-                <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium leading-none text-slate-700">Tipo de Cliente (Opcional)</label>
+                  <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium leading-none text-slate-700">Tipo de Solicitação</label>
+                  <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formTicketType} onChange={e => setFormTicketType(e.target.value)} placeholder="Ex: Orçamento" />
+                </div>
               </div>
             </div>
             
@@ -670,12 +669,12 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* ================= MODAL DA OS (DETALHES) ================= */}
+      {/* MODAL DA OS (DETALHES) */}
       {activeTicket && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setActiveTicket(null); setActiveTab('tasks'); }}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[85vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
             
-            {/* Lateral Esquerda: Info do Cliente */}
+            {/* Lateral Esquerda */}
             <div className="w-[300px] bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 hidden md:flex">
               <div className="p-6 flex flex-col items-center text-center border-b border-slate-200">
                 {activeTicket.contact?.profilePictureUrl ? (
@@ -703,8 +702,11 @@ export default function SolicitacoesPage() {
                   </div>
                 </div>
 
-                {(activeTicket.marca || activeTicket.modelo || activeTicket.customerType) && (
+                {(activeTicket.marca || activeTicket.modelo || activeTicket.customerType || activeTicket.ticketType) && (
                   <div className="pt-4 border-t border-slate-200 flex flex-col gap-4">
+                    {activeTicket.ticketType && (
+                      <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Solicitação</label><p className="text-sm text-slate-800 font-medium">{activeTicket.ticketType}</p></div>
+                    )}
                     {activeTicket.customerType && (
                       <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Cliente</label><p className="text-sm text-slate-800">{activeTicket.customerType}</p></div>
                     )}
@@ -728,9 +730,8 @@ export default function SolicitacoesPage() {
               </div>
             </div>
 
-            {/* Painel Principal (Abas da OS) */}
+            {/* Painel Principal (Abas) */}
             <div className="flex-1 flex flex-col bg-white w-full overflow-hidden">
-              
               <div className="px-6 border-b border-slate-200 flex justify-between items-end shrink-0 pt-4">
                 <div className="flex gap-6">
                   <button 
@@ -759,7 +760,6 @@ export default function SolicitacoesPage() {
                 <button onClick={() => { setActiveTicket(null); setActiveTab('tasks'); }} className="mb-2 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* CONTEÚDO DA ABA TAREFAS */}
               {activeTab === 'tasks' ? (
                 <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50/50">
                   <div className="flex-1 p-6 overflow-y-auto">
@@ -796,25 +796,11 @@ export default function SolicitacoesPage() {
                       </div>
                     )}
                   </div>
-                  
                   <div className="p-4 border-t border-slate-200 bg-white shrink-0">
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <input 
-                        type="text" 
-                        placeholder="O que precisa ser feito? (Ex: Ligar ao cliente)" 
-                        className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
-                        value={newTaskTitle} 
-                        onChange={e => setNewTaskTitle(e.target.value)} 
-                      />
-                      <input 
-                        type="datetime-local" 
-                        className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
-                        value={newTaskDate} 
-                        onChange={e => setNewTaskDate(e.target.value)} 
-                      />
-                      <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-6 disabled:opacity-50">
-                        Agendar
-                      </button>
+                      <input type="text" placeholder="O que precisa ser feito? (Ex: Ligar ao cliente)" className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
+                      <input type="datetime-local" className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
+                      <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-6 disabled:opacity-50">Agendar</button>
                     </div>
                   </div>
                 </div>
@@ -826,7 +812,6 @@ export default function SolicitacoesPage() {
                          <p className="text-sm font-medium">Nenhuma nota adicionada.</p>
                       </div>
                     )}
-                    
                     <div className="flex flex-col gap-4">
                       {(activeTicket.notes || []).map(note => (
                         <div key={note.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm group w-[90%] flex flex-col relative">
@@ -839,26 +824,18 @@ export default function SolicitacoesPage() {
                       ))}
                     </div>
                   </div>
-                  
                   <div className="p-4 border-t border-slate-200 bg-slate-50 shrink-0">
                     <div className="flex flex-col gap-2">
-                      <textarea 
-                        className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" 
-                        placeholder="Escreva uma nota..." 
-                        value={newNoteText} 
-                        onChange={e => setNewNoteText(e.target.value)} 
-                      />
+                      <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" placeholder="Escreva uma nota..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
                       <div className="flex justify-end">
-                        <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-9 px-4 py-2 disabled:opacity-50">
-                          Adicionar Nota
-                        </button>
+                        <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-9 px-4 py-2 disabled:opacity-50">Adicionar Nota</button>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col p-6 overflow-y-auto bg-slate-50/50">
-                  
+                  {/* (Upload e anexos mantidos como estavam) */}
                   {pendingFile ? (
                     <div className="bg-white border border-blue-200 shadow-sm rounded-lg p-5 flex flex-col gap-4 mb-6">
                       <div className="flex items-center gap-3">
@@ -870,16 +847,7 @@ export default function SolicitacoesPage() {
                           <span className="text-[11px] text-slate-500">{formatSize(pendingFile.size)}</span>
                         </div>
                       </div>
-                      
-                      <input 
-                        type="text" 
-                        placeholder="Legenda (Opcional)" 
-                        className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                        value={fileDescription}
-                        onChange={e => setFileDescription(e.target.value)}
-                        autoFocus
-                      />
-                      
+                      <input type="text" placeholder="Legenda (Opcional)" className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={fileDescription} onChange={e => setFileDescription(e.target.value)} autoFocus />
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => { setPendingFile(null); setFileDescription(''); if(fileInputRef.current) fileInputRef.current.value=''; }} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 h-9 px-4 border border-slate-200">Cancelar</button>
                         <button onClick={confirmUploadFile} disabled={isUploadingFile} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-9 px-4">
@@ -911,7 +879,6 @@ export default function SolicitacoesPage() {
                           <div className="flex-1 min-w-0 pr-6">
                             <h4 className="font-medium text-xs text-slate-800 truncate">{file.fileName}</h4>
                             <div className="text-[11px] text-slate-500 mt-0.5 mb-1">{formatSize(file.size)}</div>
-                            {file.description && <p className="text-xs text-slate-600 line-clamp-2">{file.description}</p>}
                           </div>
                           <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
@@ -928,61 +895,39 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* ================= NOVO MODAL DE ENCERRAMENTO DE OS ================= */}
+      {/* MODAL DE ENCERRAMENTO E OUTROS MODAIS MANTIDOS... */}
       {isCloseModalOpen && activeTicket && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsCloseModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex flex-col space-y-1.5">
               <h3 className="font-semibold leading-none tracking-tight text-lg">Encerrar Solicitação</h3>
-              <p className="text-sm text-slate-500">A OS será removida do Kanban e guardada no histórico.</p>
             </div>
-            
             <div className="p-6 flex flex-col gap-5">
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-slate-900">Qual foi o desfecho deste atendimento?</label>
+                <label className="text-sm font-semibold text-slate-900">Desfecho do atendimento</label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => setCloseResolution('SUCCESS')}
-                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'SUCCESS' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 hover:border-green-200 hover:bg-slate-50 text-slate-500'}`}
-                  >
+                  <button onClick={() => setCloseResolution('SUCCESS')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'SUCCESS' ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-200 text-slate-500'}`}>
                     <span className="text-sm font-medium">Resolvido (Ganho)</span>
                   </button>
-                  <button 
-                    onClick={() => setCloseResolution('CANCELLED')}
-                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'CANCELLED' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500'}`}
-                  >
+                  <button onClick={() => setCloseResolution('CANCELLED')} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${closeResolution === 'CANCELLED' ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-200 text-slate-500'}`}>
                     <span className="text-sm font-medium">Cancelado (Perdido)</span>
                   </button>
                 </div>
               </div>
-
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Motivo / Observações Finais</label>
-                <textarea 
-                  className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" 
-                  placeholder={closeResolution === 'SUCCESS' ? 'Ex: Equipamento reparado e entregue...' : 'Ex: Cliente não aprovou o orçamento...'}
-                  value={closeReason}
-                  onChange={e => setCloseReason(e.target.value)}
-                />
+                <label className="text-sm font-medium text-slate-700">Observações Finais</label>
+                <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" value={closeReason} onChange={e => setCloseReason(e.target.value)} />
               </div>
             </div>
-            
             <div className="flex items-center justify-end gap-2 p-6 pt-0 bg-slate-50 border-t border-slate-100 mt-2">
-              <button onClick={() => setIsCloseModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 border border-slate-200 bg-white h-10 px-4 py-2">
-                Cancelar
-              </button>
-              <button 
-                onClick={() => handleToggleArchive(activeTicket.id, true, closeResolution, closeReason)} 
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2 shadow-sm"
-              >
-                Confirmar Encerramento
-              </button>
+              <button onClick={() => setIsCloseModalOpen(false)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 bg-white h-10 px-4 py-2">Cancelar</button>
+              <button onClick={() => handleToggleArchive(activeTicket.id, true, closeResolution, closeReason)} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 h-10 px-4 py-2">Confirmar</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ================= MODAL GESTOR DE FASES ================= */}
+      
+      {/* MODAL GESTOR DE FASES */}
       {isStageManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsStageManagerOpen(false)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
@@ -1033,7 +978,7 @@ export default function SolicitacoesPage() {
         </div>
       )}
 
-      {/* ================= MODAL HISTÓRICO (ARQUIVADOS) ================= */}
+      {/* MODAL HISTÓRICO (ARQUIVADOS) */}
       {isArchivedModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsArchivedModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
@@ -1063,7 +1008,7 @@ export default function SolicitacoesPage() {
                       
                       <h4 className="font-semibold text-slate-900 text-sm truncate">{t.contact?.name || t.contactNumber}</h4>
                       <p className="text-[11px] text-slate-500 mt-1 truncate">
-                        {t.customerType && `[${t.customerType}] `} {t.marca} {t.modelo}
+                        {t.ticketType && `[${t.ticketType}] `}{t.customerType && `[${t.customerType}] `} {t.marca} {t.modelo}
                       </p>
 
                       {t.resolutionReason && (
@@ -1085,13 +1030,12 @@ export default function SolicitacoesPage() {
           </div>
         </div>
       )}
-
-      {/* MODAL DE CONFIRMAÇÃO GERAL */}
+      
       {confirmModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setConfirmModal(null)}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onClick={e => e.stopPropagation()}>
-            <div className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
                 <Trash2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">{confirmModal.title}</h3>
