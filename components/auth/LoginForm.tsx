@@ -57,7 +57,7 @@ export function LoginForm() {
         {/* Logo corrigido usando a tag img nativa */}
         <div className="mb-10">
           <img 
-            src="/logoBar.png" 
+            src="/logoBarc.png" 
             alt="Logo do CRM" 
             className="h-[45px] w-auto object-contain" 
           />
