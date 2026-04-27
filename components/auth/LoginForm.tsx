@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -55,15 +54,12 @@ export function LoginForm() {
     <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative">
       <div className="w-full max-w-[420px] mx-auto flex flex-col">
         
-        {/* Logo Atualizado para logoBar.png */}
+        {/* Logo corrigido usando a tag img nativa */}
         <div className="mb-10">
-          <Image 
+          <img 
             src="/logoBar.png" 
             alt="Logo do CRM" 
-            width={160} 
-            height={45} 
-            priority 
-            className="object-contain" 
+            className="h-[45px] w-auto object-contain" 
           />
         </div>
 
