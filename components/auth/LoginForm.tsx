@@ -58,7 +58,7 @@ export function LoginForm() {
         {/* Logo com carregamento direto (unoptimized) para evitar erros de cache/servidor */}
         <div className="mb-10">
           <Image 
-            src="/logo_login.png" 
+            src="/logoBar.png" 
             alt="Logo do CRM" 
             width={160} 
             height={45} 
