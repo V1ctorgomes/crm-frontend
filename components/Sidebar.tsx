@@ -10,13 +10,12 @@ import {
   Users, 
   MessageCircle, 
   FolderOpen,
-  Code, 
-  Settings,
+  Code,
   LogOut,
-  Building2,
   Menu,
   X
 } from 'lucide-react';
+import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -36,6 +35,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
@@ -95,11 +95,8 @@ export default function Sidebar() {
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-600 p-2 hover:bg-slate-50 rounded-lg">
           <Menu className="w-6 h-6" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-1.5 rounded-lg shadow-sm">
-            <Building2 className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-bold tracking-tight text-slate-900">Workspace</span>
+        <div className="flex items-center">
+          <img src="/logo.png" alt="Logótipo" className="h-7 object-contain" />
         </div>
         <div className="w-10"></div> {/* Espaçador para centralizar o logo */}
       </div>
@@ -109,13 +106,8 @@ export default function Sidebar() {
         
         {/* Logótipo / Cabeçalho do Menu */}
         <div className="h-[60px] md:h-[88px] flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-sm">
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900">
-              Workspace
-            </span>
+          <div className="flex items-center">
+             <img src="/logo.png" alt="Logótipo do CRM" className="h-8 object-contain" />
           </div>
           {/* Botão fechar apenas no mobile */}
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
@@ -146,26 +138,15 @@ export default function Sidebar() {
               </Link>
             );
           })}
-
-          <div className="mt-8 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
-            Administração
-          </div>
-          
-          <Link href="/configuracoes">
-            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-              pathname === '/configuracoes' 
-                ? 'bg-blue-50 text-blue-700 font-semibold' 
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
-            }`}>
-              <Settings className={`w-[18px] h-[18px] shrink-0 ${pathname === '/configuracoes' ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={pathname === '/configuracoes' ? 2.5 : 2} />
-              <span className="text-[14px]">Configurações</span>
-            </div>
-          </Link>
         </div>
 
-        {/* Perfil de Utilizador Dinâmico */}
+        {/* Perfil de Utilizador Dinâmico (Botão de Configurações) */}
         <div className="p-4 border-t border-slate-100 shrink-0 mb-2 md:mb-0">
-          <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group">
+          <div 
+            onClick={() => setIsSettingsOpen(true)} 
+            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
+            title="Abrir Configurações"
+          >
             <div className="flex items-center gap-3">
               
               {/* Bolinha com a Foto (Real ou Iniciais) */}
@@ -192,8 +173,12 @@ export default function Sidebar() {
               </div>
             </div>
             
-            {/* Botão de Logout a funcionar */}
-            <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-red-50 transition-colors group-hover:text-red-500 text-slate-400" title="Sair da Conta">
+            {/* Botão de Logout a funcionar com stopPropagation para não abrir o modal */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleLogout(); }} 
+              className="p-2 rounded-lg hover:bg-red-50 transition-colors group-hover:text-red-500 text-slate-400" 
+              title="Sair da Conta"
+            >
               <LogOut className="w-[18px] h-[18px]" />
             </button>
           </div>
@@ -203,6 +188,11 @@ export default function Sidebar() {
       {/* OVERLAY MOBILE: Fundo escuro quando o menu está aberto em telemóveis */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 bg-slate-900/40 z-40 backdrop-blur-sm transition-opacity" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
+      {/* MODAL GLOBAL DE CONFIGURAÇÕES */}
+      {isSettingsOpen && (
+        <SettingsModal onClose={() => setIsSettingsOpen(false)} />
       )}
     </>
   );
