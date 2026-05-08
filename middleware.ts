@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
 
   // Se o usuário já está logado e tenta ir para /login, manda para a home
   if (pathname === '/login' && token) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Se não tem token e não está no login, bloqueia e manda para /login

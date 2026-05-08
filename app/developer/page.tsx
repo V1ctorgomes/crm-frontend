@@ -10,6 +10,7 @@ import { EvolutionCard } from '@/components/developer/EvolutionCard';
 import { CloudflareCard } from '@/components/developer/CloudflareCard';
 import { ProxyForm } from '@/components/developer/ProxyForm';
 import { ProxiesTable } from '@/components/developer/ProxiesTable';
+import { ProtectedPage } from '@/components/ProtectedPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,48 +149,50 @@ export default function DeveloperPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
-      <Sidebar />
+    <ProtectedPage requiredRoles={['DEVELOPER']} page="/developer">
+      <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
+        <Sidebar />
 
-      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
-        
-        {toast && <Toast type={toast.type} message={toast.message} />}
-
-        <DeveloperHeader />
-
-        <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
+        <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
           
-          <DeveloperTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+          {toast && <Toast type={toast.type} message={toast.message} />}
 
-          {activeTab === 'providers' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-              <EvolutionCard 
-                evoBaseUrl={evoBaseUrl} setEvoBaseUrl={setEvoBaseUrl}
-                evoApiKey={evoApiKey} setEvoApiKey={setEvoApiKey}
-                isSavingProviders={isSavingProviders} handleSaveEvo={handleSaveEvo}
-              />
-              <CloudflareCard 
-                cfAccountId={cfAccountId} setCfAccountId={setCfAccountId}
-                cfBucket={cfBucket} setCfBucket={setCfBucket}
-                cfAccessKey={cfAccessKey} setCfAccessKey={setCfAccessKey}
-                cfSecretKey={cfSecretKey} setCfSecretKey={setCfSecretKey}
-                cfPublicUrl={cfPublicUrl} setCfPublicUrl={setCfPublicUrl}
-                isSavingProviders={isSavingProviders} handleSaveCf={handleSaveCf}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-              <ProxyForm 
-                proxyForm={proxyForm} setProxyForm={setProxyForm}
-                loadingProxies={loadingProxies} handleSaveProxy={handleSaveProxy}
-              />
-              <ProxiesTable 
-                proxies={proxies} handleDeleteProxy={handleDeleteProxy} 
-              />
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+          <DeveloperHeader />
+
+          <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
+            
+            <DeveloperTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+            {activeTab === 'providers' ? (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                <EvolutionCard 
+                  evoBaseUrl={evoBaseUrl} setEvoBaseUrl={setEvoBaseUrl}
+                  evoApiKey={evoApiKey} setEvoApiKey={setEvoApiKey}
+                  isSavingProviders={isSavingProviders} handleSaveEvo={handleSaveEvo}
+                />
+                <CloudflareCard 
+                  cfAccountId={cfAccountId} setCfAccountId={setCfAccountId}
+                  cfBucket={cfBucket} setCfBucket={setCfBucket}
+                  cfAccessKey={cfAccessKey} setCfAccessKey={setCfAccessKey}
+                  cfSecretKey={cfSecretKey} setCfSecretKey={setCfSecretKey}
+                  cfPublicUrl={cfPublicUrl} setCfPublicUrl={setCfPublicUrl}
+                  isSavingProviders={isSavingProviders} handleSaveCf={handleSaveCf}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                <ProxyForm 
+                  proxyForm={proxyForm} setProxyForm={setProxyForm}
+                  loadingProxies={loadingProxies} handleSaveProxy={handleSaveProxy}
+                />
+                <ProxiesTable 
+                  proxies={proxies} handleDeleteProxy={handleDeleteProxy} 
+                />
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </ProtectedPage>
   );
 }
