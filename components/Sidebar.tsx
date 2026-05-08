@@ -20,18 +20,15 @@ import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
 
-// Lista completa de páginas com regras de acesso
-// ADMIN: acessa tudo exceto 'developer'
-// DEVELOPER: acessa apenas 'usuarios' e 'developer'
-// USER: acessa tudo exceto 'usuarios' e 'developer'
-const allMenuItems = [
-  { name: 'Visão Geral', icon: LayoutDashboard, path: '/dashboard', roles: ['ADMIN', 'USER', 'DEVELOPER'] },
-  { name: 'Contactos', icon: Contact, path: '/contacts', roles: ['ADMIN', 'USER', 'DEVELOPER'] },
-  { name: 'Equipa', icon: Users, path: '/usuarios', roles: ['ADMIN', 'DEVELOPER'] },
-  { name: 'Solicitações', icon: KanbanSquare, path: '/solicitacoes', roles: ['ADMIN', 'USER', 'DEVELOPER'] },
-  { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp', roles: ['ADMIN', 'USER', 'DEVELOPER'] },
-  { name: 'Arquivos', icon: FolderOpen, path: '/arquivos', roles: ['ADMIN', 'USER', 'DEVELOPER'] },
-  { name: 'Developer', icon: Code, path: '/developer', roles: ['DEVELOPER'] },
+// Lista completa de páginas restaurada com a ordem correta
+const mainMenuItems = [
+  { name: 'Visão Geral', icon: LayoutDashboard, path: '/dashboard' },
+  { name: 'Contactos', icon: Contact, path: '/contacts' },
+  { name: 'Equipa', icon: Users, path: '/usuarios' },
+  { name: 'Solicitações', icon: KanbanSquare, path: '/solicitacoes' },
+  { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
+  { name: 'Arquivos', icon: FolderOpen, path: '/arquivos' },
+  { name: 'Developer', icon: Code, path: '/developer' },
 ];
 
 export default function Sidebar() {
@@ -124,30 +121,23 @@ export default function Sidebar() {
             Menu Principal
           </div>
           
-          {allMenuItems
-            .filter((item) => {
-              // Filtrar itens baseado na role do usuário
-              const userRole = currentUser?.role;
-              if (!userRole) return true; // Se não tiver role, mostra tudo
-              return item.roles.includes(userRole);
-            })
-            .map((item) => {
-              const active = isActive(item.path);
-              const Icon = item.icon;
-              
-              return (
-                <Link key={item.path} href={item.path}>
-                  <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                    active 
-                      ? 'bg-blue-50 text-blue-700 font-semibold' 
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
-                  }`}>
-                    <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={active ? 2.5 : 2} />
-                    <span className="text-[14px]">{item.name}</span>
-                  </div>
-                </Link>
-              );
-            })}
+          {mainMenuItems.map((item) => {
+            const active = isActive(item.path);
+            const Icon = item.icon;
+            
+            return (
+              <Link key={item.path} href={item.path}>
+                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                  active 
+                    ? 'bg-blue-50 text-blue-700 font-semibold' 
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                }`}>
+                  <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={active ? 2.5 : 2} />
+                  <span className="text-[14px]">{item.name}</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Perfil de Utilizador Dinâmico (Botão de Configurações) */}
