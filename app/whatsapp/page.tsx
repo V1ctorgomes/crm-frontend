@@ -80,21 +80,11 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const resUsers = await fetch(`${baseUrl}/users`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        const resUsers = await fetch(`${baseUrl}/users`);
         if (resUsers.ok) {
           const users = await resUsers.json();
           if (users.length > 0) {
-            const resInstances = await fetch(`${baseUrl}/instances/user/${users[0].id}`, {
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              }
-            });
+            const resInstances = await fetch(`${baseUrl}/instances/user/${users[0].id}`);
             if (resInstances.ok) {
               const fetchedInstances = await resInstances.json();
               const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
@@ -104,12 +94,7 @@ export default function WhatsAppPage() {
           } else setHasInstances(false);
         }
 
-        const resContacts = await fetch(`${baseUrl}/whatsapp/contacts`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        const resContacts = await fetch(`${baseUrl}/whatsapp/contacts`);
         if (resContacts.ok) {
           const data = await resContacts.json();
           const formattedContacts = data.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }));
@@ -122,20 +107,10 @@ export default function WhatsAppPage() {
           }
         }
 
-        const resStages = await fetch(`${baseUrl}/tickets/stages`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        const resStages = await fetch(`${baseUrl}/tickets/stages`);
         if (resStages.ok) setStages(await resStages.json());
 
-        const resCustomers = await fetch(`${baseUrl}/customers`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
+        const resCustomers = await fetch(`${baseUrl}/customers`);
         if (resCustomers.ok) setCrmCustomers(await resCustomers.json());
 
       } catch (err) { setHasInstances(false); }
@@ -147,12 +122,7 @@ export default function WhatsAppPage() {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
         try {
-          const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, {
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-              }
-            });
+          const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`);
           if (res.ok) {
             const data = await res.json();
             const formattedMessages = data.map((m: any) => ({
@@ -169,9 +139,7 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     if (hasInstances === false) return; 
-    const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`, {
-          withCredentials: true
-        });
+    const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
     
     eventSource.onmessage = (event) => {
       try {
@@ -213,12 +181,7 @@ export default function WhatsAppPage() {
               const item = updated.splice(idx, 1)[0];
               updated.unshift(item);
             } else {
-               fetch(`${baseUrl}/whatsapp/contacts`, {
-                  credentials: 'include',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  }
-                }).then(res => res.json()).then(data => {
+               fetch(`${baseUrl}/whatsapp/contacts`).then(res => res.json()).then(data => {
                   setContacts(data.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' })));
                });
             }

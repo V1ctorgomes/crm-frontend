@@ -40,41 +40,21 @@ export default function SolicitacoesPage() {
 
   const fetchBoardData = async () => {
     try {
-      const res = await fetch(`${baseUrl}/tickets/board`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const res = await fetch(`${baseUrl}/tickets/board`);
       if (res.ok) {
         const data = await res.json();
         setStages(data);
         return data;
-      } else {
-        console.error('Erro ao buscar dados do board:', res.status, res.statusText);
       }
-    } catch (err) { 
-      console.error('Erro na requisição do board:', err); 
-    }
+    } catch (err) { console.error(err); }
     return null;
   };
 
   const fetchContactsData = async () => {
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/contacts`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      if (res.ok) {
-        setContacts(await res.json());
-      } else {
-        console.error('Erro ao buscar contatos:', res.status, res.statusText);
-      }
-    } catch (err) { 
-      console.error('Erro na requisição de contatos:', err); 
-    }
+      const res = await fetch(`${baseUrl}/whatsapp/contacts`);
+      if (res.ok) setContacts(await res.json());
+    } catch (err) { console.error(err); }
   };
 
   const fetchData = async () => {

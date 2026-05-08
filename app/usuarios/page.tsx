@@ -8,7 +8,6 @@ import { UsuariosHeader } from '@/components/usuarios/UsuariosHeader';
 import { UsuariosTable } from '@/components/usuarios/UsuariosTable';
 import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
-import { ProtectedPage } from '@/components/ProtectedPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,56 +123,54 @@ export default function UsuariosPage() {
   );
 
   return (
-    <ProtectedPage requiredRoles={['ADMIN', 'DEVELOPER']} page="/usuarios">
-      <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
-        <Sidebar />
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
+      <Sidebar />
 
-        <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
-          
-          {toast && <Toast type={toast.type} message={toast.message} />}
+      <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-blue-100 selection:text-blue-900">
+        
+        {toast && <Toast type={toast.type} message={toast.message} />}
 
-          <UsuariosHeader 
-            totalUsers={users.length}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onNewUser={() => openModal()}
-          />
+        <UsuariosHeader 
+          totalUsers={users.length}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onNewUser={() => openModal()}
+        />
 
-          <UsuariosTable 
-            isLoading={isLoading}
-            users={filteredUsers}
-            onEdit={openModal}
-            onDelete={setUserToDelete}
-          />
+        <UsuariosTable 
+          isLoading={isLoading}
+          users={filteredUsers}
+          onEdit={openModal}
+          onDelete={setUserToDelete}
+        />
 
-        </main>
+      </main>
 
-        {isModalOpen && (
-          <UserFormModal 
-            editingUser={editingUser}
-            formName={formName}
-            setFormName={setFormName}
-            formEmail={formEmail}
-            setFormEmail={setFormEmail}
-            formRole={formRole}
-            setFormRole={setFormRole}
-            formPassword={formPassword}
-            setFormPassword={setFormPassword}
-            isSaving={isSaving}
-            onClose={() => setIsModalOpen(false)}
-            onSave={handleSave}
-          />
-        )}
+      {isModalOpen && (
+        <UserFormModal 
+          editingUser={editingUser}
+          formName={formName}
+          setFormName={setFormName}
+          formEmail={formEmail}
+          setFormEmail={setFormEmail}
+          formRole={formRole}
+          setFormRole={setFormRole}
+          formPassword={formPassword}
+          setFormPassword={setFormPassword}
+          isSaving={isSaving}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSave}
+        />
+      )}
 
-        {userToDelete && (
-          <DeleteUserModal 
-            user={userToDelete}
-            onClose={() => setUserToDelete(null)}
-            onConfirm={handleDelete}
-          />
-        )}
+      {userToDelete && (
+        <DeleteUserModal 
+          user={userToDelete}
+          onClose={() => setUserToDelete(null)}
+          onConfirm={handleDelete}
+        />
+      )}
 
-      </div>
-    </ProtectedPage>
+    </div>
   );
 }
