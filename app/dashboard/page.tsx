@@ -42,7 +42,13 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const fetchOpts = { cache: 'no-store' as RequestCache };
+        const fetchOpts = { 
+          cache: 'no-store' as RequestCache,
+          credentials: 'include' as RequestCredentials,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        };
         const [resBoard, resArchived, resUsers] = await Promise.all([
           fetch(`${baseUrl}/tickets/board`, fetchOpts),
           fetch(`${baseUrl}/tickets/archived`, fetchOpts),
