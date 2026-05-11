@@ -7,6 +7,29 @@ function apiBase(): string {
   return API_URL.replace(/\/$/, '');
 }
 
+const PUSH_STATE_EVENT = 'crm-web-push-state';
+
+export function notifyWebPushStateChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(PUSH_STATE_EVENT));
+}
+
+/** Permissão concedida e subscrição push ativa neste browser. */
+export async function isWebPushActive(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
+  return Boolean(sub);
+}
+
+export function subscribeWebPushState(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  window.addEventListener(PUSH_STATE_EVENT, listener);
+  return () => window.removeEventListener(PUSH_STATE_EVENT, listener);
+}
+
 /** Chave pública VAPID: env do front ou GET no backend (evita rebuild só por causa disto). */
 export async function resolveVapidPublicKey(): Promise<string | null> {
   const fromEnv = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
@@ -71,7 +94,9 @@ export async function ensureWebPushSubscription(): Promise<boolean> {
       keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
     }),
   });
-  return res.ok;
+  const ok = res.ok;
+  if (ok) notifyWebPushStateChanged();
+  return ok;
 }
 
 /** Remove subscrição no servidor e no browser (chamar antes de limpar o token). */
@@ -94,5 +119,7 @@ export async function revokeWebPushSubscription(): Promise<void> {
     await sub.unsubscribe().catch(() => undefined);
   } catch {
     // ignorar
+  } finally {
+    notifyWebPushStateChanged();
   }
 }

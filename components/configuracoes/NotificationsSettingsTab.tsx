@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
-import { ensureWebPushSubscription, resolveVapidPublicKey } from '@/lib/web-push-client';
+import {
+  ensureWebPushSubscription,
+  isWebPushActive,
+  resolveVapidPublicKey,
+  revokeWebPushSubscription,
+  subscribeWebPushState,
+} from '@/lib/web-push-client';
 
 type Props = {
   showFeedback: (type: 'success' | 'error', message: string) => void;
@@ -10,11 +16,12 @@ type Props = {
 
 export function NotificationsSettingsTab({ showFeedback }: Props) {
   const [vapidReady, setVapidReady] = useState<boolean | null>(null);
+  const [pushActive, setPushActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>('default');
   const [browserOk, setBrowserOk] = useState(true);
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
     if (!('Notification' in window)) {
       setPerm('unsupported');
@@ -23,8 +30,18 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
       return;
     }
     setPerm(Notification.permission);
-    void resolveVapidPublicKey().then((k) => setVapidReady(Boolean(k)));
+    const key = await resolveVapidPublicKey();
+    setVapidReady(Boolean(key));
+    if (key) setPushActive(await isWebPushActive());
+    else setPushActive(false);
   }, []);
+
+  useEffect(() => {
+    void refresh();
+    return subscribeWebPushState(() => {
+      void refresh();
+    });
+  }, [refresh]);
 
   if (!browserOk) {
     return (
@@ -58,6 +75,44 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
     );
   }
 
+  if (pushActive) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-emerald-50 p-2 border border-emerald-100">
+            <Bell className="w-5 h-5 text-emerald-700" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-brand-950">Notificações do sistema</h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Ativas neste dispositivo. Receberá avisos de novas mensagens WhatsApp quando o CRM estiver em segundo plano ou fechado (conforme o browser).
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await revokeWebPushSubscription();
+              await refresh();
+              showFeedback('success', 'Notificações desativadas neste dispositivo.');
+            } catch {
+              showFeedback('error', 'Erro ao desativar notificações.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Desativar notificações
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
       <div className="flex items-start gap-3">
@@ -78,7 +133,7 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
           setBusy(true);
           try {
             const ok = await ensureWebPushSubscription();
-            setPerm(Notification.permission);
+            await refresh();
             if (ok) showFeedback('success', 'Notificações ativadas.');
             else if (Notification.permission === 'denied') {
               showFeedback('error', 'Permissão negada.');

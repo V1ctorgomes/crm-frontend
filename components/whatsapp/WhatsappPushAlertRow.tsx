@@ -1,37 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
-import { ensureWebPushSubscription, resolveVapidPublicKey } from '@/lib/web-push-client';
+import {
+  ensureWebPushSubscription,
+  isWebPushActive,
+  resolveVapidPublicKey,
+  subscribeWebPushState,
+} from '@/lib/web-push-client';
 
 type Props = {
   onToast?: (message: string, type: 'success' | 'error') => void;
 };
 
 export function WhatsappPushAlertRow({ onToast }: Props) {
-  const [show, setShow] = useState(false);
+  const [vapidOk, setVapidOk] = useState(false);
+  const [pushActive, setPushActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>('default');
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
     if (!('Notification' in window)) {
       setPerm('unsupported');
-      setShow(false);
       return;
     }
     setPerm(Notification.permission);
-    let cancelled = false;
-    void (async () => {
-      const key = await resolveVapidPublicKey();
-      if (!cancelled) setShow(Boolean(key));
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const [key, active] = await Promise.all([
+      resolveVapidPublicKey(),
+      isWebPushActive(),
+    ]);
+    setVapidOk(Boolean(key));
+    setPushActive(active);
   }, []);
 
-  if (!show || perm === 'unsupported') return null;
+  useEffect(() => {
+    void refresh();
+    return subscribeWebPushState(() => {
+      void refresh();
+    });
+  }, [refresh]);
+
+  if (perm === 'unsupported') return null;
 
   if (perm === 'denied') {
     return (
@@ -40,6 +50,8 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
       </p>
     );
   }
+
+  if (!vapidOk || pushActive) return null;
 
   return (
     <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2">
@@ -55,7 +67,7 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
             setBusy(true);
             try {
               const ok = await ensureWebPushSubscription();
-              setPerm(typeof Notification !== 'undefined' ? Notification.permission : 'default');
+              await refresh();
               if (ok) {
                 onToast?.('Notificações ativadas.', 'success');
               } else if (Notification.permission === 'denied') {
