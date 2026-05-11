@@ -117,10 +117,22 @@ export default function WhatsAppPage() {
       const fetchHistory = async () => {
         try {
           const data = await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`).catch(() => []);
-          const formattedMessages = data.map((m: any) => ({
-            id: m.id, text: m.text, type: m.type, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            fromMe: m.type === 'sent', senderNumber: m.contactNumber, isMedia: m.isMedia, mediaData: m.mediaData, mimeType: m.mimeType, fileName: m.fileName
-          }));
+          const formattedMessages = data.map((m: any) => {
+            const ts = m.timestamp ? new Date(m.timestamp) : new Date();
+            return {
+              id: m.id,
+              text: m.text,
+              type: m.type,
+              time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              sentAt: ts.toISOString(),
+              fromMe: m.type === 'sent',
+              senderNumber: m.contactNumber,
+              isMedia: m.isMedia,
+              mediaData: m.mediaData,
+              mimeType: m.mimeType,
+              fileName: m.fileName,
+            };
+          });
           setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
         } catch (err) {}
       };
@@ -143,20 +155,45 @@ export default function WhatsAppPage() {
           const contactNumber = remoteJid.split('@')[0];
           const isFromMe = msgData.key?.fromMe || false;
           const waId = msgData.key?.id || Date.now().toString(); 
-          const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const now = new Date();
+          const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const rawTs = msgData.messageTimestamp ?? msgData.timestamp ?? msgData.key?.messageTimestamp;
+          const sentAtIso =
+            typeof rawTs === 'number'
+              ? new Date(rawTs < 1e12 ? rawTs * 1000 : rawTs).toISOString()
+              : now.toISOString();
 
           const customMedia = msgData.customMedia || {};
           let incomingText = customMedia.text !== undefined ? customMedia.text : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "");
           let fallbackSidebarText = msgData.message?.imageMessage ? "Imagem" : msgData.message?.documentMessage ? "Documento" : msgData.message?.audioMessage ? "Áudio" : msgData.message?.videoMessage ? "Vídeo" : "Mídia";
 
-          const newMessage: Message = { id: waId, text: incomingText, type: isFromMe ? 'sent' : 'received', time: timeNow, fromMe: isFromMe, senderNumber: contactNumber, isMedia: customMedia.isMedia || false, mediaData: customMedia.mediaData, mimeType: customMedia.mimeType, fileName: customMedia.fileName };
+          const newMessage: Message = {
+            id: waId,
+            text: incomingText,
+            type: isFromMe ? 'sent' : 'received',
+            time: timeNow,
+            sentAt: sentAtIso,
+            fromMe: isFromMe,
+            senderNumber: contactNumber,
+            isMedia: customMedia.isMedia || false,
+            mediaData: customMedia.mediaData,
+            mimeType: customMedia.mimeType,
+            fileName: customMedia.fileName,
+          };
 
           setChatHistory(prev => {
             const history = prev[contactNumber] || [];
             if (history.some(m => m.id === waId)) return prev;
             if (isFromMe) {
                const dupOptimistic = history.find(m => m.fromMe && m.text === incomingText && typeof m.id === 'number');
-               if (dupOptimistic) return { ...prev, [contactNumber]: history.map(m => m === dupOptimistic ? { ...m, id: waId } : m) };
+               if (dupOptimistic) {
+                 return {
+                   ...prev,
+                   [contactNumber]: history.map((m) =>
+                     m === dupOptimistic ? { ...m, id: waId, sentAt: m.sentAt ?? sentAtIso } : m,
+                   ),
+                 };
+               }
             }
             return { ...prev, [contactNumber]: [...history, newMessage] };
           });
@@ -218,7 +255,9 @@ export default function WhatsAppPage() {
     if (!activeContact) return;
     const targetNumber = activeContact.number;
     const targetInstance = activeContact.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const sentAtIso = now.toISOString();
     setIsSending(true);
 
     const formData = new FormData();
@@ -229,7 +268,19 @@ export default function WhatsAppPage() {
 
     const tempId = Date.now();
     const tempUrl = URL.createObjectURL(file);
-    const optimisticMsg: Message = { id: tempId, text: caption || "", type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber, isMedia: true, mediaData: tempUrl, mimeType: file.type, fileName: file.name };
+    const optimisticMsg: Message = {
+      id: tempId,
+      text: caption || '',
+      type: 'sent',
+      time: timeNow,
+      sentAt: sentAtIso,
+      fromMe: true,
+      senderNumber: targetNumber,
+      isMedia: true,
+      mediaData: tempUrl,
+      mimeType: file.type,
+      fileName: file.name,
+    };
 
     setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
 
@@ -271,9 +322,19 @@ export default function WhatsAppPage() {
       setInputText(''); setPreviewFile(null); if (fileInputRef.current) fileInputRef.current.value = '';
       await sendDirectMedia(fileToSend, textToSend);
     } else {
-      const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const now = new Date();
+      const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const sentAtIso = now.toISOString();
       setIsSending(true);
-      const optimisticMsg: Message = { id: Date.now(), text: textToSend, type: 'sent', time: timeNow, fromMe: true, senderNumber: targetNumber };
+      const optimisticMsg: Message = {
+        id: Date.now(),
+        text: textToSend,
+        type: 'sent',
+        time: timeNow,
+        sentAt: sentAtIso,
+        fromMe: true,
+        senderNumber: targetNumber,
+      };
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
       

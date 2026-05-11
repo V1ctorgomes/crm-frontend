@@ -3,6 +3,8 @@ export interface Message {
   text: string;
   type: 'sent' | 'received';
   time: string;
+  /** ISO 8601 — usado para agrupar por dia (Hoje, Ontem, …) */
+  sentAt?: string;
   fromMe: boolean;
   senderNumber: string;
   isMedia?: boolean;
