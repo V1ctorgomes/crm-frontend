@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -40,7 +40,23 @@ export default function Sidebar() {
   
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
-  
+
+  const menuItems = useMemo(() => {
+    const role = currentUser?.role as string | undefined;
+    if (!role || role === 'USER') {
+      return mainMenuItems.filter((i) => i.path !== '/usuarios' && i.path !== '/developer');
+    }
+    if (role === 'ADMIN') {
+      return mainMenuItems.filter((i) => i.path !== '/developer');
+    }
+    if (role === 'DEVELOPER') {
+      return mainMenuItems.filter((i) => i.path === '/usuarios' || i.path === '/developer');
+    }
+    return mainMenuItems;
+  }, [currentUser?.role]);
+
+  const canOpenSettings = currentUser?.role === 'ADMIN' || currentUser?.role === 'USER';
+
   const isActive = (path: string) => pathname?.includes(path);
 
   // Lógica de Sair da Conta
@@ -116,7 +132,7 @@ export default function Sidebar() {
             Menu Principal
           </div>
           
-          {mainMenuItems.map((item) => {
+          {menuItems.map((item) => {
             const active = isActive(item.path);
             const Icon = item.icon;
             
@@ -138,9 +154,11 @@ export default function Sidebar() {
         {/* Perfil de Utilizador Dinâmico (Botão de Configurações) */}
         <div className="p-4 border-t border-slate-100 shrink-0 mb-2 md:mb-0">
           <div 
-            onClick={() => setIsSettingsOpen(true)} 
-            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer"
-            title="Abrir Configurações"
+            onClick={() => canOpenSettings && setIsSettingsOpen(true)} 
+            className={`flex items-center justify-between p-2 rounded-xl transition-colors group ${
+              canOpenSettings ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'
+            }`}
+            title={canOpenSettings ? 'Abrir Configurações' : undefined}
           >
             <div className="flex items-center gap-3">
               
@@ -163,7 +181,11 @@ export default function Sidebar() {
                   {currentUser?.name || 'Carregando...'}
                 </span>
                 <span className="text-[11px] font-medium text-slate-500 truncate">
-                  {currentUser?.role === 'ADMIN' ? 'Administrador' : 'Equipa'}
+                  {currentUser?.role === 'ADMIN'
+                    ? 'Administrador'
+                    : currentUser?.role === 'DEVELOPER'
+                      ? 'Developer'
+                      : 'Equipa'}
                 </span>
               </div>
             </div>
@@ -186,7 +208,7 @@ export default function Sidebar() {
       )}
 
       {/* MODAL GLOBAL DE CONFIGURAÇÕES */}
-      {isSettingsOpen && (
+      {isSettingsOpen && canOpenSettings && (
         <SettingsModal onClose={() => setIsSettingsOpen(false)} />
       )}
     </>

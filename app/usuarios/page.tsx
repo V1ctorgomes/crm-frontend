@@ -16,6 +16,8 @@ export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string>('USER');
 
   // Estados de Feedback (Notificações)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -51,7 +53,15 @@ export default function UsuariosPage() {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+    apiRequest('/users/me')
+      .then((u) => {
+        setViewerId(u.id);
+        setViewerRole(u.role || 'USER');
+      })
+      .catch(() => {});
+  }, []);
 
   const openModal = (user?: User) => {
     if (user) {
@@ -75,7 +85,23 @@ export default function UsuariosPage() {
     if (!editingUser && !formPassword) return showFeedback('error', "A palavra-passe é obrigatória para novos utilizadores.");
 
     setIsSaving(true);
-    const body = { name: formName, email: formEmail, role: formRole, password: formPassword };
+    const body: Record<string, string> = {
+      name: formName,
+      email: formEmail,
+      password: formPassword,
+    };
+    if (viewerRole === 'DEVELOPER') {
+      body.role = formRole;
+    } else if (viewerRole === 'ADMIN') {
+      if (!editingUser) {
+        body.role = 'USER';
+      } else if (viewerId && editingUser.id !== viewerId) {
+        body.role = 'USER';
+      }
+    }
+    if (editingUser && !formPassword.trim()) {
+      delete body.password;
+    }
     const method = editingUser ? 'PUT' : 'POST';
     const endpoint = editingUser ? `/users/${editingUser.id}` : `/users`;
 
@@ -140,6 +166,7 @@ export default function UsuariosPage() {
 
       {isModalOpen && (
         <UserFormModal 
+          viewerRole={viewerRole}
           editingUser={editingUser}
           formName={formName}
           setFormName={setFormName}

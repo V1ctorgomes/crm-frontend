@@ -25,11 +25,13 @@ export function LoginForm() {
       });
 
       if (data.access_token) {
-        // Guarda o cookie de forma segura
         document.cookie = `token=${data.access_token}; path=/; max-age=28800; SameSite=Lax`;
-        
-        // Redireciona para o Dashboard
-        router.replace('/dashboard');
+
+        const dest =
+          data.role === 'DEVELOPER'
+            ? '/developer'
+            : '/dashboard';
+        router.replace(dest);
         router.refresh();
       } else {
         throw new Error('Token não recebido pelo servidor.');

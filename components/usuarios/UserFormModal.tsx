@@ -2,6 +2,8 @@ import React from 'react';
 import { User } from './types';
 
 interface UserFormModalProps {
+  /** Quem está a usar o modal: ADMIN só cria/edita atendimento (USER); DEVELOPER pode USER ou DEVELOPER. */
+  viewerRole: string;
   editingUser: User | null;
   formName: string;
   setFormName: (val: string) => void;
@@ -17,6 +19,7 @@ interface UserFormModalProps {
 }
 
 export function UserFormModal({
+  viewerRole,
   editingUser, formName, setFormName, formEmail, setFormEmail, formRole, setFormRole, formPassword, setFormPassword, isSaving, onClose, onSave
 }: UserFormModalProps) {
   return (
@@ -48,18 +51,24 @@ export function UserFormModal({
               placeholder="maria@empresa.com"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium leading-none text-slate-700">Nível de Permissão</label>
-            <select 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
-              value={formRole} 
-              onChange={e => setFormRole(e.target.value)}
-            >
-              <option value="USER">Utilizador (Atendimento)</option>
-              <option value="ADMIN">Administrador (Gestão Total)</option>
-              <option value="DEVELOPER">Developer (Acesso Técnico)</option>
-            </select>
-          </div>
+          {viewerRole === 'DEVELOPER' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none text-slate-700">Nível de Permissão</label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+                value={formRole} 
+                onChange={e => setFormRole(e.target.value)}
+              >
+                <option value="USER">Utilizador (Atendimento)</option>
+                <option value="DEVELOPER">Developer (Acesso Técnico)</option>
+              </select>
+            </div>
+          )}
+          {viewerRole === 'ADMIN' && (
+            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+              Novos membros são criados como <strong>atendimento</strong> (Utilizador). Apenas developers podem atribuir o perfil técnico.
+            </p>
+          )}
           <div className="space-y-2 pt-2">
             <label className="text-sm font-medium leading-none text-slate-700">
               Palavra-passe {editingUser && <span className="font-normal text-slate-400">(opcional)</span>}
