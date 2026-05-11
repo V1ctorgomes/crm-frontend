@@ -50,41 +50,43 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
               </div>
             )}
             <div
-              className={`max-w-[85%] md:max-w-[70%] w-fit relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+              className={`max-w-[85%] md:max-w-[70%] w-full min-w-0 sm:w-fit relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
             >
               {msg.isMedia && msg.mediaData && (
                 msg.mimeType?.startsWith('audio/') ? (
-                  <div className="mt-1 mb-1">
-                    <audio controls src={msg.mediaData} className="w-[220px] md:w-[260px] h-[40px] outline-none" />
+                  <div className="mb-1 w-full max-w-[min(100%,280px)]">
+                    <audio controls src={msg.mediaData} className="h-10 w-full max-w-full outline-none" preload="metadata" />
                   </div>
                 ) : (
                   <div
-                    className={`flex items-center gap-3 p-2 rounded-lg mb-1.5 mt-0.5 border ${msg.fromMe ? 'bg-brand-500 border-brand-400 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    className={`mb-1.5 w-full max-w-[min(100%,280px)] rounded-lg border p-2 ${msg.fromMe ? 'border-brand-400 bg-brand-500/90' : 'border-slate-200 bg-slate-50'}`}
                   >
-                    <div
-                      className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${msg.fromMe ? 'bg-brand-400/50' : 'bg-white border border-slate-200'}`}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex flex-col overflow-hidden w-full min-w-[120px] max-w-[200px]">
-                      <span className="text-sm font-semibold truncate">{msg.fileName || 'Ficheiro'}</span>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className={`text-[10px] font-mono uppercase ${msg.fromMe ? 'text-white/85' : 'text-slate-500'}`}>
-                          {msg.mimeType?.split('/')[1] || 'DOC'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setViewerMessage(msg)}
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded cursor-pointer ${msg.fromMe ? 'bg-brand-500 hover:bg-brand-400' : 'bg-white border border-slate-200 hover:bg-slate-50'}`}
-                        >
-                          Abrir
-                        </button>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div
+                        className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${msg.fromMe ? 'bg-brand-400/50' : 'border border-slate-200 bg-white'}`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold leading-snug">{msg.fileName || 'Ficheiro'}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                          <span className={`font-mono text-[10px] uppercase ${msg.fromMe ? 'text-white/90' : 'text-slate-500'}`}>
+                            {msg.mimeType?.split('/')[1] || 'ficheiro'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setViewerMessage(msg)}
+                            className={`shrink-0 rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${msg.fromMe ? 'bg-white/95 text-brand-700 hover:bg-white' : 'border border-slate-300 bg-white text-brand-700 hover:bg-brand-50'}`}
+                          >
+                            Abrir
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -108,10 +110,10 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
               )}
 
               <div
-                className={`text-[10px] self-end mt-1 flex items-center gap-1 float-right ml-4 ${msg.fromMe ? 'text-white/85' : 'text-slate-400'}`}
+                className={`mt-1 flex items-center justify-end gap-1 self-stretch text-[10px] ${msg.fromMe ? 'text-white/85' : 'text-slate-400'}`}
               >
-                {msg.time}
-                {msg.fromMe && <CheckCheck className="w-3.5 h-3.5 shrink-0 opacity-95" strokeWidth={2.25} aria-hidden />}
+                <span>{msg.time}</span>
+                {msg.fromMe && <CheckCheck className="h-3.5 w-3.5 shrink-0 opacity-95" strokeWidth={2.25} aria-hidden />}
               </div>
             </div>
           </Fragment>

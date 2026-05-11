@@ -69,7 +69,19 @@ export const MediaViewerModal = ({ viewerMessage, onClose }: { viewerMessage: Me
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
       </div>
       <div className="flex-1 bg-slate-50 flex items-center justify-center overflow-hidden p-4">
-        {viewerMessage.mimeType?.startsWith('image/') ? <img src={viewerMessage.mediaData} alt="" className="max-w-full max-h-full object-contain rounded" /> : viewerMessage.mimeType?.startsWith('video/') ? <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full outline-none rounded" /> : viewerMessage.mimeType?.includes('pdf') ? <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="w-full h-full border border-slate-200 rounded bg-white" /> : <div className="text-slate-500 text-sm">Formato indisponível.</div>}
+        {viewerMessage.mimeType?.startsWith('image/') ? (
+          <img src={viewerMessage.mediaData} alt="" className="max-w-full max-h-full object-contain rounded" />
+        ) : viewerMessage.mimeType?.startsWith('video/') ? (
+          <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded outline-none" />
+        ) : viewerMessage.mimeType?.startsWith('audio/') ? (
+          <audio src={viewerMessage.mediaData} controls className="w-full max-w-md rounded-md" preload="metadata" />
+        ) : viewerMessage.mimeType?.includes('pdf') ? (
+          <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="h-full w-full rounded border border-slate-200 bg-white" title={viewerMessage.fileName || 'PDF'} />
+        ) : (
+          <div className="text-center text-slate-500 text-sm">
+            Pré-visualização não disponível para este tipo. Use «Descarregar» abaixo.
+          </div>
+        )}
       </div>
       <div className="px-6 py-4 border-t border-slate-200 flex justify-end bg-white">
         <a href={viewerMessage.mediaData} download={viewerMessage.fileName || 'download'} target="_blank" rel="noopener noreferrer" className="bg-brand-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-brand-700 transition-colors flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>Descarregar Arquivo</a>
