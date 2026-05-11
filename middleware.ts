@@ -79,5 +79,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.png).*)'],
+  // Excluir estáticos do public — senão pedidos como /icon.png são redirecionados para /login sem cookie
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|logo.png|logoBar.png|.*\\.svg).*)',
+  ],
 }
