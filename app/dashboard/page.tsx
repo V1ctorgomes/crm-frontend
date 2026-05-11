@@ -42,16 +42,16 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const fetchOpts = { cache: 'no-store' as RequestCache };
-        const [activeStages, archivedOS, users] = await Promise.all([
+        const [activeStages, archivedOS, me] = await Promise.all([
           apiRequest('/tickets/board', fetchOpts as RequestInit).catch(() => [] as Stage[]),
           apiRequest('/tickets/archived', fetchOpts as RequestInit).catch(() => [] as Ticket[]),
-          apiRequest('/users', fetchOpts as RequestInit).catch(() => [] as any[]),
+          apiRequest('/users/me', fetchOpts as RequestInit).catch(() => null as any),
         ]);
         
         setStages(activeStages);
 
-        if (users.length > 0) {
-          const instances = await apiRequest(`/instances/user/${users[0].id}`, fetchOpts as RequestInit).catch(() => []);
+        if (me?.id) {
+          const instances = await apiRequest(`/instances/user/${me.id}`, fetchOpts as RequestInit).catch(() => []);
           setIsInstanceConnected(instances.some((i: any) => i.status === 'connected'));
         }
 

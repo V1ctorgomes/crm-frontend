@@ -59,14 +59,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const fetchUserData = async () => {
     try {
-      const data = await apiRequest('/users');
-      if (data && data.length > 0) {
-        const currentUser = data[0];
-        setUserData(currentUser);
-        setName(currentUser.name || '');
-        setEmail(currentUser.email || '');
-        if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
-      }
+      const currentUser = await apiRequest('/users/me');
+      setUserData(currentUser);
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
     } catch (error) { showFeedback('error', 'Erro ao carregar utilizador.'); } 
     finally { setIsProfileLoading(false); }
   };
@@ -96,11 +93,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const fetchInstances = async () => {
     try {
-      const users = await apiRequest('/users');
-      if (users.length > 0) {
-        const instances = await apiRequest(`/instances/user/${users[0].id}`);
-        setInstances(instances);
-      }
+      const me = await apiRequest('/users/me');
+      const instances = await apiRequest(`/instances/user/${me.id}`);
+      setInstances(instances);
     } catch (error) {} 
     finally { setIsInstancesLoading(false); }
   };
@@ -111,8 +106,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setIsCreatingInstance(true);
 
     try {
-      const users = await apiRequest('/users');
-      const payload: any = { name: newInstanceName, userId: users[0].id };
+      const me = await apiRequest('/users/me');
+      const payload: any = { name: newInstanceName, userId: me.id };
       if (selectedProxyId) {
         const selectedProxy = availableProxies.find(p => p.id === selectedProxyId);
         if (selectedProxy) {

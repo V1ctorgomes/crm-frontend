@@ -65,16 +65,13 @@ export default function Sidebar() {
       }
     }
 
-    apiRequest('/users')
-      .then((data) => {
-        if (data && data.length > 0) {
-          const user = data[0];
-          if (JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
-            globalUserCache = user;
-            setCurrentUser(user);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('crm_user_cache', JSON.stringify(user));
-            }
+    apiRequest('/users/me')
+      .then((user) => {
+        if (user && JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
+          globalUserCache = user;
+          setCurrentUser(user);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('crm_user_cache', JSON.stringify(user));
           }
         }
       })

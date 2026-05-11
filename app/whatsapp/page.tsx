@@ -81,9 +81,9 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const users = await apiRequest('/users').catch(() => []);
-        if (users.length > 0) {
-          const fetchedInstances = await apiRequest(`/instances/user/${users[0].id}`).catch(() => []);
+        const me = await apiRequest('/users/me').catch(() => null);
+        if (me?.id) {
+          const fetchedInstances = await apiRequest(`/instances/user/${me.id}`).catch(() => []);
           const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
           setInstances(connected);
           setHasInstances(connected.length > 0);

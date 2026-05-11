@@ -88,8 +88,9 @@ export default function UsuariosPage() {
       setIsModalOpen(false);
       fetchUsers();
       showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
-    } catch (err) { 
-      showFeedback('error', "Erro de ligação ao servidor.");
+    } catch (err: unknown) { 
+      const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
+      showFeedback('error', msg);
     } finally { 
       setIsSaving(false); 
     }
@@ -102,8 +103,9 @@ export default function UsuariosPage() {
       showFeedback('success', "Utilizador removido da equipa.");
       setUserToDelete(null);
       fetchUsers();
-    } catch (err) { 
-      showFeedback('error', "Erro de ligação ao servidor.");
+    } catch (err: unknown) { 
+      const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
+      showFeedback('error', msg);
     }
   };
 
