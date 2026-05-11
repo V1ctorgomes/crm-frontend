@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X } from 'lucide-react';
 import { Task, Ticket } from './types';
 
@@ -6,14 +6,34 @@ interface KanbanHeaderProps {
   searchTerm: string;
   setSearchTerm: (val: string) => void;
   pendingTasks: Task[];
+  /** Ao abrir o painel de lembretes (marca como vistos no servidor local). */
+  onRemindersPanelOpened?: () => void;
   onTaskClick: (ticket: Ticket) => void;
   onOpenArchive: () => void;
   onOpenStageManager: () => void;
   onOpenNewTicket: () => void;
 }
 
-export function KanbanHeader({ searchTerm, setSearchTerm, pendingTasks, onTaskClick, onOpenArchive, onOpenStageManager, onOpenNewTicket }: KanbanHeaderProps) {
+export function KanbanHeader({
+  searchTerm,
+  setSearchTerm,
+  pendingTasks,
+  onRemindersPanelOpened,
+  onTaskClick,
+  onOpenArchive,
+  onOpenStageManager,
+  onOpenNewTicket,
+}: KanbanHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const remindersAckForOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (isNotificationsOpen && !remindersAckForOpenRef.current) {
+      remindersAckForOpenRef.current = true;
+      onRemindersPanelOpened?.();
+    }
+    if (!isNotificationsOpen) remindersAckForOpenRef.current = false;
+  }, [isNotificationsOpen, onRemindersPanelOpened]);
 
   return (
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
@@ -41,8 +61,8 @@ export function KanbanHeader({ searchTerm, setSearchTerm, pendingTasks, onTaskCl
           >
             <Bell className="w-4 h-4" />
             {pendingTasks.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-sm border border-white animate-in zoom-in">
-                {pendingTasks.length}
+              <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-sm border border-white tabular-nums animate-in zoom-in leading-none">
+                {pendingTasks.length > 99 ? '99+' : pendingTasks.length}
               </span>
             )}
           </button>

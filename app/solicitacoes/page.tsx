@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -13,6 +13,14 @@ import { StageManagerModal } from '@/components/solicitacoes/StageManagerModal';
 import { ArchivedTicketsModal } from '@/components/solicitacoes/ArchivedTicketsModal';
 import { Contact, Stage, Ticket } from '@/components/solicitacoes/types';
 import { apiRequest } from '@/lib/api-client';
+import {
+  ackReminderTaskIds,
+  broadcastReminderBadgeFromStages,
+  extractPendingReminderTasksFromStages,
+  isTaskDueThroughEndOfToday,
+  loadAckedReminderTaskIds,
+  SOLICITACOES_BOARD_SYNC_EVENT,
+} from '@/lib/solicitacoes-reminders';
 
 export default function SolicitacoesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -31,6 +39,7 @@ export default function SolicitacoesPage() {
   // Sistema de Feedback Global
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; onClose: () => void; } | null>(null);
+  const [reminderAckVersion, setReminderAckVersion] = useState(0);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -63,6 +72,58 @@ export default function SolicitacoesPage() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    const onBoardSync = (e: Event) => {
+      const d = (e as CustomEvent<Stage[]>).detail;
+      if (Array.isArray(d)) setStages(d);
+    };
+    window.addEventListener(SOLICITACOES_BOARD_SYNC_EVENT, onBoardSync as EventListener);
+    return () => window.removeEventListener(SOLICITACOES_BOARD_SYNC_EVENT, onBoardSync as EventListener);
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    broadcastReminderBadgeFromStages(stages);
+    setReminderAckVersion((x) => x + 1);
+  }, [stages, isLoading]);
+
+  const pendingUnackedTasks = useMemo(() => {
+    const pending = extractPendingReminderTasksFromStages(stages);
+    const pendingIds = new Set(pending.map((t) => t.id));
+    const acked = loadAckedReminderTaskIds();
+    const relevantAcked = new Set([...acked].filter((id) => pendingIds.has(id)));
+    return pending.filter((t) => !relevantAcked.has(t.id));
+  }, [stages, reminderAckVersion]);
+
+  const reminderUnackedByTicketId = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const t of pendingUnackedTasks) {
+      const tid = t.ticket?.id;
+      if (tid) m[tid] = (m[tid] || 0) + 1;
+    }
+    return m;
+  }, [pendingUnackedTasks]);
+
+  const onRemindersPanelOpened = useCallback(() => {
+    const ids = extractPendingReminderTasksFromStages(stages).map((t) => t.id);
+    ackReminderTaskIds(ids, stages);
+    setReminderAckVersion((x) => x + 1);
+  }, [stages]);
+
+  const openTicketWithReminderAck = useCallback(
+    (ticket: Ticket) => {
+      const ids =
+        ticket.tasks
+          ?.filter((t) => !t.isCompleted && isTaskDueThroughEndOfToday(t.dueDate))
+          .map((t) => t.id) ?? [];
+      if (ids.length) ackReminderTaskIds(ids, stages);
+      setReminderAckVersion((x) => x + 1);
+      setActiveTicket(ticket);
+      setInitialTab('tasks');
+    },
+    [stages],
+  );
 
   // Atualiza o ticket ativo se houver mudanças no quadro
   const handleTicketUpdated = async () => {
@@ -141,14 +202,6 @@ export default function SolicitacoesPage() {
     })
   }));
 
-  const pendingTasks = stages.flatMap(s => s.tickets).flatMap(t => t.tasks ? t.tasks.map(task => ({ ...task, ticket: t })) : []).filter(task => {
-    if (task.isCompleted) return false;
-    const dueDate = new Date(task.dueDate);
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
-    return dueDate <= endOfToday;
-  }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
@@ -160,8 +213,9 @@ export default function SolicitacoesPage() {
         <KanbanHeader 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          pendingTasks={pendingTasks}
-          onTaskClick={(ticket) => { setActiveTicket(ticket); setInitialTab('tasks'); }}
+          pendingTasks={pendingUnackedTasks}
+          onRemindersPanelOpened={onRemindersPanelOpened}
+          onTaskClick={openTicketWithReminderAck}
           onOpenArchive={() => setIsArchivedModalOpen(true)}
           onOpenStageManager={() => setIsStageManagerOpen(true)}
           onOpenNewTicket={() => setIsNewTicketModalOpen(true)}
@@ -171,10 +225,11 @@ export default function SolicitacoesPage() {
           isLoading={isLoading}
           filteredStages={filteredStages}
           searchTerm={searchTerm}
+          reminderUnackedByTicketId={reminderUnackedByTicketId}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          onTicketClick={(ticket) => { setActiveTicket(ticket); setInitialTab('tasks'); }}
+          onTicketClick={openTicketWithReminderAck}
         />
 
       </main>

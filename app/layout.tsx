@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css"; // Importa os estilos globais (Tailwind, etc)
 import { WhatsappStreamProvider } from "@/components/whatsapp/WhatsappStreamProvider";
+import { SolicitacoesRemindersProvider } from "@/components/solicitacoes/SolicitacoesRemindersProvider";
 
 // Fonte Inter é a mais indicada para o visual profissional da Suporte Imagem
 const inter = Inter({ subsets: ["latin"] });
@@ -26,7 +27,9 @@ export default function RootLayout({
           O fundo e o efeito espelhado serão controlados pelo login.css 
           dentro da página de login.
         */}
-        <WhatsappStreamProvider>{children}</WhatsappStreamProvider>
+        <WhatsappStreamProvider>
+          <SolicitacoesRemindersProvider>{children}</SolicitacoesRemindersProvider>
+        </WhatsappStreamProvider>
       </body>
     </html>
   );

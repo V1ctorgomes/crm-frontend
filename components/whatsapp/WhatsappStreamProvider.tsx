@@ -108,7 +108,7 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
             saveUnreadAndBroadcast(next);
           }
           if (document.hidden) {
-            void applyTabFaviconBadgeIfHidden();
+            applyTabFaviconBadgeIfHidden();
           }
         }
       } catch {

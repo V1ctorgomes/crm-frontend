@@ -22,6 +22,7 @@ import {
   unreadConversationsCount,
   WHATSAPP_UNREAD_STORAGE_KEY,
 } from '@/lib/whatsapp-notifications';
+import { REMINDERS_BADGE_EVENT } from '@/lib/solicitacoes-reminders';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -43,6 +44,7 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [whatsappUnreadTotal, setWhatsappUnreadTotal] = useState(0);
+  const [solicitacoesRemindersTickets, setSolicitacoesRemindersTickets] = useState(0);
 
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
@@ -146,6 +148,21 @@ export default function Sidebar() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onReminders = (e: Event) => {
+      const ce = e as CustomEvent<{ ticketsWithUnackedReminders?: number }>;
+      const n = ce.detail?.ticketsWithUnackedReminders;
+      if (typeof n === 'number') setSolicitacoesRemindersTickets(n);
+    };
+
+    window.addEventListener(REMINDERS_BADGE_EVENT, onReminders as EventListener);
+    return () => {
+      window.removeEventListener(REMINDERS_BADGE_EVENT, onReminders as EventListener);
+    };
+  }, []);
+
   return (
     <>
       {/* CABEÇALHO MOBILE (Visível apenas em ecrãs pequenos) */}
@@ -207,6 +224,11 @@ export default function Sidebar() {
                   {item.path === '/whatsapp' && whatsappUnreadTotal > 0 && (
                     <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums shrink-0 leading-none">
                       {whatsappUnreadTotal > 99 ? '99+' : whatsappUnreadTotal}
+                    </span>
+                  )}
+                  {item.path === '/solicitacoes' && solicitacoesRemindersTickets > 0 && (
+                    <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums shrink-0 leading-none">
+                      {solicitacoesRemindersTickets > 99 ? '99+' : solicitacoesRemindersTickets}
                     </span>
                   )}
                 </div>
