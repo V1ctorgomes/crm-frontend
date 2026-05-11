@@ -1,23 +1,6 @@
 const FAVICON_SELECTOR = 'link[data-crm-favicon="dynamic"]';
-const ICON_PATH = '/icon.png';
-
-let cachedIconEl: HTMLImageElement | null = null;
-
-function loadSidebarIcon(): Promise<HTMLImageElement> {
-  if (cachedIconEl?.complete && cachedIconEl.naturalWidth > 0) {
-    return Promise.resolve(cachedIconEl);
-  }
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.decoding = 'async';
-    img.onload = () => {
-      cachedIconEl = img;
-      resolve(img);
-    };
-    img.onerror = () => reject(new Error('favicon base image'));
-    img.src = ICON_PATH;
-  });
-}
+/** Ícone padrão da app (sidebar / metadata). */
+export const DEFAULT_TAB_ICON_PATH = '/icon.png';
 
 function getOrCreateDynamicFaviconLink(): HTMLLinkElement {
   let link = document.querySelector(FAVICON_SELECTOR) as HTMLLinkElement | null;
@@ -31,26 +14,70 @@ function getOrCreateDynamicFaviconLink(): HTMLLinkElement {
   return link;
 }
 
-function drawBadgedPngDataUrl(img: HTMLImageElement): string {
+/** Ícone de carta + bolinha verde (aba em segundo plano com mensagem nova). */
+function drawLetterWithBadgeDataUrl(): string {
   const size = 32;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new URL(ICON_PATH, window.location.origin).href;
+  if (!ctx) return new URL(DEFAULT_TAB_ICON_PATH, window.location.origin).href;
 
-  const scale = Math.max(size / img.width, size / img.height);
-  const w = img.width * scale;
-  const h = img.height * scale;
-  const x = (size - w) / 2;
-  const y = (size - h) / 2;
-  ctx.drawImage(img, x, y, w, h);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
 
+  const pad = 5;
+  const topY = 9;
+  const foldY = 17;
+  const botY = 25;
+
+  // Corpo do envelope
+  ctx.beginPath();
+  ctx.moveTo(pad, topY);
+  ctx.lineTo(pad, botY);
+  ctx.lineTo(size - pad, botY);
+  ctx.lineTo(size - pad, topY);
+  ctx.closePath();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fill();
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+
+  // Aba superior (dobra em V)
+  ctx.beginPath();
+  ctx.moveTo(pad, topY);
+  ctx.lineTo(size / 2, foldY);
+  ctx.lineTo(size - pad, topY);
+  ctx.closePath();
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fill();
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+
+  // Contorno da aba por cima do corpo
+  ctx.beginPath();
+  ctx.moveTo(pad, topY);
+  ctx.lineTo(size / 2, foldY);
+  ctx.lineTo(size - pad, topY);
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // “Fenda” da carta (linha curta)
+  ctx.beginPath();
+  ctx.moveTo(size / 2 - 4, foldY + 2);
+  ctx.lineTo(size / 2 + 4, foldY + 2);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Bolinha verde (notificação)
   const cx = size - 6;
   const cy = 6;
-  const r = 5.5;
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
   ctx.fillStyle = '#10b981';
   ctx.fill();
   ctx.strokeStyle = '#ffffff';
@@ -60,22 +87,19 @@ function drawBadgedPngDataUrl(img: HTMLImageElement): string {
   return canvas.toDataURL('image/png');
 }
 
-/** Quando a aba está em segundo plano, mostra bolinha no favicon (imagem da sidebar). */
-export async function applyTabFaviconBadgeIfHidden(): Promise<void> {
+/** Com a aba em segundo plano: favicon = carta + bolinha verde. */
+export function applyTabFaviconBadgeIfHidden(): void {
   if (typeof document === 'undefined' || !document.hidden) return;
   try {
-    const img = await loadSidebarIcon();
-    const href = drawBadgedPngDataUrl(img);
+    const href = drawLetterWithBadgeDataUrl();
     getOrCreateDynamicFaviconLink().href = href;
   } catch {
     /* ignore */
   }
 }
 
-/** Volta ao ícone normal ao focar a aba. */
+/** Volta ao ícone padrão (`icon.png`) ao focar a aba. */
 export function resetTabFaviconToDefault(): void {
   if (typeof document === 'undefined') return;
-  const href = new URL(ICON_PATH, window.location.origin).href;
-  const link = document.querySelector(FAVICON_SELECTOR) as HTMLLinkElement | null;
-  if (link) link.href = href;
+  document.querySelector(FAVICON_SELECTOR)?.remove();
 }
