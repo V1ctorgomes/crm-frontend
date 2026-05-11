@@ -10,12 +10,13 @@ import { EvolutionCard } from '@/components/developer/EvolutionCard';
 import { CloudflareCard } from '@/components/developer/CloudflareCard';
 import { ProxyForm } from '@/components/developer/ProxyForm';
 import { ProxiesTable } from '@/components/developer/ProxiesTable';
+import { CatalogOsManager } from '@/components/developer/CatalogOsManager';
 import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
 export default function DeveloperPage() {
-  const [activeTab, setActiveTab] = useState<'providers' | 'proxies'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'proxies' | 'catalogo'>('providers');
   
   // Feedback System (Toast)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -162,7 +163,7 @@ export default function DeveloperPage() {
                 isSavingProviders={isSavingProviders} handleSaveCf={handleSaveCf}
               />
             </div>
-          ) : (
+          ) : activeTab === 'proxies' ? (
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
               <ProxyForm 
                 proxyForm={proxyForm} setProxyForm={setProxyForm}
@@ -171,6 +172,15 @@ export default function DeveloperPage() {
               <ProxiesTable 
                 proxies={proxies} handleDeleteProxy={handleDeleteProxy} 
               />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-slate-600 max-w-3xl">
+                Estas listas alimentam os campos <strong>Marca</strong>, <strong>Modelo</strong>, <strong>Tipo de cliente</strong> e{' '}
+                <strong>Tipo de solicitação</strong> ao criar uma OS na página de solicitações ou no WhatsApp. Só entram valores
+                cadastrados aqui (e ativos).
+              </p>
+              <CatalogOsManager showFeedback={showFeedback} />
             </div>
           )}
         </div>

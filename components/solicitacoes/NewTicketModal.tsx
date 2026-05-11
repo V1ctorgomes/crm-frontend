@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Contact, Stage } from './types';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { CATALOG_CATEGORY_LABELS, type TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 
 interface NewTicketModalProps {
   contacts: Contact[];
@@ -22,6 +23,26 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
   const [formCustomerType, setFormCustomerType] = useState('');
   const [formTicketType, setFormTicketType] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [catalog, setCatalog] = useState<TicketCatalogOptions | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCatalogLoading(true);
+      try {
+        const data = (await apiRequest('/ticket-catalog')) as TicketCatalogOptions;
+        if (!cancelled) setCatalog(data);
+      } catch {
+        if (!cancelled) setCatalog(null);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const contact = contacts.find((c) => c.number === selectedContactNumber);
@@ -65,6 +86,13 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
     }
   };
 
+  const catalogReady =
+    catalog &&
+    catalog.MARCA.length > 0 &&
+    catalog.MODELO.length > 0 &&
+    catalog.CUSTOMER_TYPE.length > 0 &&
+    catalog.TICKET_TYPE.length > 0;
+
   return (
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
@@ -74,6 +102,16 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
         </div>
         
         <div className="p-6 flex flex-col gap-4">
+          {catalogLoading && (
+            <p className="text-xs text-slate-500">A carregar listas de marca, modelo e tipos…</p>
+          )}
+          {!catalogLoading && !catalogReady && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              O catálogo de OS está incompleto ou vazio. Peça a um utilizador <strong>Developer</strong> para preencher as quatro
+              listas em <strong>Developer → Catálogo de OS</strong> antes de criar solicitações.
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">
               Cliente / contacto <span className="text-red-600">*</span>
@@ -135,61 +173,89 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
           <div className="flex gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">
-                Marca <span className="text-red-600">*</span>
+                {CATALOG_CATEGORY_LABELS.MARCA} <span className="text-red-600">*</span>
               </label>
-              <input
-                type="text"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+              <select
+                disabled={!catalogReady}
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:bg-slate-100"
                 value={formMarca}
                 onChange={(e) => setFormMarca(e.target.value)}
-                placeholder="Ex: Apple"
-              />
+              >
+                <option value="">— Selecione —</option>
+                {(catalog?.MARCA || []).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">
-                Modelo <span className="text-red-600">*</span>
+                {CATALOG_CATEGORY_LABELS.MODELO} <span className="text-red-600">*</span>
               </label>
-              <input
-                type="text"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+              <select
+                disabled={!catalogReady}
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:bg-slate-100"
                 value={formModelo}
                 onChange={(e) => setFormModelo(e.target.value)}
-                placeholder="Ex: iPhone 13"
-              />
+              >
+                <option value="">— Selecione —</option>
+                {(catalog?.MODELO || []).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">
-                Tipo de cliente <span className="text-red-600">*</span>
+                {CATALOG_CATEGORY_LABELS.CUSTOMER_TYPE} <span className="text-red-600">*</span>
               </label>
-              <input
-                type="text"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+              <select
+                disabled={!catalogReady}
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:bg-slate-100"
                 value={formCustomerType}
                 onChange={(e) => setFormCustomerType(e.target.value)}
-                placeholder="Ex: Revenda"
-              />
+              >
+                <option value="">— Selecione —</option>
+                {(catalog?.CUSTOMER_TYPE || []).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">
-                Tipo de solicitação <span className="text-red-600">*</span>
+                {CATALOG_CATEGORY_LABELS.TICKET_TYPE} <span className="text-red-600">*</span>
               </label>
-              <input
-                type="text"
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+              <select
+                disabled={!catalogReady}
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:bg-slate-100"
                 value={formTicketType}
                 onChange={(e) => setFormTicketType(e.target.value)}
-                placeholder="Ex: Orçamento"
-              />
+              >
+                <option value="">— Selecione —</option>
+                {(catalog?.TICKET_TYPE || []).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
         
         <div className="flex items-center justify-end gap-2 p-6 pt-0">
           <button onClick={onClose} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-brand-950 h-10 px-4 py-2 border border-slate-200">Cancelar</button>
-          <button onClick={handleCreateTicket} disabled={isSubmitting} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-brand-600 text-white hover:bg-brand-700 h-10 px-4 py-2 disabled:opacity-50">
+          <button
+            onClick={handleCreateTicket}
+            disabled={isSubmitting || catalogLoading || !catalogReady}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-brand-600 text-white hover:bg-brand-700 h-10 px-4 py-2 disabled:opacity-50"
+          >
             {isSubmitting ? 'A criar...' : 'Criar OS'}
           </button>
         </div>

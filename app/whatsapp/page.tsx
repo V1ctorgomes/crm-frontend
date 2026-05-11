@@ -13,6 +13,7 @@ import { ChatInput } from '@/components/whatsapp/ChatInput';
 import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -78,6 +79,7 @@ export default function WhatsAppPage() {
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState(''); 
   const [formTicketType, setFormTicketType] = useState('');
+  const [ticketCatalog, setTicketCatalog] = useState<TicketCatalogOptions | null>(null);
 
   // States: Gravação de Áudio
   const [isRecording, setIsRecording] = useState(false);
@@ -131,6 +133,14 @@ export default function WhatsAppPage() {
 
         const stagesData = await apiRequest('/tickets/stages').catch(() => []);
         setStages(stagesData);
+
+        let catData: TicketCatalogOptions | null = null;
+        try {
+          catData = (await apiRequest('/ticket-catalog')) as TicketCatalogOptions;
+        } catch {
+          catData = null;
+        }
+        setTicketCatalog(catData);
 
         const customersData = await apiRequest('/customers').catch(() => []);
         setCrmCustomers(customersData);
@@ -628,7 +638,27 @@ export default function WhatsAppPage() {
 
       {isInstanceModalOpen && <InstanceModal onClose={() => setIsInstanceModalOpen(false)} instances={instances} selectedInstance={selectedInstance} setSelectedInstance={setSelectedInstance} handleSelectContact={handleSelectContact} />}
       {isDeleteModalOpen && <DeleteChatModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDeleteConversation} />}
-      {isNewTicketModalOpen && <CreateTicketModal onClose={() => setIsNewTicketModalOpen(false)} formNome={formNome} setFormNome={setFormNome} formEmail={formEmail} setFormEmail={setFormEmail} formCpf={formCpf} setFormCpf={setFormCpf} formMarca={formMarca} setFormMarca={setFormMarca} formModelo={formModelo} setFormModelo={setFormModelo} formCustomerType={formCustomerType} setFormCustomerType={setFormCustomerType} formTicketType={formTicketType} setFormTicketType={setFormTicketType} handleCreateTicket={handleCreateTicket} />}
+      {isNewTicketModalOpen && (
+        <CreateTicketModal
+          onClose={() => setIsNewTicketModalOpen(false)}
+          formNome={formNome}
+          setFormNome={setFormNome}
+          formEmail={formEmail}
+          setFormEmail={setFormEmail}
+          formCpf={formCpf}
+          setFormCpf={setFormCpf}
+          formMarca={formMarca}
+          setFormMarca={setFormMarca}
+          formModelo={formModelo}
+          setFormModelo={setFormModelo}
+          formCustomerType={formCustomerType}
+          setFormCustomerType={setFormCustomerType}
+          formTicketType={formTicketType}
+          setFormTicketType={setFormTicketType}
+          handleCreateTicket={handleCreateTicket}
+          ticketCatalog={ticketCatalog}
+        />
+      )}
       {viewerMessage && viewerMessage.mediaData && <MediaViewerModal viewerMessage={viewerMessage} onClose={() => setViewerMessage(null)} />}
     </div>
   );
