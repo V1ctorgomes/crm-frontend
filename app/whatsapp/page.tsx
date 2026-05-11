@@ -13,6 +13,16 @@ import { ChatInput } from '@/components/whatsapp/ChatInput';
 import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
 
+/** Opus em WebM ou OGG — evita gravação vazia/incompatível com o default do browser. */
+function pickAudioRecordingMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+  for (const t of candidates) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return undefined;
+}
+
 export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
   const [instances, setInstances] = useState<any[]>([]);
@@ -57,6 +67,7 @@ export default function WhatsAppPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingMimeRef = useRef<string>('audio/webm');
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCancelledRef = useRef<boolean>(false);
 
@@ -342,7 +353,16 @@ export default function WhatsAppPage() {
 
     try {
       const savedData = await apiRequest('/whatsapp/send-media', { method: 'POST', body: formData });
-      setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
+      setChatHistory((prev) => ({
+        ...prev,
+        [targetNumber]: prev[targetNumber].map((msg) => {
+          if (msg.id !== tempId) return msg;
+          if (typeof msg.mediaData === 'string' && msg.mediaData.startsWith('blob:')) {
+            URL.revokeObjectURL(msg.mediaData);
+          }
+          return { ...msg, id: savedData.id, mediaData: savedData.mediaData };
+        }),
+      }));
     } catch (error) { showFeedback('error', "Erro de conexão ao enviar arquivo."); } 
     finally { setIsSending(false); }
   };
@@ -401,21 +421,36 @@ export default function WhatsAppPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeChoice = pickAudioRecordingMimeType();
+      const mediaRecorder = mimeChoice
+        ? new MediaRecorder(stream, { mimeType: mimeChoice })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       isCancelledRef.current = false;
+      recordingMimeRef.current = mediaRecorder.mimeType || 'audio/webm';
 
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
       mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         if (isCancelledRef.current) return;
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+        const chunks = audioChunksRef.current;
+        const totalBytes = chunks.reduce((n, b) => n + b.size, 0);
+        if (totalBytes < 256) {
+          showFeedback('error', 'Gravação vazia ou demasiado curta. Tente falar mais perto do microfone.');
+          return;
+        }
+        const blobType = recordingMimeRef.current || 'audio/webm';
+        const audioBlob = new Blob(chunks, { type: blobType });
+        const ext = blobType.includes('ogg') && !blobType.includes('webm') ? 'ogg' : 'webm';
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.${ext}`, { type: blobType });
         await sendDirectMedia(audioFile, '');
       };
 
-      mediaRecorder.start();
+      // Timeslice garante chunks antes do stop (sem isto, alguns browsers gravam silêncio / ficheiro vazio).
+      mediaRecorder.start(250);
       setIsRecording(true);
       setRecordingTime(0);
       timerIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
@@ -423,20 +458,30 @@ export default function WhatsAppPage() {
   };
 
   const stopRecordingAndSend = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    const mr = mediaRecorderRef.current;
+    if (!mr || !isRecording) return;
+    try {
+      if (mr.state === 'recording') mr.requestData();
+    } catch {
+      /* ignore */
     }
+    mr.stop();
+    setIsRecording(false);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
 
   const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      isCancelledRef.current = true;
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    const mr = mediaRecorderRef.current;
+    if (!mr || !isRecording) return;
+    isCancelledRef.current = true;
+    try {
+      if (mr.state === 'recording') mr.requestData();
+    } catch {
+      /* ignore */
     }
+    mr.stop();
+    setIsRecording(false);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
 
   const openNewTicketModal = () => {
