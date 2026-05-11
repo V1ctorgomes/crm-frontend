@@ -1,6 +1,21 @@
 import React from 'react';
 
-export function LoginBanner() {
+export type RecentMember = { id: string; name: string; profilePictureUrl: string | null };
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+interface LoginBannerProps {
+  recentUsers?: RecentMember[];
+}
+
+export function LoginBanner({ recentUsers = [] }: LoginBannerProps) {
+  /** Ordem visual: o mais recente à frente (direita) — invertemos o mais recente primeiro da API */
+  const stack = [...recentUsers].slice(0, 3).reverse();
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center border-r border-brand-950">
       {/* Base verde profundo */}
@@ -42,17 +57,34 @@ export function LoginBanner() {
         </p>
 
         <div className="mt-12 flex items-center gap-4">
-          <div className="flex -space-x-3">
-            <div className="w-10 h-10 rounded-full border-2 border-brand-950 bg-highlight/95 flex items-center justify-center font-bold text-xs text-brand-900">
-              A
+          {stack.length > 0 && (
+            <div className="flex -space-x-3">
+              {stack.map((u, i) => (
+                <div
+                  key={u.id}
+                  style={{ zIndex: i + 1 }}
+                  className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-brand-950 bg-brand-600"
+                  title={u.name}
+                >
+                  {u.profilePictureUrl ? (
+                    <img
+                      src={u.profilePictureUrl}
+                      alt={u.name}
+                      className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center bg-brand-600 text-[10px] font-bold text-white"
+                      aria-label={u.name}
+                    >
+                      {initials(u.name)}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="w-10 h-10 rounded-full border-2 border-brand-950 bg-brand-500 flex items-center justify-center font-bold text-xs text-white">
-              B
-            </div>
-            <div className="w-10 h-10 rounded-full border-2 border-brand-950 bg-brand-200 flex items-center justify-center font-bold text-xs text-brand-900">
-              C
-            </div>
-          </div>
+          )}
           <p className="text-sm font-medium text-highlight/90">Junte-se à sua equipa.</p>
         </div>
       </div>
