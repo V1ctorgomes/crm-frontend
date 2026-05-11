@@ -54,8 +54,15 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
             >
               {msg.isMedia && msg.mediaData && (
                 msg.mimeType?.startsWith('audio/') ? (
-                  <div className="mb-1 w-full max-w-[min(100%,280px)]">
-                    <audio controls src={msg.mediaData} className="h-10 w-full max-w-full outline-none" preload="metadata" />
+                  // Largura fixa: o elemento <audio> não tem tamanho intrínseco e colapsa
+                  // dentro de balões `w-fit`, mostrando apenas o menu (⋮). Fixar o container resolve.
+                  <div className="mb-1 w-[260px] max-w-full sm:w-[300px]">
+                    <audio
+                      controls
+                      src={msg.mediaData}
+                      className="block h-10 w-full outline-none"
+                      preload="metadata"
+                    />
                   </div>
                 ) : (
                   <div

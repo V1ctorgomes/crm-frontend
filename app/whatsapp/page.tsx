@@ -183,18 +183,57 @@ export default function WhatsAppPage() {
 
           setChatHistory(prev => {
             const history = prev[contactNumber] || [];
-            if (history.some(m => m.id === waId)) return prev;
+
+            // Normaliza os ids para comparar sem o prefixo "userId:"
+            const idMatches = (a: string | number, b: string | number) => {
+              const sa = String(a);
+              const sb = String(b);
+              if (sa === sb) return true;
+              const tailA = sa.includes(':') ? sa.split(':').pop()! : sa;
+              const tailB = sb.includes(':') ? sb.split(':').pop()! : sb;
+              return tailA === tailB;
+            };
+
+            if (history.some((m) => idMatches(m.id, waId))) return prev;
+
             if (isFromMe) {
-               const dupOptimistic = history.find(m => m.fromMe && m.text === incomingText && typeof m.id === 'number');
-               if (dupOptimistic) {
-                 return {
-                   ...prev,
-                   [contactNumber]: history.map((m) =>
-                     m === dupOptimistic ? { ...m, id: waId, sentAt: m.sentAt ?? sentAtIso } : m,
-                   ),
-                 };
-               }
+              // 1) Casa com mensagem otimista (ainda com id numérico)
+              let dupOptimistic = history.find(
+                (m) => m.fromMe && m.text === incomingText && typeof m.id === 'number',
+              );
+
+              // 2) Caso a resposta HTTP de /send-media já tenha promovido o id para string,
+              // casa pela combinação fileName + mimeType + isMedia (últimas mensagens recentes do nosso lado).
+              if (!dupOptimistic && newMessage.isMedia) {
+                const recent = history.slice(-6);
+                dupOptimistic = recent.find(
+                  (m) =>
+                    m.fromMe &&
+                    m.isMedia === true &&
+                    (m.fileName || '') === (newMessage.fileName || '') &&
+                    (m.mimeType || '') === (newMessage.mimeType || ''),
+                );
+              }
+
+              if (dupOptimistic) {
+                return {
+                  ...prev,
+                  [contactNumber]: history.map((m) =>
+                    m === dupOptimistic
+                      ? {
+                          ...m,
+                          id: waId,
+                          sentAt: m.sentAt ?? sentAtIso,
+                          mediaData: newMessage.mediaData || m.mediaData,
+                          mimeType: newMessage.mimeType || m.mimeType,
+                          fileName: newMessage.fileName || m.fileName,
+                        }
+                      : m,
+                  ),
+                };
+              }
             }
+
             return { ...prev, [contactNumber]: [...history, newMessage] };
           });
 
