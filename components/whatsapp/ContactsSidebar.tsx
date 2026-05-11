@@ -1,5 +1,6 @@
 import React from 'react';
 import { Contact } from './types';
+import { WhatsappPushAlertRow } from '@/components/whatsapp/WhatsappPushAlertRow';
 
 interface ContactsSidebarProps {
   activeContact: Contact | null;
@@ -13,11 +14,13 @@ interface ContactsSidebarProps {
   handleSelectContact: (contact: Contact | null) => void;
   startChatWithContact: (contact: any) => void;
   unreadByContact: Record<string, number>;
+  onPushToast?: (message: string, type: 'success' | 'error') => void;
 }
 
 export function ContactsSidebar({
   activeContact, customerSearch, setCustomerSearch, instances, selectedInstance, onOpenInstanceModal, 
   filteredActiveContacts, filteredNewContacts, handleSelectContact, startChatWithContact, unreadByContact,
+  onPushToast,
 }: ContactsSidebarProps) {
   return (
     <div className={`w-full md:w-[320px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
@@ -45,6 +48,7 @@ export function ContactsSidebar({
             </button>
           )}
         </div>
+        {onPushToast && <WhatsappPushAlertRow onToast={onPushToast} />}
       </div>
       
       <div className="flex-1 overflow-y-auto no-scrollbar bg-white">

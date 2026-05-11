@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Link as LinkIcon, AlertTriangle, QrCode, X } from 'lucide-react';
+import { User, Link as LinkIcon, AlertTriangle, QrCode, X, Bell } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
 import { ProfileTab } from './ProfileTab';
 import { ConnectionsTab } from './ConnectionsTab';
+import { NotificationsSettingsTab } from './NotificationsSettingsTab';
 import { Instance, ProxyNode } from './types';
 import { apiRequest } from '@/lib/api-client';
 
@@ -13,7 +14,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'conexoes'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'conexoes' | 'notificacoes'>('perfil');
 
   // ================= ESTADOS =================
   const [userData, setUserData] = useState<any>(null);
@@ -183,6 +184,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             >
               <LinkIcon className={`w-5 h-5 ${activeTab === 'conexoes' ? 'text-brand-600' : 'text-slate-400'}`} /> Conexões API
             </button>
+            <button 
+              onClick={() => setActiveTab('notificacoes')} 
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all text-left ${activeTab === 'notificacoes' ? 'bg-white text-brand-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:bg-slate-200/50 hover:text-brand-950 border border-transparent'}`}
+            >
+              <Bell className={`w-5 h-5 ${activeTab === 'notificacoes' ? 'text-brand-600' : 'text-slate-400'}`} /> Notificações
+            </button>
           </div>
 
           {/* Área de Conteúdo */}
@@ -193,7 +200,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 name={name} setName={setName} email={email} setEmail={setEmail} password={password} setPassword={setPassword}
                 photoPreview={photoPreview} fileInputRef={fileInputRef} handlePhotoSelect={handlePhotoSelect} handleSaveProfile={handleSaveProfile}
               />
-            ) : (
+            ) : activeTab === 'conexoes' ? (
               <ConnectionsTab 
                 selectedProvider={selectedProvider} setSelectedProvider={setSelectedProvider} instances={instances}
                 isInstancesLoading={isInstancesLoading} availableProxies={availableProxies} newInstanceName={newInstanceName}
@@ -201,6 +208,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 isCreatingInstance={isCreatingInstance} handleCreateInstance={handleCreateInstance} handleConnectInstance={handleConnectInstance}
                 handleDeleteInstance={handleDeleteInstance}
               />
+            ) : (
+              <NotificationsSettingsTab showFeedback={showFeedback} />
             )}
           </div>
         </div>

@@ -536,6 +536,7 @@ export default function WhatsAppPage() {
               filteredActiveContacts={filteredActiveContacts} filteredNewContacts={filteredNewContacts}
               handleSelectContact={handleSelectContact} startChatWithContact={startChatWithContact}
               unreadByContact={unreadByContact}
+              onPushToast={(message, type) => setToast({ type, message })}
             />
 
             <div className={`flex-1 flex-col relative bg-brand-canvas overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>

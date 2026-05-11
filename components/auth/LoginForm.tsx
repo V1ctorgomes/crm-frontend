@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '@/lib/api-client';
+import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -31,6 +32,8 @@ export function LoginForm() {
           data.role === 'DEVELOPER'
             ? '/developer'
             : '/dashboard';
+        // Mesmo stack do clique em «Entrar» — melhora a chance do browser mostrar o pedido de notificações.
+        await ensureWebPushSubscription().catch(() => undefined);
         router.replace(dest);
         router.refresh();
       } else {

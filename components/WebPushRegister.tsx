@@ -6,21 +6,20 @@ import { getAuthToken } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
 /**
- * Após login, regista service worker + push e envia a subscrição ao backend.
- * Requer NEXT_PUBLIC_VAPID_PUBLIC_KEY e no backend VAPID_* + HTTPS (ou localhost).
+ * Após login, tenta registar push (chave pública via env ou GET no backend).
+ * O pedido de permissão também existe no WhatsApp / Configurações (melhor com gesto do utilizador).
  */
 export function WebPushRegister() {
   const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim()) return;
     if (!getAuthToken()) return;
     if (pathname === '/login') return;
 
     const id = window.setTimeout(() => {
       ensureWebPushSubscription().catch(() => undefined);
-    }, 1500);
+    }, 2000);
 
     return () => window.clearTimeout(id);
   }, [pathname]);
