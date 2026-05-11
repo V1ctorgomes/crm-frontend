@@ -6,13 +6,10 @@ import { WhatsappStreamProvider } from "@/components/whatsapp/WhatsappStreamProv
 // Fonte Inter é a mais indicada para o visual profissional da Suporte Imagem
 const inter = Inter({ subsets: ["latin"] });
 
+// Favicon: `app/icon.png` e `app/apple-icon.png` (cópias de `public/icon.png`). Evitar `app/favicon.ico` genérico do Next.
 export const metadata: Metadata = {
   title: "Suporte Imagem - CRM",
   description: "Sistema de Gestão de Clientes",
-  icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
-    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
-  },
 };
 
 export default function RootLayout({
