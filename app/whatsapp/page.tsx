@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import Sidebar from '@/components/Sidebar'; 
 import { Toast } from '@/components/ui/toast';
 import { Message, Contact, Stage } from '@/components/whatsapp/types';
@@ -17,10 +16,12 @@ import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 import {
   loadUnreadByContact,
-  playIncomingMessageSound,
-  primeWhatsappNotificationAudio,
   saveUnreadAndBroadcast,
+  WHATSAPP_UNREAD_STORAGE_KEY,
 } from '@/lib/whatsapp-notifications';
+import { mergeWhatsappIngressDetail } from '@/lib/whatsapp-merge-ingress';
+import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
+import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -63,20 +64,36 @@ export default function WhatsAppPage() {
   const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
 
   const chatHistoryRef = useRef<Record<string, Message[]>>({});
-  const activeContactRef = useRef<Contact | null>(null);
   useEffect(() => {
     chatHistoryRef.current = chatHistory;
   }, [chatHistory]);
+
   useEffect(() => {
-    activeContactRef.current = activeContact;
+    whatsappActiveContactRef.current = activeContact?.number ?? null;
+    return () => {
+      whatsappActiveContactRef.current = null;
+    };
   }, [activeContact]);
 
   useEffect(() => {
-    const once = () => {
-      primeWhatsappNotificationAudio();
+    whatsappIngressMergerRef.current = (detail) =>
+      mergeWhatsappIngressDetail(detail, setChatHistory, setContacts, chatHistoryRef);
+    return () => {
+      whatsappIngressMergerRef.current = null;
     };
-    window.addEventListener('pointerdown', once, { once: true });
-    return () => window.removeEventListener('pointerdown', once);
+  }, [setChatHistory, setContacts]);
+
+  useEffect(() => {
+    const sync = () => setUnreadByContact(loadUnreadByContact());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === WHATSAPP_UNREAD_STORAGE_KEY) sync();
+    };
+    window.addEventListener('crm-whatsapp-unread', sync as EventListener);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('crm-whatsapp-unread', sync as EventListener);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const [previewFile, setPreviewFile] = useState<File | null>(null);
@@ -210,158 +227,6 @@ export default function WhatsAppPage() {
       fetchHistory();
     }
   }, [activeContact, baseUrl, chatHistory]);
-
-  useEffect(() => {
-    if (hasInstances === false) return; 
-    const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if ((payload?.event === 'messages.upsert' || payload?.event === 'send.message') && payload?.data) {
-          const msgData = payload.data;
-          const remoteJid = msgData.key?.remoteJid;
-          if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
-          
-          const contactNumber = remoteJid.split('@')[0];
-          const isFromMe = msgData.key?.fromMe || false;
-          const waId = msgData.key?.id || Date.now().toString(); 
-          const now = new Date();
-          const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const rawTs = msgData.messageTimestamp ?? msgData.timestamp ?? msgData.key?.messageTimestamp;
-          const sentAtIso =
-            typeof rawTs === 'number'
-              ? new Date(rawTs < 1e12 ? rawTs * 1000 : rawTs).toISOString()
-              : now.toISOString();
-
-          const customMedia = msgData.customMedia || {};
-          let incomingText = customMedia.text !== undefined ? customMedia.text : (msgData.message?.conversation || msgData.message?.extendedTextMessage?.text || "");
-          let fallbackSidebarText = msgData.message?.imageMessage ? "Imagem" : msgData.message?.documentMessage ? "Documento" : msgData.message?.audioMessage ? "Áudio" : msgData.message?.videoMessage ? "Vídeo" : "Mídia";
-
-          const newMessage: Message = {
-            id: waId,
-            text: incomingText,
-            type: isFromMe ? 'sent' : 'received',
-            time: timeNow,
-            sentAt: sentAtIso,
-            fromMe: isFromMe,
-            senderNumber: contactNumber,
-            isMedia: customMedia.isMedia || false,
-            mediaData: customMedia.mediaData,
-            mimeType: customMedia.mimeType,
-            fileName: customMedia.fileName,
-          };
-
-          const idMatches = (a: string | number, b: string | number) => {
-            const sa = String(a);
-            const sb = String(b);
-            if (sa === sb) return true;
-            const tailA = sa.includes(':') ? sa.split(':').pop()! : sa;
-            const tailB = sb.includes(':') ? sb.split(':').pop()! : sb;
-            return tailA === tailB;
-          };
-
-          /** Som + não lidas só quando o estado de histórico confirma mensagem nova (evita corrida com chatHistoryRef). */
-          const incomingNotify = { appendedIncoming: false };
-
-          flushSync(() => {
-            setChatHistory((prev) => {
-              incomingNotify.appendedIncoming = false;
-              const history = prev[contactNumber] || [];
-
-              if (history.some((m) => idMatches(m.id, waId))) return prev;
-
-              if (isFromMe) {
-                // 1) Casa com mensagem otimista (ainda com id numérico)
-                let dupOptimistic = history.find(
-                  (m) => m.fromMe && m.text === incomingText && typeof m.id === 'number',
-                );
-
-                // 2) Caso a resposta HTTP de /send-media já tenha promovido o id para string,
-                // casa pela combinação fileName + mimeType + isMedia (últimas mensagens recentes do nosso lado).
-                if (!dupOptimistic && newMessage.isMedia) {
-                  const recent = history.slice(-6);
-                  dupOptimistic = recent.find(
-                    (m) =>
-                      m.fromMe &&
-                      m.isMedia === true &&
-                      (m.fileName || '') === (newMessage.fileName || '') &&
-                      (m.mimeType || '') === (newMessage.mimeType || ''),
-                  );
-                }
-
-                if (dupOptimistic) {
-                  const next = {
-                    ...prev,
-                    [contactNumber]: history.map((m) =>
-                      m === dupOptimistic
-                        ? {
-                            ...m,
-                            id: waId,
-                            sentAt: m.sentAt ?? sentAtIso,
-                            mediaData: newMessage.mediaData || m.mediaData,
-                            mimeType: newMessage.mimeType || m.mimeType,
-                            fileName: newMessage.fileName || m.fileName,
-                          }
-                        : m,
-                    ),
-                  };
-                  chatHistoryRef.current = next;
-                  return next;
-                }
-
-                const nextSent = { ...prev, [contactNumber]: [...history, newMessage] };
-                chatHistoryRef.current = nextSent;
-                return nextSent;
-              }
-
-              incomingNotify.appendedIncoming = true;
-              const nextIn = { ...prev, [contactNumber]: [...history, newMessage] };
-              chatHistoryRef.current = nextIn;
-              return nextIn;
-            });
-          });
-
-          if (incomingNotify.appendedIncoming) {
-            const viewing =
-              activeContactRef.current?.number === contactNumber &&
-              typeof document !== 'undefined' &&
-              document.visibilityState === 'visible';
-            playIncomingMessageSound(viewing);
-            if (!viewing) {
-              setUnreadByContact((prev) => {
-                const next = { ...prev, [contactNumber]: (prev[contactNumber] || 0) + 1 };
-                saveUnreadAndBroadcast(next);
-                return next;
-              });
-            }
-          }
-
-          setContacts(prev => {
-            const idx = prev.findIndex(c => c.number === contactNumber);
-            const updated = [...prev];
-            if (idx !== -1) {
-              updated[idx].lastMessage = incomingText || fallbackSidebarText;
-              updated[idx].lastMessageTime = timeNow;
-              updated[idx].instanceName = payload.instance;
-              if (msgData.profilePictureUrl) updated[idx].profilePictureUrl = msgData.profilePictureUrl;
-              const item = updated.splice(idx, 1)[0];
-              updated.unshift(item);
-            } else {
-              apiRequest('/whatsapp/contacts')
-                .then((data) => {
-                  setContacts(data.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' })));
-                })
-                .catch(() => {});
-            }
-            return updated;
-          });
-        }
-      } catch (err) { }
-    };
-    eventSource.onerror = () => { eventSource.close(); };
-    return () => eventSource.close();
-  }, [baseUrl, hasInstances]);
 
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
