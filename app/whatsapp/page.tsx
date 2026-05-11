@@ -12,6 +12,7 @@ import { MessageList } from '@/components/whatsapp/MessageList';
 import { ChatInput } from '@/components/whatsapp/ChatInput';
 import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
+import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -502,19 +503,41 @@ export default function WhatsAppPage() {
 
   const openNewTicketModal = () => {
     if (!activeContact) return;
-    setFormNome(activeContact.name || ''); setFormEmail(activeContact.email || ''); setFormCpf(activeContact.cnpj || ''); 
-    setFormMarca(''); setFormModelo(''); setFormCustomerType(''); setFormTicketType(''); 
+    setFormNome(activeContact.name || '');
+    setFormEmail((activeContact.email || '').trim().toLowerCase());
+    setFormCpf(formatCpfCnpjInput(activeContact.cnpj || ''));
+    setFormMarca('');
+    setFormModelo('');
+    setFormCustomerType('');
+    setFormTicketType('');
     setIsNewTicketModalOpen(true);
   };
 
   const handleCreateTicket = async () => {
-    if (!activeContact || stages.length === 0) return showFeedback('error', "Nenhuma fase de Kanban configurada.");
-    const body = { contactNumber: activeContact.number, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, customerType: formCustomerType, ticketType: formTicketType, stageId: stages[0].id };
+    if (!activeContact || stages.length === 0) {
+      return showFeedback('error', 'Nenhuma fase de Kanban configurada.');
+    }
+    const stageId = stages[0]?.id || '';
+    const validated = validateCreateTicketForm({
+      contactNumber: activeContact.number,
+      nome: formNome,
+      email: formEmail,
+      cpf: formCpf,
+      marca: formMarca,
+      modelo: formModelo,
+      customerType: formCustomerType,
+      ticketType: formTicketType,
+      stageId,
+    });
+    if (!validated.ok) return showFeedback('error', validated.message);
     try {
-      await apiRequest('/tickets', { method: 'POST', body: JSON.stringify(body) });
+      await apiRequest('/tickets', { method: 'POST', body: JSON.stringify(validated.body) });
       setIsNewTicketModalOpen(false);
-      showFeedback('success', "OS criada no Kanban!");
-    } catch (err) { showFeedback('error', "Erro ao criar a solicitação."); }
+      showFeedback('success', 'OS criada no Kanban!');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao criar a solicitação.';
+      showFeedback('error', msg);
+    }
   };
 
   const startChatWithContact = (contact: any) => {
