@@ -12,6 +12,7 @@ import {
   primeWhatsappNotificationAudio,
   saveUnreadAndBroadcast,
 } from '@/lib/whatsapp-notifications';
+import { applyTabFaviconBadgeIfHidden, resetTabFaviconToDefault } from '@/lib/tab-favicon-badge';
 
 const sseIncomingSeenKeys = new Set<string>();
 
@@ -37,6 +38,16 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
     };
     window.addEventListener('pointerdown', once, { once: true });
     return () => window.removeEventListener('pointerdown', once);
+  }, []);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        resetTabFaviconToDefault();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
   useEffect(() => {
@@ -95,6 +106,9 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
               [detail.contactNumber]: (prev[detail.contactNumber] || 0) + 1,
             };
             saveUnreadAndBroadcast(next);
+          }
+          if (document.hidden) {
+            void applyTabFaviconBadgeIfHidden();
           }
         }
       } catch {
