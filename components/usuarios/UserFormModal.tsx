@@ -2,7 +2,7 @@ import React from 'react';
 import { User } from './types';
 
 interface UserFormModalProps {
-  /** Quem está a usar o modal: ADMIN só cria/edita atendimento (USER); DEVELOPER pode USER ou DEVELOPER. */
+  /** Quem está a usar o modal: ADMIN só cria/edita atendimento (USER); DEVELOPER pode USER, DEVELOPER ou ADMIN. */
   viewerRole: string;
   editingUser: User | null;
   formName: string;
@@ -60,6 +60,7 @@ export function UserFormModal({
                 onChange={e => setFormRole(e.target.value)}
               >
                 <option value="USER">Utilizador (Atendimento)</option>
+                <option value="ADMIN">Administrador (Gestão Total)</option>
                 <option value="DEVELOPER">Developer (Acesso Técnico)</option>
               </select>
             </div>
