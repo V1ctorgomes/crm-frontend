@@ -12,6 +12,7 @@ import { CloseTicketModal } from '@/components/solicitacoes/CloseTicketModal';
 import { StageManagerModal } from '@/components/solicitacoes/StageManagerModal';
 import { ArchivedTicketsModal } from '@/components/solicitacoes/ArchivedTicketsModal';
 import { Contact, Stage, Ticket } from '@/components/solicitacoes/types';
+import { apiRequest } from '@/lib/api-client';
 
 export default function SolicitacoesPage() {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -40,20 +41,17 @@ export default function SolicitacoesPage() {
 
   const fetchBoardData = async () => {
     try {
-      const res = await fetch(`${baseUrl}/tickets/board`);
-      if (res.ok) {
-        const data = await res.json();
-        setStages(data);
-        return data;
-      }
+      const data = await apiRequest('/tickets/board');
+      setStages(data);
+      return data;
     } catch (err) { console.error(err); }
     return null;
   };
 
   const fetchContactsData = async () => {
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/contacts`);
-      if (res.ok) setContacts(await res.json());
+      const data = await apiRequest('/whatsapp/contacts');
+      setContacts(data);
     } catch (err) { console.error(err); }
   };
 
@@ -105,7 +103,7 @@ export default function SolicitacoesPage() {
     });
 
     try { 
-      await fetch(`${baseUrl}/tickets/${ticketId}/stage`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stageId: targetStageId }) }); 
+      await apiRequest(`/tickets/${ticketId}/stage`, { method: 'PUT', body: JSON.stringify({ stageId: targetStageId }) }); 
     } catch (err) { 
       fetchBoardData(); 
     }
@@ -114,9 +112,9 @@ export default function SolicitacoesPage() {
   const handleCloseTicketConfirm = async (resolution: 'SUCCESS' | 'CANCELLED', reason: string) => {
     if (!activeTicket) return;
     try {
-      await fetch(`${baseUrl}/tickets/${activeTicket.id}/archive`, { 
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ isArchived: true, resolution, resolutionReason: reason }) 
+      await apiRequest(`/tickets/${activeTicket.id}/archive`, { 
+        method: 'PUT',
+        body: JSON.stringify({ isArchived: true, resolution, resolutionReason: reason }),
       });
       setActiveTicket(null); 
       setIsCloseModalOpen(false);

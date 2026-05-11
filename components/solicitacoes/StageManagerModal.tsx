@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Stage } from './types';
+import { apiRequest } from '@/lib/api-client';
 
 const PREDEFINED_COLORS = ['#94a3b8', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#c084fc', '#fb923c', '#f472b6', '#2dd4bf', '#fbbf24'];
 
@@ -18,8 +19,10 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
   const [newStageColor, setNewStageColor] = useState(PREDEFINED_COLORS[0]);
 
   const loadStages = async () => {
-    const res = await fetch(`${baseUrl}/tickets/stages`);
-    if (res.ok) setAllStages(await res.json());
+    try {
+      const data = await apiRequest('/tickets/stages');
+      setAllStages(data);
+    } catch {}
   };
 
   useEffect(() => { loadStages(); }, []);
@@ -27,14 +30,18 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
   const handleCreateStage = async () => {
     if (!newStageName.trim()) return;
     try {
-      const res = await fetch(`${baseUrl}/tickets/stages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newStageName, color: newStageColor }) });
-      if (res.ok) { setNewStageName(''); setNewStageColor(PREDEFINED_COLORS[0]); loadStages(); onStagesChanged(); showFeedback('success', 'Fase criada com sucesso!'); }
+      await apiRequest('/tickets/stages', { method: 'POST', body: JSON.stringify({ name: newStageName, color: newStageColor }) });
+      setNewStageName('');
+      setNewStageColor(PREDEFINED_COLORS[0]);
+      loadStages();
+      onStagesChanged();
+      showFeedback('success', 'Fase criada com sucesso!');
     } catch (err) { showFeedback('error', 'Erro ao criar fase.'); }
   };
 
   const handleToggleStageActive = async (id: string, currentStatus: boolean) => {
     try {
-      await fetch(`${baseUrl}/tickets/stages/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !currentStatus }) });
+      await apiRequest(`/tickets/stages/${id}`, { method: 'PUT', body: JSON.stringify({ isActive: !currentStatus }) });
       loadStages(); onStagesChanged();
     } catch (err) { showFeedback('error', 'Erro ao atualizar fase.'); }
   };
@@ -44,9 +51,10 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
       title: "Apagar Fase?", message: "Tem a certeza que deseja apagar esta fase permanentemente? As suas OS poderão ser afetadas.",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/tickets/stages/${id}`, { method: 'DELETE' });
-          if (res.ok) { loadStages(); onStagesChanged(); showFeedback('success', 'Fase removida permanentemente.'); } 
-          else { const data = await res.json(); showFeedback('error', data.message || "Erro ao apagar fase."); }
+          await apiRequest(`/tickets/stages/${id}`, { method: 'DELETE' });
+          loadStages();
+          onStagesChanged();
+          showFeedback('success', 'Fase removida permanentemente.');
         } catch (err) { showFeedback('error', 'Erro de conexão.'); }
         setConfirmModal(null);
       },
@@ -63,7 +71,7 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
     const payload = newStages.map((s, i) => ({ id: s.id, order: i + 1 }));
     setAllStages(newStages); 
     try {
-      await fetch(`${baseUrl}/tickets/stages/reorder`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stages: payload }) });
+      await apiRequest('/tickets/stages/reorder', { method: 'PUT', body: JSON.stringify({ stages: payload }) });
       onStagesChanged();
     } catch (err) { showFeedback('error', 'Erro ao reordenar fases.'); }
   };

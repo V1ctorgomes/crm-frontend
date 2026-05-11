@@ -10,6 +10,7 @@ import { CustomerFoldersGrid } from '@/components/arquivos/CustomerFoldersGrid';
 import { TicketFoldersGrid } from '@/components/arquivos/TicketFoldersGrid';
 import { FilesViewer } from '@/components/arquivos/FilesViewer';
 import { DeleteConfirmModal } from '@/components/arquivos/DeleteConfirmModal';
+import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,6 @@ export default function ArquivosPage() {
   const [fileDescription, setFileDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const [folderSearchTerm, setFolderSearchTerm] = useState('');
 
@@ -37,18 +37,15 @@ export default function ArquivosPage() {
 
   const fetchFolders = async () => {
     try {
-      const res = await fetch(`${baseUrl}/tickets/folders`);
-      if (res.ok) {
-        const data = await res.json();
-        setCustomerFolders(data);
-        
-        if (selectedCustomer) {
-          const updatedCustomer = data.find((c: CustomerFolder) => c.contact.number === selectedCustomer.contact.number);
-          setSelectedCustomer(updatedCustomer || null);
-          if (selectedTicket && updatedCustomer) {
-            const updatedTicket = updatedCustomer.tickets.find((t: TicketFolder) => t.id === selectedTicket.id);
-            setSelectedTicket(updatedTicket || null);
-          }
+      const data = await apiRequest('/tickets/folders');
+      setCustomerFolders(data);
+      
+      if (selectedCustomer) {
+        const updatedCustomer = data.find((c: CustomerFolder) => c.contact.number === selectedCustomer.contact.number);
+        setSelectedCustomer(updatedCustomer || null);
+        if (selectedTicket && updatedCustomer) {
+          const updatedTicket = updatedCustomer.tickets.find((t: TicketFolder) => t.id === selectedTicket.id);
+          setSelectedTicket(updatedTicket || null);
         }
       }
     } catch (error) {
@@ -75,19 +72,15 @@ export default function ArquivosPage() {
     if (fileDescription.trim()) formData.append('description', fileDescription.trim());
 
     try {
-      const res = await fetch(`${baseUrl}/tickets/${selectedTicket.id}/files`, {
+      await apiRequest(`/tickets/${selectedTicket.id}/files`, {
         method: 'POST',
         body: formData,
       });
 
-      if (res.ok) {
-        setPendingFile(null);
-        setFileDescription('');
-        await fetchFolders();
-        showFeedback('success', "Arquivo anexado com sucesso!");
-      } else {
-        showFeedback('error', "Erro ao enviar ficheiro.");
-      }
+      setPendingFile(null);
+      setFileDescription('');
+      await fetchFolders();
+      showFeedback('success', "Arquivo anexado com sucesso!");
     } catch (error) {
       showFeedback('error', "Erro de conexão ao enviar.");
     } finally {
@@ -108,13 +101,9 @@ export default function ArquivosPage() {
       message: "Tem a certeza que deseja apagar este ficheiro? Ação irreversível.",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/tickets/files/${fileId}`, { method: 'DELETE' });
-          if (res.ok) {
-            await fetchFolders();
-            showFeedback('success', "Ficheiro apagado com sucesso.");
-          } else {
-            showFeedback('error', "Erro ao apagar ficheiro.");
-          }
+          await apiRequest(`/tickets/files/${fileId}`, { method: 'DELETE' });
+          await fetchFolders();
+          showFeedback('success', "Ficheiro apagado com sucesso.");
         } catch (error) {
           showFeedback('error', "Erro de conexão.");
         }
@@ -129,14 +118,10 @@ export default function ArquivosPage() {
       message: "⚠️ Tem a certeza que deseja EXCLUIR PERMANENTEMENTE esta solicitação e todos os seus ficheiros? Esta ação não pode ser desfeita.",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/tickets/${ticketId}`, { method: 'DELETE' });
-          if (res.ok) {
-            if (selectedTicket?.id === ticketId) setSelectedTicket(null);
-            await fetchFolders();
-            showFeedback('success', "OS excluída com sucesso.");
-          } else {
-            showFeedback('error', "Erro ao excluir a OS.");
-          }
+          await apiRequest(`/tickets/${ticketId}`, { method: 'DELETE' });
+          if (selectedTicket?.id === ticketId) setSelectedTicket(null);
+          await fetchFolders();
+          showFeedback('success', "OS excluída com sucesso.");
         } catch (error) {
           showFeedback('error', "Erro de conexão ao excluir.");
         }

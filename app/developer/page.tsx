@@ -10,11 +10,11 @@ import { EvolutionCard } from '@/components/developer/EvolutionCard';
 import { CloudflareCard } from '@/components/developer/CloudflareCard';
 import { ProxyForm } from '@/components/developer/ProxyForm';
 import { ProxiesTable } from '@/components/developer/ProxiesTable';
+import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
 export default function DeveloperPage() {
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
   const [activeTab, setActiveTab] = useState<'providers' | 'proxies'>('providers');
   
   // Feedback System (Toast)
@@ -50,8 +50,8 @@ export default function DeveloperPage() {
 
   const fetchProxies = async () => {
     try {
-      const res = await fetch(`${baseUrl}/proxies`);
-      if (res.ok) setProxies(await res.json());
+      const data = await apiRequest('/proxies');
+      setProxies(data);
     } catch (err) { 
       showFeedback('error', "Erro ao carregar proxies."); 
     }
@@ -59,22 +59,18 @@ export default function DeveloperPage() {
 
   const fetchProviders = async () => {
     try {
-      const resEvo = await fetch(`${baseUrl}/providers/evolution`);
-      if (resEvo.ok) {
-        const data = await resEvo.json();
-        if (data.baseUrl) setEvoBaseUrl(data.baseUrl);
-        if (data.apiKey) setEvoApiKey(data.apiKey);
-      }
+      const [evo, cf] = await Promise.all([
+        apiRequest('/providers/evolution').catch(() => ({})),
+        apiRequest('/providers/cloudflare').catch(() => ({})),
+      ]);
+      if (evo.baseUrl) setEvoBaseUrl(evo.baseUrl);
+      if (evo.apiKey) setEvoApiKey(evo.apiKey);
 
-      const resCf = await fetch(`${baseUrl}/providers/cloudflare`);
-      if (resCf.ok) {
-        const data = await resCf.json();
-        if (data.accountId) setCfAccountId(data.accountId);
-        if (data.bucket) setCfBucket(data.bucket);
-        if (data.apiKey) setCfAccessKey(data.apiKey);
-        if (data.apiToken) setCfSecretKey(data.apiToken);
-        if (data.baseUrl) setCfPublicUrl(data.baseUrl);
-      }
+      if (cf.accountId) setCfAccountId(cf.accountId);
+      if (cf.bucket) setCfBucket(cf.bucket);
+      if (cf.apiKey) setCfAccessKey(cf.apiKey);
+      if (cf.apiToken) setCfSecretKey(cf.apiToken);
+      if (cf.baseUrl) setCfPublicUrl(cf.baseUrl);
     } catch (err) { 
       showFeedback('error', "Erro ao carregar configurações dos provedores."); 
     }
@@ -84,18 +80,13 @@ export default function DeveloperPage() {
     e.preventDefault();
     setLoadingProxies(true);
     try {
-      const res = await fetch(`${baseUrl}/proxies`, {
+      await apiRequest('/proxies', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(proxyForm)
       });
-      if (res.ok) {
-        setProxyForm({ name: '', host: '', port: '', username: '', password: '', protocol: 'http' });
-        fetchProxies();
-        showFeedback('success', "Proxy adicionado à rede com sucesso.");
-      } else {
-        showFeedback('error', "Não foi possível adicionar o proxy.");
-      }
+      setProxyForm({ name: '', host: '', port: '', username: '', password: '', protocol: 'http' });
+      fetchProxies();
+      showFeedback('success', "Proxy adicionado à rede com sucesso.");
     } catch (err) { 
       showFeedback('error', "Erro de conexão ao salvar proxy."); 
     }
@@ -105,11 +96,9 @@ export default function DeveloperPage() {
   const handleDeleteProxy = async (id: string) => {
     if (!window.confirm('Tem a certeza que deseja eliminar este proxy?')) return;
     try {
-      const res = await fetch(`${baseUrl}/proxies/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchProxies();
-        showFeedback('success', "Proxy removido da infraestrutura.");
-      }
+      await apiRequest(`/proxies/${id}`, { method: 'DELETE' });
+      fetchProxies();
+      showFeedback('success', "Proxy removido da infraestrutura.");
     } catch (err) { 
       showFeedback('error', "Erro ao eliminar proxy."); 
     }
@@ -118,13 +107,11 @@ export default function DeveloperPage() {
   const handleSaveEvo = async () => {
     setIsSavingProviders(true);
     try {
-      const res = await fetch(`${baseUrl}/providers/evolution`, {
+      await apiRequest('/providers/evolution', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseUrl: evoBaseUrl, apiKey: evoApiKey })
       });
-      if (res.ok) showFeedback('success', "Configurações da Evolution API atualizadas!");
-      else showFeedback('error', "Erro ao guardar definições da Evolution.");
+      showFeedback('success', "Configurações da Evolution API atualizadas!");
     } catch (err) { 
       showFeedback('error', "Falha de conexão com o servidor."); 
     }
@@ -134,13 +121,11 @@ export default function DeveloperPage() {
   const handleSaveCf = async () => {
     setIsSavingProviders(true);
     try {
-      const res = await fetch(`${baseUrl}/providers/cloudflare`, {
+      await apiRequest('/providers/cloudflare', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId: cfAccountId, bucket: cfBucket, apiKey: cfAccessKey, apiToken: cfSecretKey, baseUrl: cfPublicUrl })
       });
-      if (res.ok) showFeedback('success', "Configurações da Cloudflare atualizadas!");
-      else showFeedback('error', "Erro ao guardar definições da Cloudflare.");
+      showFeedback('success', "Configurações da Cloudflare atualizadas!");
     } catch (err) { 
       showFeedback('error', "Falha de conexão com o servidor."); 
     }

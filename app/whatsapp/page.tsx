@@ -11,6 +11,7 @@ import { FilePreview } from '@/components/whatsapp/FilePreview';
 import { MessageList } from '@/components/whatsapp/MessageList';
 import { ChatInput } from '@/components/whatsapp/ChatInput';
 import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
+import { apiRequest } from '@/lib/api-client';
 
 export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
@@ -80,38 +81,31 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const resUsers = await fetch(`${baseUrl}/users`);
-        if (resUsers.ok) {
-          const users = await resUsers.json();
-          if (users.length > 0) {
-            const resInstances = await fetch(`${baseUrl}/instances/user/${users[0].id}`);
-            if (resInstances.ok) {
-              const fetchedInstances = await resInstances.json();
-              const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
-              setInstances(connected);
-              setHasInstances(connected.length > 0); 
-            } else setHasInstances(false);
-          } else setHasInstances(false);
+        const users = await apiRequest('/users').catch(() => []);
+        if (users.length > 0) {
+          const fetchedInstances = await apiRequest(`/instances/user/${users[0].id}`).catch(() => []);
+          const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
+          setInstances(connected);
+          setHasInstances(connected.length > 0);
+        } else {
+          setHasInstances(false);
         }
 
-        const resContacts = await fetch(`${baseUrl}/whatsapp/contacts`);
-        if (resContacts.ok) {
-          const data = await resContacts.json();
-          const formattedContacts = data.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }));
-          setContacts(formattedContacts);
+        const contactsData = await apiRequest('/whatsapp/contacts').catch(() => []);
+        const formattedContacts = contactsData.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }));
+        setContacts(formattedContacts);
 
-          const savedNumber = localStorage.getItem('lastActiveContact');
-          if (savedNumber) {
-            const foundContact = formattedContacts.find((c: Contact) => c.number === savedNumber);
-            if (foundContact) setActiveContact(foundContact);
-          }
+        const savedNumber = localStorage.getItem('lastActiveContact');
+        if (savedNumber) {
+          const foundContact = formattedContacts.find((c: Contact) => c.number === savedNumber);
+          if (foundContact) setActiveContact(foundContact);
         }
 
-        const resStages = await fetch(`${baseUrl}/tickets/stages`);
-        if (resStages.ok) setStages(await resStages.json());
+        const stagesData = await apiRequest('/tickets/stages').catch(() => []);
+        setStages(stagesData);
 
-        const resCustomers = await fetch(`${baseUrl}/customers`);
-        if (resCustomers.ok) setCrmCustomers(await resCustomers.json());
+        const customersData = await apiRequest('/customers').catch(() => []);
+        setCrmCustomers(customersData);
 
       } catch (err) { setHasInstances(false); }
     };
@@ -122,15 +116,12 @@ export default function WhatsAppPage() {
     if (activeContact && !chatHistory[activeContact.number]) {
       const fetchHistory = async () => {
         try {
-          const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`);
-          if (res.ok) {
-            const data = await res.json();
-            const formattedMessages = data.map((m: any) => ({
-              id: m.id, text: m.text, type: m.type, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              fromMe: m.type === 'sent', senderNumber: m.contactNumber, isMedia: m.isMedia, mediaData: m.mediaData, mimeType: m.mimeType, fileName: m.fileName
-            }));
-            setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
-          }
+          const data = await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`).catch(() => []);
+          const formattedMessages = data.map((m: any) => ({
+            id: m.id, text: m.text, type: m.type, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            fromMe: m.type === 'sent', senderNumber: m.contactNumber, isMedia: m.isMedia, mediaData: m.mediaData, mimeType: m.mimeType, fileName: m.fileName
+          }));
+          setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
         } catch (err) {}
       };
       fetchHistory();
@@ -181,9 +172,11 @@ export default function WhatsAppPage() {
               const item = updated.splice(idx, 1)[0];
               updated.unshift(item);
             } else {
-               fetch(`${baseUrl}/whatsapp/contacts`).then(res => res.json()).then(data => {
+              apiRequest('/whatsapp/contacts')
+                .then((data) => {
                   setContacts(data.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' })));
-               });
+                })
+                .catch(() => {});
             }
             return updated;
           });
@@ -198,14 +191,12 @@ export default function WhatsAppPage() {
     if (!activeContact) return;
     setIsDeleteModalOpen(false); 
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
-      if (res.ok) {
-        setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
-        setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
-        setActiveContact(null);
-        localStorage.removeItem('lastActiveContact');
-        showFeedback('success', "Conversa excluída com sucesso.");
-      } else showFeedback('error', "Erro no servidor ao tentar apagar a conversa.");
+      await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
+      setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+      setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
+      setActiveContact(null);
+      localStorage.removeItem('lastActiveContact');
+      showFeedback('success', "Conversa excluída com sucesso.");
     } catch (err) { showFeedback('error', "Falha de conexão ao apagar conversa."); }
   };
 
@@ -260,11 +251,8 @@ export default function WhatsAppPage() {
     });
 
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/send-media`, { method: 'POST', body: formData });
-      if (res.ok) {
-         const savedData = await res.json();
-         setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
-      } else showFeedback('error', "Falha ao enviar arquivo.");
+      const savedData = await apiRequest('/whatsapp/send-media', { method: 'POST', body: formData });
+      setChatHistory(prev => ({ ...prev, [targetNumber]: prev[targetNumber].map(msg => msg.id === tempId ? { ...msg, id: savedData.id, mediaData: savedData.mediaData } : msg) }));
     } catch (error) { showFeedback('error', "Erro de conexão ao enviar arquivo."); } 
     finally { setIsSending(false); }
   };
@@ -305,7 +293,7 @@ export default function WhatsAppPage() {
       setInputText('');
 
       try {
-        await fetch(`${baseUrl}/whatsapp/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }) });
+        await apiRequest('/whatsapp/send', { method: 'POST', body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }) });
       } catch (error) { showFeedback('error', "Erro de conexão."); } finally { setIsSending(false); }
     }
   };
@@ -362,8 +350,9 @@ export default function WhatsAppPage() {
     if (!activeContact || stages.length === 0) return showFeedback('error', "Nenhuma fase de Kanban configurada.");
     const body = { contactNumber: activeContact.number, nome: formNome, email: formEmail, cpf: formCpf, marca: formMarca, modelo: formModelo, customerType: formCustomerType, ticketType: formTicketType, stageId: stages[0].id };
     try {
-      const res = await fetch(`${baseUrl}/tickets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (res.ok) { setIsNewTicketModalOpen(false); showFeedback('success', "OS criada no Kanban!"); }
+      await apiRequest('/tickets', { method: 'POST', body: JSON.stringify(body) });
+      setIsNewTicketModalOpen(false);
+      showFeedback('success', "OS criada no Kanban!");
     } catch (err) { showFeedback('error', "Erro ao criar a solicitação."); }
   };
 

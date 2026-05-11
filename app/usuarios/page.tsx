@@ -8,6 +8,7 @@ import { UsuariosHeader } from '@/components/usuarios/UsuariosHeader';
 import { UsuariosTable } from '@/components/usuarios/UsuariosTable';
 import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
+import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +34,6 @@ export default function UsuariosPage() {
   // Modal de Confirmação de Remoção
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
@@ -43,8 +42,8 @@ export default function UsuariosPage() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/users`);
-      if (res.ok) setUsers(await res.json());
+      const data = await apiRequest('/users');
+      setUsers(data);
     } catch (err) { 
       showFeedback('error', "Erro ao carregar a lista de utilizadores.");
     } finally { 
@@ -78,22 +77,17 @@ export default function UsuariosPage() {
     setIsSaving(true);
     const body = { name: formName, email: formEmail, role: formRole, password: formPassword };
     const method = editingUser ? 'PUT' : 'POST';
-    const url = editingUser ? `${baseUrl}/users/${editingUser.id}` : `${baseUrl}/users`;
+    const endpoint = editingUser ? `/users/${editingUser.id}` : `/users`;
 
     try {
-      const res = await fetch(url, {
+      await apiRequest(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      if (res.ok) {
-        setIsModalOpen(false);
-        fetchUsers();
-        showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
-      } else {
-        const err = await res.json();
-        showFeedback('error', err.message || "Erro ao guardar alterações.");
-      }
+      setIsModalOpen(false);
+      fetchUsers();
+      showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
     } catch (err) { 
       showFeedback('error', "Erro de ligação ao servidor.");
     } finally { 
@@ -104,14 +98,10 @@ export default function UsuariosPage() {
   const handleDelete = async () => {
     if (!userToDelete) return;
     try {
-      const res = await fetch(`${baseUrl}/users/${userToDelete.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        showFeedback('success', "Utilizador removido da equipa.");
-        setUserToDelete(null);
-        fetchUsers();
-      } else {
-        showFeedback('error', "Não foi possível remover este utilizador.");
-      }
+      await apiRequest(`/users/${userToDelete.id}`, { method: 'DELETE' });
+      showFeedback('success', "Utilizador removido da equipa.");
+      setUserToDelete(null);
+      fetchUsers();
     } catch (err) { 
       showFeedback('error', "Erro de ligação ao servidor.");
     }

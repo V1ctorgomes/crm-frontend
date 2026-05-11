@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { SettingsModal } from '@/components/configuracoes/SettingsModal';
+import { apiRequest } from '@/lib/api-client';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -40,8 +41,6 @@ export default function Sidebar() {
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
   
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-
   const isActive = (path: string) => pathname?.includes(path);
 
   // Lógica de Sair da Conta
@@ -66,9 +65,8 @@ export default function Sidebar() {
       }
     }
 
-    fetch(`${baseUrl}/users`)
-      .then(res => res.json())
-      .then(data => {
+    apiRequest('/users')
+      .then((data) => {
         if (data && data.length > 0) {
           const user = data[0];
           if (JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
@@ -81,7 +79,7 @@ export default function Sidebar() {
         }
       })
       .catch(err => console.error("Erro ao carregar utilizador:", err));
-  }, [baseUrl]);
+  }, []);
 
   // Fechar o menu mobile ao trocar de rota
   useEffect(() => {

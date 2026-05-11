@@ -6,6 +6,7 @@ import { Toast } from '@/components/ui/toast';
 import { ProfileTab } from './ProfileTab';
 import { ConnectionsTab } from './ConnectionsTab';
 import { Instance, ProxyNode } from './types';
+import { apiRequest } from '@/lib/api-client';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -13,7 +14,6 @@ interface SettingsModalProps {
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'perfil' | 'conexoes'>('perfil');
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   // ================= ESTADOS =================
   const [userData, setUserData] = useState<any>(null);
@@ -52,23 +52,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const fetchProxies = async () => {
     try {
-      const res = await fetch(`${baseUrl}/proxies`);
-      if (res.ok) setAvailableProxies(await res.json());
+      const data = await apiRequest('/proxies');
+      setAvailableProxies(data);
     } catch (err) {}
   };
 
   const fetchUserData = async () => {
     try {
-      const res = await fetch(`${baseUrl}/users`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const currentUser = data[0];
-          setUserData(currentUser);
-          setName(currentUser.name || '');
-          setEmail(currentUser.email || '');
-          if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
-        }
+      const data = await apiRequest('/users');
+      if (data && data.length > 0) {
+        const currentUser = data[0];
+        setUserData(currentUser);
+        setName(currentUser.name || '');
+        setEmail(currentUser.email || '');
+        if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
       }
     } catch (error) { showFeedback('error', 'Erro ao carregar utilizador.'); } 
     finally { setIsProfileLoading(false); }
@@ -90,22 +87,19 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     if (photoFile) formData.append('file', photoFile);
 
     try {
-      const res = await fetch(`${baseUrl}/users/${userData.id}`, { method: 'PUT', body: formData });
-      if (res.ok) { showFeedback('success', 'Perfil atualizado com sucesso!'); setPassword(''); } 
-      else showFeedback('error', 'Falha ao atualizar perfil.');
+      await apiRequest(`/users/${userData.id}`, { method: 'PUT', body: formData });
+      showFeedback('success', 'Perfil atualizado com sucesso!');
+      setPassword('');
     } catch (error) { showFeedback('error', 'Erro de ligação ao servidor.'); } 
     finally { setIsSavingProfile(false); }
   };
 
   const fetchInstances = async () => {
     try {
-      const resUsers = await fetch(`${baseUrl}/users`);
-      if (resUsers.ok) {
-        const users = await resUsers.json();
-        if (users.length > 0) {
-          const res = await fetch(`${baseUrl}/instances/user/${users[0].id}`);
-          if (res.ok) setInstances(await res.json());
-        }
+      const users = await apiRequest('/users');
+      if (users.length > 0) {
+        const instances = await apiRequest(`/instances/user/${users[0].id}`);
+        setInstances(instances);
       }
     } catch (error) {} 
     finally { setIsInstancesLoading(false); }
@@ -117,8 +111,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setIsCreatingInstance(true);
 
     try {
-      const resUsers = await fetch(`${baseUrl}/users`);
-      const users = await resUsers.json();
+      const users = await apiRequest('/users');
       const payload: any = { name: newInstanceName, userId: users[0].id };
       if (selectedProxyId) {
         const selectedProxy = availableProxies.find(p => p.id === selectedProxyId);
@@ -131,12 +124,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         }
       }
 
-      const res = await fetch(`${baseUrl}/instances`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) {
-        setNewInstanceName(''); setSelectedProxyId(''); await fetchInstances(); showFeedback('success', 'Instância criada com sucesso!');
-      } else {
-        const errorData = await res.json().catch(() => null); showFeedback('error', errorData?.message || "Erro ao criar instância.");
-      }
+      await apiRequest('/instances', { method: 'POST', body: JSON.stringify(payload) });
+      setNewInstanceName('');
+      setSelectedProxyId('');
+      await fetchInstances();
+      showFeedback('success', 'Instância criada com sucesso!');
     } catch (error) { showFeedback('error', "Erro de conexão com o servidor."); } 
     finally { setIsCreatingInstance(false); }
   };
@@ -146,9 +138,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       isOpen: true, title: "Excluir Instância?", message: "Tem a certeza que deseja excluir esta conexão?",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/instances/${instanceName}`, { method: 'DELETE' });
-          if (res.ok) { await fetchInstances(); showFeedback('success', 'Instância removida com sucesso.'); } 
-          else showFeedback('error', 'Não foi possível remover a instância.');
+          await apiRequest(`/instances/${instanceName}`, { method: 'DELETE' });
+          await fetchInstances();
+          showFeedback('success', 'Instância removida com sucesso.');
         } catch (error) { showFeedback('error', 'Erro de conexão ao remover.'); }
         setConfirmModal(null);
       }
@@ -157,9 +149,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const handleConnectInstance = async (name: string) => {
     try {
-      const res = await fetch(`${baseUrl}/instances/connect/${name}`);
-      if (res.ok) setQrCodeData(await res.json());
-      else { const errData = await res.json(); showFeedback('error', errData.message || 'Erro ao gerar QR Code'); }
+      const data = await apiRequest(`/instances/connect/${name}`);
+      setQrCodeData(data);
     } catch (error) { showFeedback('error', "Erro ao conectar à Evolution API."); }
   };
 

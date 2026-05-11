@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Clock, Trash2, Calendar, CheckCircle2, Circle, X } from 'lucide-react';
 import { Ticket } from './types';
+import { apiRequest } from '@/lib/api-client';
 
 interface TicketDetailsModalProps {
   ticket: Ticket;
@@ -40,17 +41,22 @@ export function TicketDetailsModal({
     if (!newTaskTitle.trim() || !newTaskDate) return;
     const dateWithTimezone = new Date(newTaskDate).toISOString();
     try {
-      const res = await fetch(`${baseUrl}/tickets/${ticket.id}/tasks`, { 
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newTaskTitle, dueDate: dateWithTimezone }) 
+      await apiRequest(`/tickets/${ticket.id}/tasks`, { 
+        method: 'POST',
+        body: JSON.stringify({ title: newTaskTitle, dueDate: dateWithTimezone }),
       });
-      if (res.ok) { setNewTaskTitle(''); setNewTaskDate(''); onTicketUpdated(); showFeedback('success', 'Lembrete agendado!'); }
+      setNewTaskTitle('');
+      setNewTaskDate('');
+      onTicketUpdated();
+      showFeedback('success', 'Lembrete agendado!');
     } catch (err) { showFeedback('error', 'Erro ao agendar lembrete.'); }
   };
 
   const handleToggleTask = async (taskId: string, isCompleted: boolean) => {
     try {
-      await fetch(`${baseUrl}/tickets/tasks/${taskId}`, { 
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isCompleted: !isCompleted }) 
+      await apiRequest(`/tickets/tasks/${taskId}`, { 
+        method: 'PUT',
+        body: JSON.stringify({ isCompleted: !isCompleted }),
       });
       onTicketUpdated(); 
     } catch (err) { showFeedback('error', 'Erro ao atualizar tarefa.'); }
@@ -61,7 +67,7 @@ export function TicketDetailsModal({
       title: "Apagar Lembrete?", message: "Tem a certeza que deseja apagar este lembrete?",
       onConfirm: async () => {
         try {
-          await fetch(`${baseUrl}/tickets/tasks/${taskId}`, { method: 'DELETE' });
+          await apiRequest(`/tickets/tasks/${taskId}`, { method: 'DELETE' });
           onTicketUpdated(); showFeedback('success', 'Lembrete apagado.'); 
         } catch (err) { showFeedback('error', 'Erro ao apagar.'); }
         setConfirmModal(null);
@@ -73,8 +79,10 @@ export function TicketDetailsModal({
   const handleAddNote = async () => {
     if (!newNoteText.trim()) return;
     try {
-      const res = await fetch(`${baseUrl}/tickets/${ticket.id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newNoteText }) });
-      if (res.ok) { setNewNoteText(''); onTicketUpdated(); showFeedback('success', 'Nota adicionada ao histórico!'); }
+      await apiRequest(`/tickets/${ticket.id}/notes`, { method: 'POST', body: JSON.stringify({ text: newNoteText }) });
+      setNewNoteText('');
+      onTicketUpdated();
+      showFeedback('success', 'Nota adicionada ao histórico!');
     } catch (err) { showFeedback('error', 'Erro ao adicionar nota.'); }
   };
 
@@ -83,8 +91,9 @@ export function TicketDetailsModal({
       title: "Apagar Nota?", message: "Tem a certeza que deseja apagar esta nota? Esta ação é irreversível.",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/tickets/notes/${noteId}`, { method: 'DELETE' });
-          if (res.ok) { onTicketUpdated(); showFeedback('success', 'Nota apagada.'); }
+          await apiRequest(`/tickets/notes/${noteId}`, { method: 'DELETE' });
+          onTicketUpdated();
+          showFeedback('success', 'Nota apagada.');
         } catch (err) { showFeedback('error', 'Erro ao apagar nota.'); }
         setConfirmModal(null);
       },
@@ -107,9 +116,11 @@ export function TicketDetailsModal({
     if (fileDescription.trim()) formData.append('description', fileDescription.trim());
 
     try {
-      const res = await fetch(`${baseUrl}/tickets/${ticket.id}/files`, { method: 'POST', body: formData });
-      if (res.ok) { setPendingFile(null); setFileDescription(''); onTicketUpdated(); showFeedback('success', 'Arquivo anexado com sucesso!'); } 
-      else showFeedback('error', "Erro ao enviar ficheiro.");
+      await apiRequest(`/tickets/${ticket.id}/files`, { method: 'POST', body: formData });
+      setPendingFile(null);
+      setFileDescription('');
+      onTicketUpdated();
+      showFeedback('success', 'Arquivo anexado com sucesso!');
     } catch (error) { showFeedback('error', "Erro de conexão."); } 
     finally { setIsUploadingFile(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
@@ -119,8 +130,9 @@ export function TicketDetailsModal({
       title: "Remover Anexo?", message: "Tem a certeza que deseja apagar este ficheiro? Não poderá ser recuperado.",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${baseUrl}/tickets/files/${fileId}`, { method: 'DELETE' });
-          if (res.ok) { onTicketUpdated(); showFeedback('success', 'Ficheiro removido.'); }
+          await apiRequest(`/tickets/files/${fileId}`, { method: 'DELETE' });
+          onTicketUpdated();
+          showFeedback('success', 'Ficheiro removido.');
         } catch (error) { showFeedback('error', 'Erro ao remover ficheiro.'); }
         setConfirmModal(null);
       },

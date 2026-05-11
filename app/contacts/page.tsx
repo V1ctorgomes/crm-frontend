@@ -7,6 +7,7 @@ import { ContactsHeader } from '@/components/contacts/ContactsHeader';
 import { ContactsTable, Contact } from '@/components/contacts/ContactsTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
+import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,8 +30,6 @@ export default function ContactsPage() {
   // Estados do Modal de Confirmação de Remoção
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
@@ -39,11 +38,8 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/contacts`);
-      if (res.ok) {
-        const data = await res.json();
-        setContacts(data);
-      }
+      const data = await apiRequest('/whatsapp/contacts');
+      setContacts(data);
     } catch (err) {
       showFeedback('error', "Falha ao carregar a lista de contactos.");
     } finally {
@@ -66,24 +62,18 @@ export default function ContactsPage() {
     setIsSaving(true);
 
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/contacts/${encodeURIComponent(editingContact.number)}`, {
+      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(editingContact.number)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, cnpj: editCnpj })
+        body: JSON.stringify({ name: editName, email: editEmail, cnpj: editCnpj }),
       });
 
-      if (res.ok) {
-        setContacts(prev => prev.map(c => 
-          c.number === editingContact.number 
-            ? { ...c, name: editName, email: editEmail, cnpj: editCnpj } 
-            : c
-        ));
-        setIsEditing(false);
-        showFeedback('success', "Contacto atualizado com sucesso!");
-      } else {
-        const errData = await res.json().catch(() => null);
-        showFeedback('error', errData?.message || "Erro ao guardar o contacto no servidor.");
-      }
+      setContacts(prev => prev.map(c => 
+        c.number === editingContact.number 
+          ? { ...c, name: editName, email: editEmail, cnpj: editCnpj } 
+          : c
+      ));
+      setIsEditing(false);
+      showFeedback('success', "Contacto atualizado com sucesso!");
     } catch (err) {
       showFeedback('error', "Erro de conexão ao tentar guardar.");
     } finally {
@@ -95,19 +85,13 @@ export default function ContactsPage() {
     if (!contactToDelete) return;
 
     try {
-      const res = await fetch(`${baseUrl}/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, {
-        method: 'DELETE'
+      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, {
+        method: 'DELETE',
       });
 
-      if (res.ok) {
-        setContacts(prev => prev.filter(c => c.number !== contactToDelete.number));
-        setContactToDelete(null);
-        showFeedback('success', "Contacto removido da base de dados.");
-      } else {
-        const errData = await res.json().catch(() => null);
-        showFeedback('error', errData?.message || "Não foi possível remover o contacto.");
-        setContactToDelete(null);
-      }
+      setContacts(prev => prev.filter(c => c.number !== contactToDelete.number));
+      setContactToDelete(null);
+      showFeedback('success', "Contacto removido da base de dados.");
     } catch (err) {
       showFeedback('error', "Erro de ligação ao servidor.");
       setContactToDelete(null);

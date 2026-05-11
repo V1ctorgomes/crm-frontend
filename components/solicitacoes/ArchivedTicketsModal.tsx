@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Ticket } from './types';
+import { apiRequest } from '@/lib/api-client';
 
 interface ArchivedTicketsModalProps {
   baseUrl: string;
@@ -14,17 +15,19 @@ export function ArchivedTicketsModal({ baseUrl, onClose, onRestoreSuccess, showF
 
   useEffect(() => {
     const fetchArchived = async () => {
-      const res = await fetch(`${baseUrl}/tickets/archived`);
-      if (res.ok) setArchivedTickets(await res.json());
+      try {
+        const data = await apiRequest('/tickets/archived');
+        setArchivedTickets(data);
+      } catch {}
     };
     fetchArchived();
   }, [baseUrl]);
 
   const handleRestore = async (ticketId: string) => {
     try {
-      await fetch(`${baseUrl}/tickets/${ticketId}/archive`, { 
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ isArchived: false }) 
+      await apiRequest(`/tickets/${ticketId}/archive`, { 
+        method: 'PUT',
+        body: JSON.stringify({ isArchived: false }),
       });
       setArchivedTickets(prev => prev.filter(t => t.id !== ticketId));
       onRestoreSuccess();

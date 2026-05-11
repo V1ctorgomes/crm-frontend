@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { apiRequest } from '@/lib/api-client';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -18,21 +19,10 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const data = await apiRequest('/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Credenciais inválidas. Verifique o seu e-mail e palavra-passe.');
-      }
 
       if (data.access_token) {
         // Guarda o cookie de forma segura

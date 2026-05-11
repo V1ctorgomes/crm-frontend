@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Contact, Stage } from './types';
+import { apiRequest } from '@/lib/api-client';
 
 interface NewTicketModalProps {
   contacts: Contact[];
@@ -49,17 +50,9 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
     };
     
     try {
-      const res = await fetch(`${baseUrl}/tickets`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(body) 
-      });
-      if (res.ok) { 
-        showFeedback('success', 'Ordem de Serviço (OS) criada com sucesso!');
-        onSuccess();
-      } else {
-        showFeedback('error', 'Erro ao processar criação da OS.');
-      }
+      await apiRequest('/tickets', { method: 'POST', body: JSON.stringify(body) });
+      showFeedback('success', 'Ordem de Serviço (OS) criada com sucesso!');
+      onSuccess();
     } catch (err) { 
       showFeedback('error', 'Erro de conexão ao criar OS.'); 
     } finally {

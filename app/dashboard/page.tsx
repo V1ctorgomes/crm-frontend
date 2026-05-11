@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import { apiRequest } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,8 +35,6 @@ export default function DashboardPage() {
   const [customerTypeRanking, setCustomerTypeRanking] = useState<{name: string, count: number}[]>([]);
   const [trendData, setTrendData] = useState<{month: string, ganhas: number, perdidas: number, andamento: number}[]>([]);
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-
   useEffect(() => setIsMounted(true), []);
 
   useEffect(() => {
@@ -43,26 +42,17 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const fetchOpts = { cache: 'no-store' as RequestCache };
-        const [resBoard, resArchived, resUsers] = await Promise.all([
-          fetch(`${baseUrl}/tickets/board`, fetchOpts),
-          fetch(`${baseUrl}/tickets/archived`, fetchOpts),
-          fetch(`${baseUrl}/users`, fetchOpts)
+        const [activeStages, archivedOS, users] = await Promise.all([
+          apiRequest('/tickets/board', fetchOpts as RequestInit).catch(() => [] as Stage[]),
+          apiRequest('/tickets/archived', fetchOpts as RequestInit).catch(() => [] as Ticket[]),
+          apiRequest('/users', fetchOpts as RequestInit).catch(() => [] as any[]),
         ]);
-
-        const activeStages: Stage[] = resBoard.ok ? await resBoard.json() : [];
-        const archivedOS: Ticket[] = resArchived.ok ? await resArchived.json() : [];
         
         setStages(activeStages);
 
-        if (resUsers.ok) {
-          const users = await resUsers.json();
-          if (users.length > 0) {
-            const resInst = await fetch(`${baseUrl}/instances/user/${users[0].id}`, fetchOpts);
-            if (resInst.ok) {
-              const instances = await resInst.json();
-              setIsInstanceConnected(instances.some((i: any) => i.status === 'connected'));
-            }
-          }
+        if (users.length > 0) {
+          const instances = await apiRequest(`/instances/user/${users[0].id}`, fetchOpts as RequestInit).catch(() => []);
+          setIsInstanceConnected(instances.some((i: any) => i.status === 'connected'));
         }
 
         // ================= CÁLCULO DOS KPIs =================
@@ -132,7 +122,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, [baseUrl]);
+  }, []);
 
   const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length }));
 
