@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { apiRequest } from '@/lib/api-client';
 import { tryParseWhatsappSseMessage } from '@/lib/whatsapp-sse-parse';
 import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
 import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
@@ -29,8 +27,12 @@ function tryMarkSseIncomingNew(contactNumber: string, waId: string | number): bo
 }
 
 export function WhatsappStreamProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [canStream, setCanStream] = useState<boolean | null>(null);
+  /** SSE do WhatsApp é público no backend; mantém-se ligado mesmo sem sessão para contar não lidas ao vivo. */
+  const [clientReady, setClientReady] = useState(false);
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   useEffect(() => {
     const once = () => {
@@ -51,34 +53,15 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
-    if (pathname === '/login') {
-      setCanStream(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const me = await apiRequest('/users/me').catch(() => null);
-      if (cancelled) return;
-      if (!me?.id) {
-        setCanStream(false);
-        return;
-      }
-      const fetchedInstances = await apiRequest(`/instances/user/${me.id}`).catch(() => []);
-      if (cancelled) return;
-      const connected = (fetchedInstances as any[]).filter((i: any) => i.status === 'connected');
-      setCanStream(connected.length > 0);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
-
-  useEffect(() => {
-    if (canStream !== true) return;
+    if (!clientReady) return;
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-    const eventSource = new EventSource(`${baseUrl}/whatsapp/stream`);
+    const url = `${baseUrl}/whatsapp/stream`;
 
-    eventSource.onmessage = (event) => {
+    let stopped = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let eventSource: EventSource | null = null;
+
+    const handleMessage = (event: MessageEvent) => {
       try {
         const detail = tryParseWhatsappSseMessage(event.data);
         if (!detail) return;
@@ -93,12 +76,15 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
 
         if (!detail.isFromMe && appendedIncoming) {
           const path = typeof window !== 'undefined' ? window.location.pathname : '';
+          const onLogin = path.includes('/login');
           const onWa = path.includes('/whatsapp');
           const viewing =
             onWa &&
             whatsappActiveContactRef.current === detail.contactNumber &&
             document.visibilityState === 'visible';
-          playIncomingMessageSound(viewing);
+          if (!onLogin) {
+            playIncomingMessageSound(viewing);
+          }
           if (!viewing) {
             const prev = loadUnreadByContact();
             const next = {
@@ -116,11 +102,35 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
       }
     };
 
-    eventSource.onerror = () => {
-      eventSource.close();
+    const scheduleReconnect = () => {
+      if (stopped) return;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (!stopped) connect();
+      }, 4000);
     };
-    return () => eventSource.close();
-  }, [canStream]);
+
+    const connect = () => {
+      if (stopped) return;
+      eventSource?.close();
+      eventSource = new EventSource(url);
+      eventSource.onmessage = handleMessage;
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+        scheduleReconnect();
+      };
+    };
+
+    connect();
+
+    return () => {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      eventSource?.close();
+    };
+  }, [clientReady]);
 
   return <>{children}</>;
 }

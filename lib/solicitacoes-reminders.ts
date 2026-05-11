@@ -11,6 +11,13 @@ export type ReminderBadgeDetail = {
   redCount: number;
 };
 
+/** Última contagens emitidas (evita piscar ao remontar o Sidebar entre rotas). */
+let lastReminderBadgeSnapshot: ReminderBadgeDetail = { greenCount: 0, redCount: 0 };
+
+export function getLastReminderBadgeSnapshot(): ReminderBadgeDetail {
+  return { ...lastReminderBadgeSnapshot };
+}
+
 /** Mesmo dia civil que “hoje” no dispositivo. */
 export function isTaskDueOnCalendarToday(dueDate: string): boolean {
   const due = new Date(dueDate);
@@ -84,5 +91,6 @@ export function computeReminderGreenRedByTicketId(stages: Stage[]): {
 export function broadcastReminderBadgeFromStages(stages: Stage[]): void {
   if (typeof window === 'undefined') return;
   const detail = computeReminderBadgeFromStages(stages);
+  lastReminderBadgeSnapshot = { ...detail };
   window.dispatchEvent(new CustomEvent(REMINDERS_BADGE_EVENT, { detail }));
 }

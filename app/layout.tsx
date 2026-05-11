@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css"; // Importa os estilos globais (Tailwind, etc)
 import { WhatsappStreamProvider } from "@/components/whatsapp/WhatsappStreamProvider";
 import { SolicitacoesRemindersProvider } from "@/components/solicitacoes/SolicitacoesRemindersProvider";
+import { WebPushRegister } from "@/components/WebPushRegister";
 
 // Fonte Inter é a mais indicada para o visual profissional da Suporte Imagem
 const inter = Inter({ subsets: ["latin"] });
@@ -11,6 +12,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Suporte Imagem - CRM",
   description: "Sistema de Gestão de Clientes",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -27,6 +29,7 @@ export default function RootLayout({
           O fundo e o efeito espelhado serão controlados pelo login.css 
           dentro da página de login.
         */}
+        <WebPushRegister />
         <WhatsappStreamProvider>
           <SolicitacoesRemindersProvider>{children}</SolicitacoesRemindersProvider>
         </WhatsappStreamProvider>

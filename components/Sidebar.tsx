@@ -17,12 +17,13 @@ import {
 } from 'lucide-react';
 import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 import { apiRequest } from '@/lib/api-client';
+import { revokeWebPushSubscription } from '@/lib/web-push-client';
 import {
   loadUnreadByContact,
   unreadConversationsCount,
   WHATSAPP_UNREAD_STORAGE_KEY,
 } from '@/lib/whatsapp-notifications';
-import { REMINDERS_BADGE_EVENT } from '@/lib/solicitacoes-reminders';
+import { REMINDERS_BADGE_EVENT, getLastReminderBadgeSnapshot } from '@/lib/solicitacoes-reminders';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -44,8 +45,12 @@ export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [whatsappUnreadTotal, setWhatsappUnreadTotal] = useState(0);
-  const [solicitacoesRemindersGreen, setSolicitacoesRemindersGreen] = useState(0);
-  const [solicitacoesRemindersRed, setSolicitacoesRemindersRed] = useState(0);
+  const [solicitacoesRemindersGreen, setSolicitacoesRemindersGreen] = useState(
+    () => getLastReminderBadgeSnapshot().greenCount,
+  );
+  const [solicitacoesRemindersRed, setSolicitacoesRemindersRed] = useState(
+    () => getLastReminderBadgeSnapshot().redCount,
+  );
 
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
@@ -69,7 +74,8 @@ export default function Sidebar() {
   const isActive = (path: string) => pathname?.includes(path);
 
   // Lógica de Sair da Conta
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await revokeWebPushSubscription().catch(() => undefined);
     globalUserCache = null;
     localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
