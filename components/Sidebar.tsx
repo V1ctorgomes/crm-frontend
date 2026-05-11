@@ -106,19 +106,31 @@ export default function Sidebar() {
         <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-600 p-2 hover:bg-slate-50 rounded-lg">
           <Menu className="w-6 h-6" />
         </button>
-        <div className="flex items-center">
-          <img src="/logoBar.png" alt="Logótipo" className="h-7 object-contain" />
+        <div className="flex min-w-0 max-w-[calc(100vw-7rem)] items-center justify-center gap-2">
+          <img src="/icon.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 object-contain" />
+          <span className="truncate text-sm font-bold tracking-tight text-brand-600 sm:text-base">
+            Suporte Imagem
+          </span>
         </div>
-        <div className="w-10"></div> {/* Espaçador para centralizar o logo */}
+        <div className="w-10 shrink-0" aria-hidden />
       </div>
 
       {/* MENU LATERAL (Visível sempre no Desktop, gaveta no Mobile) */}
       <aside className={`fixed md:relative top-0 left-0 h-full w-[260px] bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         
-        {/* Logótipo / Cabeçalho do Menu */}
+        {/* Marca (igual ao login): ícone + nome */}
         <div className="h-[60px] md:h-[88px] flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
-          <div className="flex items-center">
-             <img src="/logoBar.png" alt="Logótipo do CRM" className="h-8 object-contain" />
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 pr-2">
+            <img
+              src="/icon.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 object-contain"
+            />
+            <span className="truncate text-lg font-bold tracking-tight text-brand-600">
+              Suporte Imagem
+            </span>
           </div>
           {/* Botão fechar apenas no mobile */}
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
