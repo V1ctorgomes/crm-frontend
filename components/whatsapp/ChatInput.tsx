@@ -49,7 +49,7 @@ export function ChatInput({
           <input 
             type="text" 
             placeholder="Escreva a sua mensagem..." 
-            className="w-full h-full bg-white border border-slate-300 rounded-md px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors placeholder:text-slate-400" 
+            className="w-full h-full bg-white border border-slate-300 rounded-md px-3 text-sm outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-colors placeholder:text-slate-400" 
             value={inputText} 
             onChange={(e) => setInputText(e.target.value)} 
             onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
@@ -67,7 +67,7 @@ export function ChatInput({
            {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 ml-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>}
         </button>
       ) : (
-        <button type="button" onClick={() => handleSendMessage()} disabled={isSending || !inputText.trim()} className="w-10 h-10 rounded-md bg-slate-900 text-white flex items-center justify-center disabled:opacity-50 hover:bg-slate-800 transition-colors shrink-0">
+        <button type="button" onClick={() => handleSendMessage()} disabled={isSending || !inputText.trim()} className="w-10 h-10 rounded-md bg-brand-600 text-white flex items-center justify-center disabled:opacity-50 hover:bg-brand-700 transition-colors shrink-0">
           {isSending ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 ml-0.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>}
         </button>
       )}

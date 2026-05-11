@@ -34,13 +34,13 @@ export function FilePreview({
             <input 
               type="text" 
               placeholder="Adicione uma legenda..." 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" 
               value={inputText} 
               onChange={(e) => setInputText(e.target.value)} 
               onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }} 
               autoFocus 
             />
-            <button onClick={handleSendMessage} disabled={isSending} className="h-10 px-4 rounded-md bg-slate-900 text-white font-medium text-sm flex items-center justify-center hover:bg-slate-800 transition-all shrink-0 disabled:opacity-50">
+            <button onClick={handleSendMessage} disabled={isSending} className="h-10 px-4 rounded-md bg-brand-600 text-white font-medium text-sm flex items-center justify-center hover:bg-brand-700 transition-all shrink-0 disabled:opacity-50">
               {isSending ? 'A enviar...' : 'Enviar'}
             </button>
          </div>

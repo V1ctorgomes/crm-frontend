@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload?.fill || '#148C26' }}></span>
                 <span className="text-slate-700 font-medium">{displayLabel}</span>
               </div>
-              <span className="font-bold text-slate-900 font-mono">{entry.value}</span>
+              <span className="font-bold text-brand-950 font-mono">{entry.value}</span>
             </div>
           );
         })}
@@ -80,8 +80,8 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                   <AreaChart data={trendData} margin={{ left: 12, right: 12, top: 12, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorGanhas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#148C26" stopOpacity={0.45}/>
+                        <stop offset="95%" stopColor="#148C26" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorAndamento" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#1FA634" stopOpacity={0.45}/>
@@ -92,11 +92,11 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => value.slice(0, 5)} />
+                    <CartesianGrid vertical={false} stroke="#cfe8d4" strokeDasharray="3 3" />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#3d5245', fontSize: 12 }} tickFormatter={(value) => value.slice(0, 5)} />
                     <Tooltip cursor={false} content={<CustomTooltip />} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b', paddingTop: '10px' }} />
-                    <Area stackId="1" name="Ganhas" dataKey="ganhas" type="monotone" fill="url(#colorGanhas)" fillOpacity={1} stroke="#22c55e" strokeWidth={2} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#3d5245', paddingTop: '10px' }} />
+                    <Area stackId="1" name="Ganhas" dataKey="ganhas" type="monotone" fill="url(#colorGanhas)" fillOpacity={1} stroke="#148C26" strokeWidth={2} />
                     <Area stackId="1" name="Em Andamento" dataKey="andamento" type="monotone" fill="url(#colorAndamento)" fillOpacity={1} stroke="#1FA634" strokeWidth={2} />
                     <Area stackId="1" name="Canceladas" dataKey="perdidas" type="monotone" fill="url(#colorPerdidas)" fillOpacity={1} stroke="#ef4444" strokeWidth={2} />
                   </AreaChart>
@@ -119,12 +119,12 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={brandRanking} margin={{ top: 20, right: 10, left: -25, bottom: 0 }} barCategoryGap="25%">
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} />
-                    <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cfe8d4" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#3d5245', fontSize: 12, fontWeight: 500 }} />
+                    <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#3d5245', fontSize: 12 }} allowDecimals={false} />
                     <Tooltip cursor={{ fill: '#f5faf6' }} content={<CustomTooltip />} />
                     <Bar dataKey="count" fill="#148C26" radius={[4, 4, 0, 0]} maxBarSize={45}>
-                      <LabelList dataKey="count" position="top" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
+                      <LabelList dataKey="count" position="top" offset={8} fill="#3d5245" fontSize={12} fontWeight={600} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -151,12 +151,12 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 35, left: 0, bottom: 0 }} barCategoryGap="20%">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#cfe8d4" />
                     <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} width={90} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#3d5245', fontSize: 12, fontWeight: 500 }} width={90} />
                     <Tooltip cursor={{ fill: '#f5faf6' }} content={<CustomTooltip />} />
                     <Bar dataKey="Quantidade" fill="#1FA634" radius={[0, 4, 4, 0]} maxBarSize={32}>
-                      <LabelList dataKey="Quantidade" position="right" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
+                      <LabelList dataKey="Quantidade" position="right" offset={8} fill="#3d5245" fontSize={12} fontWeight={600} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -194,10 +194,10 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                           if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                             return (
                               <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                <tspan x={viewBox.cx} y={(viewBox.cy || 0) - 4} className="fill-slate-900 text-3xl font-bold">
+                                <tspan x={viewBox.cx} y={(viewBox.cy || 0) - 4} className="fill-brand-950 text-3xl font-bold">
                                   {totalCustomers.toLocaleString()}
                                 </tspan>
-                                <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-slate-500 text-sm font-medium">
+                                <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-brand-700/80 text-sm font-medium">
                                   Registos
                                 </tspan>
                               </text>

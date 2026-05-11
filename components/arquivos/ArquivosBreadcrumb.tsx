@@ -18,7 +18,7 @@ export function ArquivosBreadcrumb({
     <nav className="flex items-center gap-2 text-sm font-medium animate-in fade-in duration-500">
       <button 
         onClick={() => { setSelectedCustomer(null); setSelectedTicket(null); setPendingFile(null); setFolderSearchTerm(''); }} 
-        className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md ${!selectedCustomer ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 bg-white border border-slate-200'}`}
+        className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md ${!selectedCustomer ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-brand-950 bg-white border border-slate-200'}`}
       >
         <FolderTree className="w-4 h-4" />
         Raiz
@@ -29,7 +29,7 @@ export function ArquivosBreadcrumb({
           <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           <button 
             onClick={() => { setSelectedTicket(null); setPendingFile(null); }} 
-            className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md truncate ${!selectedTicket ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 bg-white border border-slate-200'}`}
+            className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md truncate ${!selectedTicket ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-100' : 'text-slate-500 hover:bg-slate-100 hover:text-brand-950 bg-white border border-slate-200'}`}
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span className="truncate">{selectedCustomer.contact.name || selectedCustomer.contact.number}</span>
@@ -41,7 +41,7 @@ export function ArquivosBreadcrumb({
         <>
           <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           <span className={`flex items-center gap-2 px-3 py-1.5 rounded-md shadow-sm border shrink-0 ${
-            selectedTicket.resolution === 'SUCCESS' ? 'bg-green-50 text-green-700 border-green-200' : 
+            selectedTicket.resolution === 'SUCCESS' ? 'bg-brand-50 text-brand-800 border-brand-200' : 
             selectedTicket.resolution === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 
             selectedTicket.isArchived ? 'bg-slate-100 text-slate-700 border-slate-200' : 
             'bg-brand-50 text-brand-700 border-brand-200'

@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${inter.className} bg-[#edf5f0] text-[#0f172a] antialiased`}
+        className={`${inter.className} bg-brand-canvas text-brand-ink antialiased`}
       >
         {/* O layout.tsx apenas entrega o conteúdo. 
           O fundo e o efeito espelhado serão controlados pelo login.css 

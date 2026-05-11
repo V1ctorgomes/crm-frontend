@@ -141,7 +141,7 @@ export default function DashboardPage() {
         {isLoading || !isMounted ? (
           <div className="flex-1 flex justify-center items-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
               <span className="text-slate-500 font-medium text-sm">A carregar dados...</span>
             </div>
           </div>

@@ -15,7 +15,7 @@ export function TicketFoldersGrid({ selectedCustomer, setSelectedTicket, handleD
         <div 
           key={ticket.id} 
           className={`bg-white border ${
-            ticket.resolution === 'SUCCESS' ? 'border-green-200 bg-green-50/30 hover:border-green-400' : 
+            ticket.resolution === 'SUCCESS' ? 'border-brand-200 bg-brand-50/50 hover:border-brand-400' : 
             ticket.resolution === 'CANCELLED' ? 'border-red-200 bg-red-50/30 hover:border-red-400' : 
             ticket.isArchived ? 'border-slate-200 bg-slate-50/50' : 
             'border-slate-200 hover:border-brand-400'
@@ -25,7 +25,7 @@ export function TicketFoldersGrid({ selectedCustomer, setSelectedTicket, handleD
           <div className="flex items-start justify-between gap-3 mb-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border ${
-                ticket.resolution === 'SUCCESS' ? 'bg-green-100 text-green-600 border-green-200' : 
+                ticket.resolution === 'SUCCESS' ? 'bg-brand-100 text-brand-700 border-brand-200' : 
                 ticket.resolution === 'CANCELLED' ? 'bg-red-100 text-red-600 border-red-200' : 
                 ticket.isArchived ? 'bg-slate-100 text-slate-600 border-slate-200' : 
                 'bg-slate-50 text-slate-600 border-slate-200'
@@ -34,7 +34,7 @@ export function TicketFoldersGrid({ selectedCustomer, setSelectedTicket, handleD
               </div>
               {ticket.isArchived && (
                 <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest border ${
-                  ticket.resolution === 'SUCCESS' ? 'bg-green-100 text-green-700 border-green-200' : 
+                  ticket.resolution === 'SUCCESS' ? 'bg-brand-100 text-brand-800 border-brand-200' : 
                   ticket.resolution === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' : 
                   'bg-slate-100 text-slate-700 border-slate-200'
                 }`}>
@@ -55,7 +55,7 @@ export function TicketFoldersGrid({ selectedCustomer, setSelectedTicket, handleD
           </div>
           
           <div className="flex-1">
-            <h3 className="font-bold text-slate-900 text-base">OS {ticket.id.split('-')[0].toUpperCase()}</h3>
+            <h3 className="font-bold text-brand-950 text-base">OS {ticket.id.split('-')[0].toUpperCase()}</h3>
             <p className="text-xs font-medium text-slate-500 mt-1 truncate">{ticket.marca} {ticket.modelo}</p>
             <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
               <File className="w-4 h-4 text-slate-400" />

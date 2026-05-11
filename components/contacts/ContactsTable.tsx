@@ -19,7 +19,7 @@ interface ContactsTableProps {
 export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: ContactsTableProps) {
   return (
     <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
-      <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm overflow-hidden flex flex-col">
+      <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -36,7 +36,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: Contact
                 <tr>
                   <td colSpan={5} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                       <span className="text-slate-500 font-medium text-sm">A carregar contactos...</span>
                     </div>
                   </td>
@@ -59,7 +59,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: Contact
                         )}
                       </div>
                       <div className="flex flex-col max-w-[150px] sm:max-w-[250px]">
-                        <span className="font-semibold text-slate-900 truncate">{contact.name || 'Sem nome'}</span>
+                        <span className="font-semibold text-brand-950 truncate">{contact.name || 'Sem nome'}</span>
                         <span className="text-[12px] text-slate-500 truncate">Registado via WhatsApp</span>
                       </div>
                     </div>
@@ -69,7 +69,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: Contact
                   <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.cnpj || '--'}</td>
                   <td className="p-4 align-middle text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => onEdit(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors" title="Editar">
+                      <button onClick={() => onEdit(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-brand-950 hover:bg-slate-100 transition-colors" title="Editar">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg>
                       </button>
                       <button onClick={() => onDelete(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Remover">

@@ -44,7 +44,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative">
+    <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative bg-gradient-to-br from-white via-brand-canvas to-brand-50/60">
       <div className="w-full max-w-[420px] mx-auto flex flex-col">
         
         {/* Logo com carregamento direto (unoptimized) para evitar erros de cache/servidor */}
@@ -62,10 +62,10 @@ export function LoginForm() {
 
         {/* Cabeçalho */}
         <div className="flex flex-col space-y-2 mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-brand-950">
             Bem-vindo de volta
           </h1>
-          <p className="text-sm text-slate-500 font-medium">
+          <p className="text-sm text-brand-800/80 font-medium">
             Insira as suas credenciais corporativas para aceder à plataforma.
           </p>
         </div>
@@ -83,13 +83,13 @@ export function LoginForm() {
         {/* Formulário */}
         <form onSubmit={handleLogin} className="flex flex-col gap-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-slate-700" htmlFor="email">
+            <label className="text-sm font-semibold text-brand-900" htmlFor="email">
               E-mail Corporativo
             </label>
             <input
               id="email"
               type="email"
-              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink transition-colors placeholder:text-brand-800/40 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="exemplo@suempresa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -99,7 +99,7 @@ export function LoginForm() {
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-semibold text-slate-700" htmlFor="password">
+              <label className="text-sm font-semibold text-brand-900" htmlFor="password">
                 Palavra-passe
               </label>
               <a href="#" className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors">
@@ -109,7 +109,7 @@ export function LoginForm() {
             <input
               id="password"
               type="password"
-              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono transition-colors placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink font-mono transition-colors placeholder:text-brand-800/40 placeholder:font-sans focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -120,7 +120,7 @@ export function LoginForm() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-8 text-sm font-medium text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-70"
+            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-8 text-sm font-medium text-white transition-all hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2 focus:ring-offset-brand-canvas disabled:pointer-events-none disabled:opacity-70"
           >
             {isLoading ? (
               <>
@@ -137,7 +137,7 @@ export function LoginForm() {
         </form>
 
         {/* Rodapé de Segurança */}
-        <div className="mt-8 flex items-center justify-center gap-2 text-slate-400">
+        <div className="mt-8 flex items-center justify-center gap-2 text-brand-700/50">
           <ShieldCheck className="w-4 h-4" />
           <span className="text-xs font-medium">Acesso seguro e encriptado</span>
         </div>

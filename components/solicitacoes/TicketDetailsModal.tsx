@@ -141,7 +141,7 @@ export function TicketDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[85vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
         
         {/* Lateral Esquerda */}
@@ -154,7 +154,7 @@ export function TicketDetailsModal({
                 {(ticket.contact?.name || '?').substring(0, 2).toUpperCase()}
               </div>
             )}
-            <h3 className="font-semibold text-lg text-slate-900 break-all">{ticket.contact?.name || 'Sem nome'}</h3>
+            <h3 className="font-semibold text-lg text-brand-950 break-all">{ticket.contact?.name || 'Sem nome'}</h3>
             <span className="text-slate-500 font-mono text-xs mt-1 bg-white px-2 py-0.5 rounded border border-slate-200">
               {ticket.contactNumber}
             </span>
@@ -191,7 +191,7 @@ export function TicketDetailsModal({
           </div>
 
           <div className="p-4 border-t border-slate-200 bg-white">
-             <button onClick={onCloseTicketRequest} className="w-full flex items-center justify-center gap-2 text-slate-50 bg-slate-900 hover:bg-slate-800 py-2.5 rounded-md text-sm font-medium transition-colors">
+             <button onClick={onCloseTicketRequest} className="w-full flex items-center justify-center gap-2 text-white bg-brand-600 hover:bg-brand-700 py-2.5 rounded-md text-sm font-medium transition-colors">
                 Encerrar Solicitação
              </button>
           </div>
@@ -201,18 +201,18 @@ export function TicketDetailsModal({
         <div className="flex-1 flex flex-col bg-white w-full overflow-hidden">
           <div className="px-6 border-b border-slate-200 flex justify-between items-end shrink-0 pt-4">
             <div className="flex gap-6">
-              <button onClick={() => setActiveTab('tasks')} className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'tasks' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+              <button onClick={() => setActiveTab('tasks')} className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'tasks' ? 'border-brand-600 text-brand-950' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
                 Lembretes
-                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'tasks' ? 'bg-slate-100 text-slate-900' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'tasks' ? 'bg-slate-100 text-brand-950' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
                   {ticket.tasks?.filter(t => !t.isCompleted).length || 0}
                 </span>
               </button>
-              <button onClick={() => setActiveTab('notes')} className={`pb-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'notes' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+              <button onClick={() => setActiveTab('notes')} className={`pb-3 font-medium text-sm transition-all border-b-2 ${activeTab === 'notes' ? 'border-brand-600 text-brand-950' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
                 Notas Internas
               </button>
-              <button onClick={() => setActiveTab('files')} className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'files' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+              <button onClick={() => setActiveTab('files')} className={`pb-3 font-medium text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'files' ? 'border-brand-600 text-brand-950' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
                 Anexos
-                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'files' ? 'bg-slate-100 text-slate-900' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>{(ticket.files || []).length}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'files' ? 'bg-slate-100 text-brand-950' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>{(ticket.files || []).length}</span>
               </button>
             </div>
             <button onClick={onClose} className="mb-2 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
@@ -232,7 +232,7 @@ export function TicketDetailsModal({
                        const isOverdue = new Date(task.dueDate) < new Date() && !task.isCompleted;
                        return (
                          <div key={task.id} className={`bg-white p-4 rounded-lg border shadow-sm group flex items-start gap-4 transition-all ${task.isCompleted ? 'border-slate-200 opacity-60' : isOverdue ? 'border-red-200' : 'border-slate-200 hover:border-brand-300'}`}>
-                           <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`mt-0.5 shrink-0 ${task.isCompleted ? 'text-green-500' : 'text-slate-300 hover:text-brand-500'}`}>
+                           <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`mt-0.5 shrink-0 ${task.isCompleted ? 'text-brand-600' : 'text-slate-300 hover:text-brand-500'}`}>
                              {task.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                            </button>
                            <div className="flex-1 min-w-0">
@@ -256,9 +256,9 @@ export function TicketDetailsModal({
               </div>
               <div className="p-4 border-t border-slate-200 bg-white shrink-0">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <input type="text" placeholder="O que precisa ser feito?" className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-500" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
-                  <input type="datetime-local" className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-brand-500" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
-                  <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 h-10 px-6 disabled:opacity-50">Agendar</button>
+                  <input type="text" placeholder="O que precisa ser feito?" className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
+                  <input type="datetime-local" className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-brand-600" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
+                  <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-brand-600 text-white h-10 px-6 disabled:opacity-50">Agendar</button>
                 </div>
               </div>
             </div>
@@ -282,9 +282,9 @@ export function TicketDetailsModal({
               </div>
               <div className="p-4 border-t border-slate-200 bg-slate-50 shrink-0">
                 <div className="flex flex-col gap-2">
-                  <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-500 resize-none" placeholder="Escreva uma nota..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
+                  <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600 resize-none" placeholder="Escreva uma nota..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
                   <div className="flex justify-end">
-                    <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-slate-50 h-9 px-4 py-2 disabled:opacity-50">Adicionar Nota</button>
+                    <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-brand-600 text-white h-9 px-4 py-2 disabled:opacity-50">Adicionar Nota</button>
                   </div>
                 </div>
               </div>
@@ -305,7 +305,7 @@ export function TicketDetailsModal({
                   <input type="text" placeholder="Legenda (Opcional)" className="flex h-9 w-full rounded-md border border-slate-300 px-3 py-1 text-sm focus:outline-none" value={fileDescription} onChange={e => setFileDescription(e.target.value)} autoFocus />
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setPendingFile(null); setFileDescription(''); if(fileInputRef.current) fileInputRef.current.value=''; }} className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 h-9 px-4">Cancelar</button>
-                    <button onClick={confirmUploadFile} disabled={isUploadingFile} className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-slate-50 h-9 px-4">
+                    <button onClick={confirmUploadFile} disabled={isUploadingFile} className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-brand-600 text-white h-9 px-4">
                       {isUploadingFile ? 'Enviando...' : 'Upload'}
                     </button>
                   </div>

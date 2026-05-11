@@ -10,13 +10,13 @@ interface ConfirmModalProps {
 
 export function ConfirmModal({ title, message, onConfirm, onClose }: ConfirmModalProps) {
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
         <div className="p-6 text-center">
           <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
             <Trash2 className="w-6 h-6" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-1">{title}</h3>
+          <h3 className="text-lg font-semibold text-brand-950 mb-1">{title}</h3>
           <p className="text-sm text-slate-500">{message}</p>
         </div>
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">

@@ -397,7 +397,7 @@ export default function WhatsAppPage() {
         {toast && <Toast type={toast.type} message={toast.message} />}
 
         {hasInstances === null ? (
-          <div className="flex-1 flex items-center justify-center bg-brand-canvas"><div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div></div>
+          <div className="flex-1 flex items-center justify-center bg-brand-canvas"><div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div></div>
         ) : hasInstances === false ? (
           <NoInstancesView />
         ) : (

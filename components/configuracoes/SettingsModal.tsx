@@ -150,7 +150,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-brand-canvas rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] h-[700px] overflow-hidden flex flex-col border border-slate-200 animate-in zoom-in-95 duration-200" onMouseDown={e => e.stopPropagation()}>
         
         {toast && <Toast type={toast.type} message={toast.message} />}
@@ -158,7 +158,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Configurações da Conta</h2>
+            <h2 className="text-xl font-bold text-brand-950">Configurações da Conta</h2>
             <p className="text-sm text-slate-500">Gira as suas preferências e integrações do sistema.</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-100">
@@ -173,13 +173,13 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <div className="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-4 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto border-b md:border-b-0">
             <button 
               onClick={() => setActiveTab('perfil')} 
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all text-left ${activeTab === 'perfil' ? 'bg-white text-brand-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 border border-transparent'}`}
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all text-left ${activeTab === 'perfil' ? 'bg-white text-brand-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:bg-slate-200/50 hover:text-brand-950 border border-transparent'}`}
             >
               <User className={`w-5 h-5 ${activeTab === 'perfil' ? 'text-brand-600' : 'text-slate-400'}`} /> O Meu Perfil
             </button>
             <button 
               onClick={() => setActiveTab('conexoes')} 
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all text-left ${activeTab === 'conexoes' ? 'bg-white text-brand-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 border border-transparent'}`}
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all text-left ${activeTab === 'conexoes' ? 'bg-white text-brand-700 shadow-sm border border-slate-200' : 'text-slate-600 hover:bg-slate-200/50 hover:text-brand-950 border border-transparent'}`}
             >
               <LinkIcon className={`w-5 h-5 ${activeTab === 'conexoes' ? 'text-brand-600' : 'text-slate-400'}`} /> Conexões API
             </button>
@@ -208,20 +208,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
       {/* Sobreposição de QR Code / Confirm (Aninhados no Modal principal) */}
       {qrCodeData && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setQrCodeData(null)}>
+        <div className="fixed inset-0 bg-brand-950/55 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setQrCodeData(null)}>
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full flex flex-col items-center text-center animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><QrCode className="w-5 h-5 text-brand-600" /> Ligar WhatsApp</h3>
             {qrCodeData.base64 && <img src={qrCodeData.base64.startsWith('data:') ? qrCodeData.base64 : `data:image/png;base64,${qrCodeData.base64}`} alt="QR Code" className="w-56 h-56 border p-2 rounded-lg" />}
-            <button onClick={() => setQrCodeData(null)} className="mt-6 w-full bg-slate-900 text-white h-10 rounded-md font-medium hover:bg-slate-800 transition-colors">Fechar</button>
+            <button onClick={() => setQrCodeData(null)} className="mt-6 w-full bg-brand-600 text-white h-10 rounded-md font-medium hover:bg-brand-700 transition-colors">Fechar</button>
           </div>
         </div>
       )}
 
       {confirmModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setConfirmModal(null)}>
+        <div className="fixed inset-0 bg-brand-950/55 backdrop-blur-sm z-[1000] flex items-center justify-center p-4" onClick={() => setConfirmModal(null)}>
           <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 bg-red-50 rounded-full p-2" />
-            <h3 className="font-bold text-lg mb-2 text-slate-900">{confirmModal.title}</h3>
+            <h3 className="font-bold text-lg mb-2 text-brand-950">{confirmModal.title}</h3>
             <p className="text-sm text-slate-500 mb-6">{confirmModal.message}</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmModal(null)} className="flex-1 h-10 rounded-md border border-slate-200 text-sm font-medium hover:bg-slate-50 text-slate-700">Cancelar</button>

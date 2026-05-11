@@ -3,7 +3,19 @@ import { Trash2 } from 'lucide-react';
 import { Stage } from './types';
 import { apiRequest } from '@/lib/api-client';
 
-const PREDEFINED_COLORS = ['#94a3b8', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#c084fc', '#fb923c', '#f472b6', '#2dd4bf', '#fbbf24'];
+/** Apenas paleta da marca + neutro e vermelho semântico (cancelado / alerta) */
+const PREDEFINED_COLORS = [
+  '#148C26',
+  '#1FA634',
+  '#117a21',
+  '#52b86b',
+  '#0d5f1a',
+  '#F2E41D',
+  '#F2CE1B',
+  '#8da397',
+  '#f87171',
+  '#d4edda',
+];
 
 interface StageManagerModalProps {
   baseUrl: string;
@@ -77,7 +89,7 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
         <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100">
           <h3 className="font-semibold leading-none tracking-tight text-lg">Fases do Funil</h3>
@@ -92,7 +104,7 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
                 <button key={c} onClick={() => setNewStageColor(c)} className={`w-5 h-5 rounded-full transition-all ${newStageColor === c ? 'ring-2 ring-offset-1 ring-slate-400' : 'opacity-70 hover:opacity-100'}`} style={{ backgroundColor: c }} />
               ))}
             </div>
-            <button onClick={handleCreateStage} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4">Adicionar</button>
+            <button onClick={handleCreateStage} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-brand-600 text-white hover:bg-brand-700 h-10 px-4">Adicionar</button>
           </div>
         </div>
 
@@ -109,7 +121,7 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
               </div>
               
               <div className="flex items-center gap-2">
-                <button onClick={() => handleToggleStageActive(stage.id, stage.isActive)} className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded">
+                <button onClick={() => handleToggleStageActive(stage.id, stage.isActive)} className="text-xs font-medium text-slate-600 hover:text-brand-950 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded">
                   {stage.isActive ? 'Desativar' : 'Ativar'}
                 </button>
                 <button onClick={() => handleDeleteStage(stage.id)} className="text-slate-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors">

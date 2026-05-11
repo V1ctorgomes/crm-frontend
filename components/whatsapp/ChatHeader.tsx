@@ -32,7 +32,7 @@ export function ChatHeader({
         )}
         
         <div className="ml-3 overflow-hidden flex-1">
-          <h2 className="text-sm font-bold text-slate-900 leading-tight truncate">{activeContact.name}</h2>
+          <h2 className="text-sm font-bold text-brand-950 leading-tight truncate">{activeContact.name}</h2>
           <span className="text-[11px] text-slate-500 font-mono leading-tight truncate block mt-0.5">
             {activeContact.number}
             {activeContact.instanceName && <span className="ml-2 text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
@@ -42,18 +42,18 @@ export function ChatHeader({
         <div className="flex items-center gap-1 sm:gap-2 ml-auto">
           <button
             onClick={openNewTicketModal}
-            className="h-9 px-3 rounded-md flex items-center justify-center bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors text-xs gap-1.5 whitespace-nowrap hidden sm:flex"
+            className="h-9 px-3 rounded-md flex items-center justify-center bg-brand-600 text-white font-medium hover:bg-brand-700 transition-colors text-xs gap-1.5 whitespace-nowrap hidden sm:flex"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Criar OS
           </button>
-          <button onClick={openNewTicketModal} className="w-9 h-9 rounded-md flex items-center justify-center bg-slate-900 text-white hover:bg-slate-800 transition-colors sm:hidden">
+          <button onClick={openNewTicketModal} className="w-9 h-9 rounded-md flex items-center justify-center bg-brand-600 text-white hover:bg-brand-700 transition-colors sm:hidden">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
           </button>
 
           <div className="w-px h-5 bg-slate-200 mx-1 hidden sm:block"></div>
 
-          <button onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'}`} title="Pesquisar">
+          <button onClick={() => { setIsSearchChatOpen(!isSearchChatOpen); setChatSearchTerm(''); }} className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${isSearchChatOpen ? 'bg-slate-100 text-brand-950' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'}`} title="Pesquisar">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
           </button>
           

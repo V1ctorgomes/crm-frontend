@@ -49,21 +49,21 @@ export function ProfileTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">E-mail</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
           </div>
         </div>
         
         <div className="space-y-1 pt-2">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Senha (opcional)</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
         </div>
         
         <div className="pt-4 flex justify-end">
-          <button type="submit" disabled={isSavingProfile || !userData} className="bg-slate-900 text-white px-6 h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-70 flex items-center gap-2 shadow-sm">
+          <button type="submit" disabled={isSavingProfile || !userData} className="bg-brand-600 text-white px-6 h-10 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-70 flex items-center gap-2 shadow-sm">
             {isSavingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
             Guardar Alterações
           </button>

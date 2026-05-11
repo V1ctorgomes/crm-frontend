@@ -8,7 +8,7 @@ interface ProxiesTableProps {
 
 export function ProxiesTable({ proxies, handleDeleteProxy }: ProxiesTableProps) {
   return (
-    <div className="xl:col-span-2 rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm overflow-hidden flex flex-col">
+    <div className="xl:col-span-2 rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
       <div className="p-6 border-b border-slate-100 bg-slate-50/50">
         <h3 className="font-semibold leading-none tracking-tight text-lg">Infraestrutura Ativa</h3>
         <p className="text-sm text-slate-500 mt-1.5">Lista de todos os proxies registados e disponíveis.</p>
@@ -39,8 +39,8 @@ export function ProxiesTable({ proxies, handleDeleteProxy }: ProxiesTableProps) 
               <tr key={proxy.id} className="hover:bg-slate-50/50 transition-colors group">
                 <td className="p-4 align-middle">
                   <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                    <span className="font-semibold text-slate-900">{proxy.name}</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-500"></div>
+                    <span className="font-semibold text-brand-950">{proxy.name}</span>
                   </div>
                 </td>
                 <td className="p-4 align-middle">

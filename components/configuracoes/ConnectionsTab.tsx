@@ -31,7 +31,7 @@ export function ConnectionsTab({
             <Smartphone className="w-8 h-8" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-lg text-slate-900">WhatsApp Oficial</h3>
+            <h3 className="font-bold text-lg text-brand-950">WhatsApp Oficial</h3>
             <p className="text-sm text-slate-500">Gestão via Evolution API.</p>
           </div>
           <div className="bg-slate-50 border border-slate-200 text-slate-600 px-3 py-1 rounded-md text-xs font-semibold">{instances.length} Instâncias</div>
@@ -45,16 +45,16 @@ export function ConnectionsTab({
             <form onSubmit={handleCreateInstance} className="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Instância</label>
-                <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proxy (Opcional)</label>
-                <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600">
                   <option value="">Nenhum Proxy</option>
                   {availableProxies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-              <button type="submit" disabled={isCreatingInstance} className="md:col-span-2 bg-slate-900 text-white h-10 rounded-md text-sm font-medium hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-sm">
+              <button type="submit" disabled={isCreatingInstance} className="md:col-span-2 bg-brand-600 text-white h-10 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 shadow-sm">
                 {isCreatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Criar Instância
               </button>
@@ -68,7 +68,7 @@ export function ConnectionsTab({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-sm">{inst.name}</h4>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${inst.status === 'connected' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{inst.status}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${inst.status === 'connected' ? 'bg-brand-100 text-brand-800 border border-brand-200' : 'bg-highlight/25 text-brand-900 border border-highlight-warm/80'}`}>{inst.status}</span>
                         </div>
                         <p className="text-xs text-slate-400 font-mono mt-1">{inst.id}</p>
                       </div>

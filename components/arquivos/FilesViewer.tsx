@@ -43,7 +43,7 @@ export function FilesViewer({
             <input 
               type="text" 
               placeholder="Adicionar legenda descritiva..." 
-              className="w-full bg-white border border-slate-300 rounded-md px-3 h-10 text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors placeholder:text-slate-400"
+              className="w-full bg-white border border-slate-300 rounded-md px-3 h-10 text-sm outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 transition-colors placeholder:text-slate-400"
               value={fileDescription}
               onChange={e => setFileDescription(e.target.value)}
               autoFocus
@@ -51,7 +51,7 @@ export function FilesViewer({
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             <button onClick={cancelUpload} className="flex-1 md:flex-none px-4 h-10 rounded-md font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors text-sm">Cancelar</button>
-            <button onClick={confirmUpload} disabled={isUploading} className="flex-1 md:flex-none bg-slate-900 text-white px-5 h-10 rounded-md font-medium text-sm hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-70">
+            <button onClick={confirmUpload} disabled={isUploading} className="flex-1 md:flex-none bg-brand-600 text-white px-5 h-10 rounded-md font-medium text-sm hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-70">
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Upload'}
             </button>
           </div>

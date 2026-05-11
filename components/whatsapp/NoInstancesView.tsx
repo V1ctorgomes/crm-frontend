@@ -9,9 +9,9 @@ export function NoInstancesView() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
         </svg>
       </div>
-      <h2 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">Nenhuma Instância Conectada</h2>
+      <h2 className="text-xl font-bold text-brand-950 mb-2 tracking-tight">Nenhuma Instância Conectada</h2>
       <p className="text-slate-500 mb-6 max-w-md text-sm">Para começar a enviar e receber mensagens com os seus clientes, você precisa primeiro criar e conectar uma instância do WhatsApp.</p>
-      <Link href="/configuracoes" className="bg-slate-900 text-white px-6 py-2.5 rounded-md font-medium hover:bg-slate-800 transition-all flex items-center gap-2">
+      <Link href="/configuracoes" className="bg-brand-600 text-white px-6 py-2.5 rounded-md font-medium hover:bg-brand-700 transition-all flex items-center gap-2">
         Ir para Configurações
       </Link>
     </div>

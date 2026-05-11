@@ -38,7 +38,7 @@ export function ArchivedTicketsModal({ baseUrl, onClose, onRestoreSuccess, showF
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
         <div className="flex justify-between items-center p-6 border-b border-slate-100">
            <div className="flex flex-col space-y-1.5">
@@ -58,13 +58,13 @@ export function ArchivedTicketsModal({ baseUrl, onClose, onRestoreSuccess, showF
               {archivedTickets.map(t => (
                 <div key={t.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full flex flex-col">
                   <div className="flex justify-between items-start mb-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${t.resolution === 'SUCCESS' ? 'bg-green-50 text-green-700 border-green-200' : t.resolution === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${t.resolution === 'SUCCESS' ? 'bg-brand-50 text-brand-800 border-brand-200' : t.resolution === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                       {t.resolution === 'SUCCESS' ? 'Ganho' : t.resolution === 'CANCELLED' ? 'Cancelado' : 'Encerrado'}
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">{new Date(t.updatedAt).toLocaleDateString()}</span>
                   </div>
                   
-                  <h4 className="font-semibold text-slate-900 text-sm truncate">{t.contact?.name || t.contactNumber}</h4>
+                  <h4 className="font-semibold text-brand-950 text-sm truncate">{t.contact?.name || t.contactNumber}</h4>
                   <p className="text-[11px] text-slate-500 mt-1 truncate">
                     {t.ticketType && `[${t.ticketType}] `}{t.customerType && `[${t.customerType}] `} {t.marca} {t.modelo}
                   </p>
