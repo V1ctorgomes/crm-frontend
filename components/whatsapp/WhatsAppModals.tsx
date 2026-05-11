@@ -1,5 +1,6 @@
 import React from 'react';
 import { Contact, Message } from './types';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
 
 export const InstanceModal = ({ onClose, instances, selectedInstance, setSelectedInstance, handleSelectContact }: any) => (
   <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
@@ -74,7 +75,9 @@ export const MediaViewerModal = ({ viewerMessage, onClose }: { viewerMessage: Me
         ) : viewerMessage.mimeType?.startsWith('video/') ? (
           <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded outline-none" />
         ) : viewerMessage.mimeType?.startsWith('audio/') ? (
-          <audio src={viewerMessage.mediaData} controls className="w-full max-w-md rounded-md" preload="metadata" />
+          <div className="w-full max-w-md px-2">
+            <VoiceNotePlayer src={viewerMessage.mediaData} mimeType={viewerMessage.mimeType} className="h-12" />
+          </div>
         ) : viewerMessage.mimeType?.includes('pdf') ? (
           <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="h-full w-full rounded border border-slate-200 bg-white" title={viewerMessage.fileName || 'PDF'} />
         ) : (

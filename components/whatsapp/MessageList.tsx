@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { Message } from './types';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
 
 interface MessageListProps {
   filteredMessages: Message[];
@@ -57,11 +58,10 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
                   // Largura fixa: o elemento <audio> não tem tamanho intrínseco e colapsa
                   // dentro de balões `w-fit`, mostrando apenas o menu (⋮). Fixar o container resolve.
                   <div className="mb-1 w-[260px] max-w-full sm:w-[300px]">
-                    <audio
-                      controls
+                    <VoiceNotePlayer
                       src={msg.mediaData}
-                      className="block h-10 w-full outline-none"
-                      preload="metadata"
+                      mimeType={msg.mimeType}
+                      invertControls={msg.fromMe}
                     />
                   </div>
                 ) : (

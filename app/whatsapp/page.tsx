@@ -13,14 +13,30 @@ import { ChatInput } from '@/components/whatsapp/ChatInput';
 import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
 
-/** Opus em WebM ou OGG — evita gravação vazia/incompatível com o default do browser. */
+/**
+ * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
+ * Depois WebM/Opus (Chrome, Firefox, Edge).
+ */
 function pickAudioRecordingMimeType(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined;
-  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+  const candidates = [
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/mp4',
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+  ];
   for (const t of candidates) {
     if (MediaRecorder.isTypeSupported(t)) return t;
   }
   return undefined;
+}
+
+function audioFileExtensionFromMime(blobType: string): string {
+  const t = blobType.toLowerCase();
+  if (t.includes('mp4')) return 'm4a';
+  if (t.includes('ogg')) return 'ogg';
+  return 'webm';
 }
 
 export default function WhatsAppPage() {
@@ -444,7 +460,7 @@ export default function WhatsAppPage() {
         }
         const blobType = recordingMimeRef.current || 'audio/webm';
         const audioBlob = new Blob(chunks, { type: blobType });
-        const ext = blobType.includes('ogg') && !blobType.includes('webm') ? 'ogg' : 'webm';
+        const ext = audioFileExtensionFromMime(blobType);
         const audioFile = new File([audioBlob], `audio_${Date.now()}.${ext}`, { type: blobType });
         await sendDirectMedia(audioFile, '');
       };
