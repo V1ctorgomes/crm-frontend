@@ -35,7 +35,7 @@ export function UserFormModal({
             <label className="text-sm font-medium leading-none text-slate-700">Nome Completo</label>
             <input 
               type="text" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50" 
               value={formName} 
               onChange={(e) => setFormName(e.target.value)}
               placeholder="Ex: Maria Santos"
@@ -45,7 +45,7 @@ export function UserFormModal({
             <label className="text-sm font-medium leading-none text-slate-700">Correio Eletrónico</label>
             <input 
               type="email" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50" 
               value={formEmail} 
               onChange={(e) => setFormEmail(e.target.value)}
               placeholder="maria@empresa.com"
@@ -55,7 +55,7 @@ export function UserFormModal({
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Nível de Permissão</label>
               <select 
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50" 
                 value={formRole} 
                 onChange={e => setFormRole(e.target.value)}
               >
@@ -76,7 +76,7 @@ export function UserFormModal({
             </label>
             <input 
               type="password" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 font-mono" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50 font-mono" 
               value={formPassword} 
               onChange={(e) => setFormPassword(e.target.value)}
               placeholder="••••••••"

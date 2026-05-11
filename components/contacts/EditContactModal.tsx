@@ -28,7 +28,7 @@ export function EditContactModal({
             <label className="text-sm font-medium leading-none text-slate-700">Nome do Contacto</label>
             <input 
               type="text" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50" 
               value={editName} 
               onChange={(e) => setEditName(e.target.value)}
             />
@@ -37,7 +37,7 @@ export function EditContactModal({
             <label className="text-sm font-medium leading-none text-slate-700">Correio Eletrónico</label>
             <input 
               type="email" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50" 
               value={editEmail} 
               onChange={(e) => setEditEmail(e.target.value)}
             />
@@ -46,7 +46,7 @@ export function EditContactModal({
             <label className="text-sm font-medium leading-none text-slate-700">CNPJ / CPF</label>
             <input 
               type="text" 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 font-mono" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50 font-mono" 
               value={editCnpj} 
               onChange={(e) => setEditCnpj(e.target.value)}
             />

@@ -29,7 +29,7 @@ export function ArquivosBreadcrumb({
           <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           <button 
             onClick={() => { setSelectedTicket(null); setPendingFile(null); }} 
-            className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md truncate ${!selectedTicket ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 bg-white border border-slate-200'}`}
+            className={`flex items-center gap-2 transition-all px-3 py-1.5 rounded-md truncate ${!selectedTicket ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 bg-white border border-slate-200'}`}
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span className="truncate">{selectedCustomer.contact.name || selectedCustomer.contact.number}</span>
@@ -44,7 +44,7 @@ export function ArquivosBreadcrumb({
             selectedTicket.resolution === 'SUCCESS' ? 'bg-green-50 text-green-700 border-green-200' : 
             selectedTicket.resolution === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' : 
             selectedTicket.isArchived ? 'bg-slate-100 text-slate-700 border-slate-200' : 
-            'bg-blue-50 text-blue-700 border-blue-200'
+            'bg-brand-50 text-brand-700 border-brand-200'
           }`}>
             <FileBox className="w-4 h-4" />
             OS {selectedTicket.id.split('-')[0].toUpperCase()}

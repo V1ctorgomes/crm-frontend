@@ -17,7 +17,7 @@ export function ArquivosHeader({ selectedCustomer, folderSearchTerm, setFolderSe
       </div>
       
       {!selectedCustomer && (
-        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full xl:w-[350px] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full xl:w-[350px] shadow-sm focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all">
           <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
           <input 
             type="text" 

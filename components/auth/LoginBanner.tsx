@@ -4,11 +4,11 @@ export function LoginBanner() {
   return (
     <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-900 items-center justify-center border-r border-slate-800">
       {/* Fundo com Gradiente Sofisticado */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-slate-900 to-slate-900 z-0"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-700 via-slate-900 to-slate-900 z-0"></div>
       
       {/* Padrões Geométricos Suaves ao Fundo */}
-      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[80px] z-0"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-500/10 blur-[100px] z-0"></div>
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-brand-500/10 blur-[80px] z-0"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-highlight-warm/15 blur-[100px] z-0"></div>
 
       {/* Conteúdo Institucional */}
       <div className="relative z-10 flex flex-col p-16 max-w-2xl">
@@ -22,17 +22,17 @@ export function LoginBanner() {
           Acelere a sua operação e unifique o atendimento ao cliente.
         </h2>
         
-        <p className="text-lg text-blue-100/80 font-medium leading-relaxed max-w-lg">
+        <p className="text-lg text-white/75 font-medium leading-relaxed max-w-lg">
           O nosso CRM consolida a sua gestão de processos, base de dados e WhatsApp numa interface rápida, moderna e intuitiva.
         </p>
 
         <div className="mt-12 flex items-center gap-4">
           <div className="flex -space-x-3">
-            <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-blue-100 flex items-center justify-center font-bold text-xs text-blue-800">A</div>
+            <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-highlight/90 flex items-center justify-center font-bold text-xs text-brand-900">A</div>
             <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-800">B</div>
             <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-purple-100 flex items-center justify-center font-bold text-xs text-purple-800">C</div>
           </div>
-          <p className="text-sm font-medium text-blue-200">Junte-se à sua equipa.</p>
+          <p className="text-sm font-medium text-white/55">Junte-se à sua equipa.</p>
         </div>
       </div>
     </div>

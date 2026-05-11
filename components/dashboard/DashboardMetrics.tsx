@@ -11,10 +11,10 @@ interface DashboardMetricsProps {
 export function DashboardMetrics({ totalActiveOS, totalWonOS, totalLostOS, winRate }: DashboardMetricsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between">
+      <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between group">
         <div className="flex flex-row items-center justify-between space-y-0 mb-2">
-          <h3 className="tracking-tight text-sm font-medium text-slate-500">OS em Andamento</h3>
-          <Activity className="h-4 w-4 text-slate-400" />
+          <h3 className="tracking-tight text-sm font-medium text-slate-500 group-hover:text-brand-700 transition-colors">OS em Andamento</h3>
+          <Activity className="h-4 w-4 text-slate-400 group-hover:text-brand-600 transition-colors" />
         </div>
         <div>
           <div className="text-2xl font-bold">{totalActiveOS}</div>
@@ -46,8 +46,8 @@ export function DashboardMetrics({ totalActiveOS, totalWonOS, totalLostOS, winRa
 
       <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm p-6 flex flex-col justify-between group">
         <div className="flex flex-row items-center justify-between space-y-0 mb-2">
-          <h3 className="tracking-tight text-sm font-medium text-slate-500 group-hover:text-blue-600 transition-colors">Taxa de Conversão</h3>
-          <Target className="h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+          <h3 className="tracking-tight text-sm font-medium text-slate-500 group-hover:text-highlight-warm transition-colors">Taxa de Conversão</h3>
+          <Target className="h-4 w-4 text-slate-400 group-hover:text-highlight transition-colors" />
         </div>
         <div>
           <div className="text-2xl font-bold">{winRate}%</div>

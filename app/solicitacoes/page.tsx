@@ -150,7 +150,7 @@ export default function SolicitacoesPage() {
   }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8fafc] font-sans">
+    <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">

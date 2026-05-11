@@ -231,8 +231,8 @@ export function TicketDetailsModal({
                     {(ticket.tasks || []).map(task => {
                        const isOverdue = new Date(task.dueDate) < new Date() && !task.isCompleted;
                        return (
-                         <div key={task.id} className={`bg-white p-4 rounded-lg border shadow-sm group flex items-start gap-4 transition-all ${task.isCompleted ? 'border-slate-200 opacity-60' : isOverdue ? 'border-red-200' : 'border-slate-200 hover:border-blue-300'}`}>
-                           <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`mt-0.5 shrink-0 ${task.isCompleted ? 'text-green-500' : 'text-slate-300 hover:text-blue-500'}`}>
+                         <div key={task.id} className={`bg-white p-4 rounded-lg border shadow-sm group flex items-start gap-4 transition-all ${task.isCompleted ? 'border-slate-200 opacity-60' : isOverdue ? 'border-red-200' : 'border-slate-200 hover:border-brand-300'}`}>
+                           <button onClick={() => handleToggleTask(task.id, task.isCompleted)} className={`mt-0.5 shrink-0 ${task.isCompleted ? 'text-green-500' : 'text-slate-300 hover:text-brand-500'}`}>
                              {task.isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                            </button>
                            <div className="flex-1 min-w-0">
@@ -256,8 +256,8 @@ export function TicketDetailsModal({
               </div>
               <div className="p-4 border-t border-slate-200 bg-white shrink-0">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <input type="text" placeholder="O que precisa ser feito?" className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
-                  <input type="datetime-local" className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
+                  <input type="text" placeholder="O que precisa ser feito?" className="flex-1 h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-500" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} />
+                  <input type="datetime-local" className="sm:w-[200px] h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-brand-500" value={newTaskDate} onChange={e => setNewTaskDate(e.target.value)} />
                   <button onClick={handleAddTask} disabled={!newTaskTitle.trim() || !newTaskDate} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-slate-50 h-10 px-6 disabled:opacity-50">Agendar</button>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export function TicketDetailsModal({
               </div>
               <div className="p-4 border-t border-slate-200 bg-slate-50 shrink-0">
                 <div className="flex flex-col gap-2">
-                  <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="Escreva uma nota..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
+                  <textarea className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-500 resize-none" placeholder="Escreva uma nota..." value={newNoteText} onChange={e => setNewNoteText(e.target.value)} />
                   <div className="flex justify-end">
                     <button onClick={handleAddNote} disabled={!newNoteText.trim()} className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-slate-50 h-9 px-4 py-2 disabled:opacity-50">Adicionar Nota</button>
                   </div>
@@ -292,9 +292,9 @@ export function TicketDetailsModal({
           ) : (
             <div className="flex-1 flex flex-col p-6 overflow-y-auto bg-slate-50/50">
               {pendingFile ? (
-                <div className="bg-white border border-blue-200 shadow-sm rounded-lg p-5 flex flex-col gap-4 mb-6">
+                <div className="bg-white border border-brand-200 shadow-sm rounded-lg p-5 flex flex-col gap-4 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 bg-brand-50 text-brand-600 rounded-md flex items-center justify-center shrink-0">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                     </div>
                     <div className="overflow-hidden">
@@ -311,7 +311,7 @@ export function TicketDetailsModal({
                   </div>
                 </div>
               ) : (
-                <div onClick={() => fileInputRef.current?.click()} className="w-full bg-white border border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors mb-6">
+                <div onClick={() => fileInputRef.current?.click()} className="w-full bg-white border border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50/50 transition-colors mb-6">
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
                   <div className="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" /></svg>
@@ -326,7 +326,7 @@ export function TicketDetailsModal({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {(ticket.files || []).map(file => (
                     <div key={file.id} className="bg-white border border-slate-200 rounded-lg p-4 flex items-start gap-3 group relative shadow-sm">
-                      <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border border-slate-100 ${file.mimeType.includes('image') ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                      <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border border-slate-100 ${file.mimeType.includes('image') ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-600'}`}>
                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                       </div>
                       <div className="flex-1 min-w-0 pr-6">
@@ -334,7 +334,7 @@ export function TicketDetailsModal({
                         <div className="text-[11px] text-slate-500 mt-0.5 mb-1">{formatSize(file.size)}</div>
                       </div>
                       <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-blue-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
+                         <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg></a>
                          <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>

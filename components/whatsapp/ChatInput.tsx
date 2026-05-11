@@ -49,7 +49,7 @@ export function ChatInput({
           <input 
             type="text" 
             placeholder="Escreva a sua mensagem..." 
-            className="w-full h-full bg-white border border-slate-300 rounded-md px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-slate-400" 
+            className="w-full h-full bg-white border border-slate-300 rounded-md px-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors placeholder:text-slate-400" 
             value={inputText} 
             onChange={(e) => setInputText(e.target.value)} 
             onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}

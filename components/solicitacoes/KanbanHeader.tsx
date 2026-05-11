@@ -23,7 +23,7 @@ export function KanbanHeader({ searchTerm, setSearchTerm, pendingTasks, onTaskCl
       </div>
       
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full sm:w-[250px] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full sm:w-[250px] shadow-sm focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 shrink-0 mr-2"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
           <input 
             type="text" 
@@ -37,7 +37,7 @@ export function KanbanHeader({ searchTerm, setSearchTerm, pendingTasks, onTaskCl
         <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} 
-            className={`h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-md hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm shrink-0 relative ${isNotificationsOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : ''}`}
+            className={`h-10 w-10 bg-white border border-slate-200 text-slate-600 rounded-md hover:bg-slate-50 transition-colors flex items-center justify-center shadow-sm shrink-0 relative ${isNotificationsOpen ? 'ring-2 ring-brand-500/20 border-brand-500' : ''}`}
           >
             <Bell className="w-4 h-4" />
             {pendingTasks.length > 0 && (
@@ -79,7 +79,7 @@ export function KanbanHeader({ searchTerm, setSearchTerm, pendingTasks, onTaskCl
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span className="font-medium text-slate-800 text-sm line-clamp-1">{task.title}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isOverdue ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${isOverdue ? 'bg-red-50 text-red-600' : 'bg-brand-50 text-brand-600'}`}>
                             {new Date(task.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>

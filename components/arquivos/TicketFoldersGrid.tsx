@@ -18,7 +18,7 @@ export function TicketFoldersGrid({ selectedCustomer, setSelectedTicket, handleD
             ticket.resolution === 'SUCCESS' ? 'border-green-200 bg-green-50/30 hover:border-green-400' : 
             ticket.resolution === 'CANCELLED' ? 'border-red-200 bg-red-50/30 hover:border-red-400' : 
             ticket.isArchived ? 'border-slate-200 bg-slate-50/50' : 
-            'border-slate-200 hover:border-blue-400'
+            'border-slate-200 hover:border-brand-400'
           } rounded-xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden cursor-pointer`}
           onClick={() => setSelectedTicket(ticket)}
         >

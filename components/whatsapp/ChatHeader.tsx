@@ -35,7 +35,7 @@ export function ChatHeader({
           <h2 className="text-sm font-bold text-slate-900 leading-tight truncate">{activeContact.name}</h2>
           <span className="text-[11px] text-slate-500 font-mono leading-tight truncate block mt-0.5">
             {activeContact.number}
-            {activeContact.instanceName && <span className="ml-2 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
+            {activeContact.instanceName && <span className="ml-2 text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">{activeContact.instanceName}</span>}
           </span>
         </div>
         

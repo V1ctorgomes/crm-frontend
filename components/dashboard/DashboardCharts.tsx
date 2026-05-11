@@ -17,7 +17,8 @@ interface DashboardChartsProps {
   totalCustomers: number;
 }
 
-const BLUE_SHADES = ['#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#1d4ed8'];
+/** Paleta marca: verdes + amarelos secundários */
+const BRAND_CHART_PALETTE = ['#148C26', '#1FA634', '#F2CE1B', '#F2E41D', '#0d5f1a', '#52b86b', '#117a21'];
 
 // Tooltip Flutuante Moderno e Inteligente
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -30,7 +31,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           return (
             <div key={index} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload?.fill || '#2563eb' }}></span>
+                <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color || entry.payload?.fill || '#148C26' }}></span>
                 <span className="text-slate-700 font-medium">{displayLabel}</span>
               </div>
               <span className="font-bold text-slate-900 font-mono">{entry.value}</span>
@@ -83,8 +84,8 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                         <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorAndamento" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#1FA634" stopOpacity={0.45}/>
+                        <stop offset="95%" stopColor="#1FA634" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorPerdidas" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
@@ -96,7 +97,7 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                     <Tooltip cursor={false} content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b', paddingTop: '10px' }} />
                     <Area stackId="1" name="Ganhas" dataKey="ganhas" type="monotone" fill="url(#colorGanhas)" fillOpacity={1} stroke="#22c55e" strokeWidth={2} />
-                    <Area stackId="1" name="Em Andamento" dataKey="andamento" type="monotone" fill="url(#colorAndamento)" fillOpacity={1} stroke="#3b82f6" strokeWidth={2} />
+                    <Area stackId="1" name="Em Andamento" dataKey="andamento" type="monotone" fill="url(#colorAndamento)" fillOpacity={1} stroke="#1FA634" strokeWidth={2} />
                     <Area stackId="1" name="Canceladas" dataKey="perdidas" type="monotone" fill="url(#colorPerdidas)" fillOpacity={1} stroke="#ef4444" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -121,8 +122,8 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} />
                     <YAxis axisLine={false} tickLine={false} tickMargin={12} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                    <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} maxBarSize={45}>
+                    <Tooltip cursor={{ fill: '#f5faf6' }} content={<CustomTooltip />} />
+                    <Bar dataKey="count" fill="#148C26" radius={[4, 4, 0, 0]} maxBarSize={45}>
                       <LabelList dataKey="count" position="top" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
                     </Bar>
                   </BarChart>
@@ -153,8 +154,8 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                     <XAxis type="number" hide />
                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tickMargin={10} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} width={90} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
-                    <Bar dataKey="Quantidade" fill="#2563eb" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                    <Tooltip cursor={{ fill: '#f5faf6' }} content={<CustomTooltip />} />
+                    <Bar dataKey="Quantidade" fill="#1FA634" radius={[0, 4, 4, 0]} maxBarSize={32}>
                       <LabelList dataKey="Quantidade" position="right" offset={8} fill="#475569" fontSize={12} fontWeight={600} />
                     </Bar>
                   </BarChart>
@@ -205,7 +206,7 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                         }}
                       />
                       {customerTypeRanking.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={BLUE_SHADES[index % BLUE_SHADES.length]} />
+                        <Cell key={`cell-${index}`} fill={BRAND_CHART_PALETTE[index % BRAND_CHART_PALETTE.length]} />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} cursor={false} />

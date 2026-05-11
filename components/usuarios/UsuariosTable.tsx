@@ -17,7 +17,7 @@ export function UsuariosTable({ isLoading, users, onEdit, onDelete }: UsuariosTa
       case 'DEVELOPER': 
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-purple-50 text-purple-700 border border-purple-200">Developer</span>;
       default: 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-200">Utilizador</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-highlight/25 text-brand-800 border border-highlight-warm/70">Utilizador</span>;
     }
   };
 

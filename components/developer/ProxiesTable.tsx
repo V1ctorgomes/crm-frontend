@@ -53,7 +53,7 @@ export function ProxiesTable({ proxies, handleDeleteProxy }: ProxiesTableProps) 
                 </td>
                 <td className="p-4 align-middle">
                   {proxy.username ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 uppercase tracking-widest border border-blue-200">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700 uppercase tracking-widest border border-brand-200">
                       Sim
                     </span>
                   ) : (

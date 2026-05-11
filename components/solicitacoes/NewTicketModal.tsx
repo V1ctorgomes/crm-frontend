@@ -72,7 +72,7 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">Cliente / Contato</label>
             <select 
-              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-900" 
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-slate-900" 
               value={selectedContactNumber} 
               onChange={(e) => setSelectedContactNumber(e.target.value)}
             >
@@ -83,31 +83,31 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
           
           {selectedContactNumber && (
             <div className="bg-slate-50 p-4 rounded-md border border-slate-200 flex flex-col gap-3">
-              <input type="text" placeholder="Nome Completo" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formNome} onChange={e => setFormNome(e.target.value)} />
-              <input type="email" placeholder="Endereço de E-mail" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
-              <input type="text" placeholder="CPF / CNPJ" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
+              <input type="text" placeholder="Nome Completo" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formNome} onChange={e => setFormNome(e.target.value)} />
+              <input type="email" placeholder="Endereço de E-mail" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+              <input type="text" placeholder="CPF / CNPJ" className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formCpf} onChange={e => setFormCpf(e.target.value)} />
             </div>
           )}
           
           <div className="flex gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Marca</label>
-              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formMarca} onChange={e => setFormMarca(e.target.value)} placeholder="Ex: Apple" />
+              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formMarca} onChange={e => setFormMarca(e.target.value)} placeholder="Ex: Apple" />
             </div>
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Modelo</label>
-              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formModelo} onChange={e => setFormModelo(e.target.value)} placeholder="Ex: iPhone 13" />
+              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formModelo} onChange={e => setFormModelo(e.target.value)} placeholder="Ex: iPhone 13" />
             </div>
           </div>
 
           <div className="flex gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Tipo de Cliente (Opcional)</label>
-              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
+              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formCustomerType} onChange={e => setFormCustomerType(e.target.value)} placeholder="Ex: Revenda" />
             </div>
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Tipo de Solicitação</label>
-              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" value={formTicketType} onChange={e => setFormTicketType(e.target.value)} placeholder="Ex: Orçamento" />
+              <input type="text" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" value={formTicketType} onChange={e => setFormTicketType(e.target.value)} placeholder="Ex: Orçamento" />
             </div>
           </div>
         </div>

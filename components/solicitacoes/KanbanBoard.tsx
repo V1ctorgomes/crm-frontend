@@ -65,13 +65,13 @@ export function KanbanBoard({ isLoading, filteredStages, searchTerm, onDragStart
                       draggable 
                       onDragStart={(e) => onDragStart(e, ticket.id, stage.id)} 
                       onClick={() => onTicketClick(ticket)}
-                      className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-blue-400 transition-colors w-full overflow-hidden group"
+                      className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-brand-400 transition-colors w-full overflow-hidden group"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded font-mono">OS-{ticket.id.split('-')[0].toUpperCase()}</span>
                         <div className="flex gap-1.5">
                           {pendingTicketTasks.length > 0 && (
-                            <span className={`text-[10px] ${hasOverdue ? 'text-red-600 bg-red-50 border-red-100' : 'text-blue-600 bg-blue-50 border-blue-100'} border px-1.5 py-0.5 rounded font-medium flex items-center gap-1`}>
+                            <span className={`text-[10px] ${hasOverdue ? 'text-red-600 bg-red-50 border-red-100' : 'text-brand-600 bg-brand-50 border-brand-100'} border px-1.5 py-0.5 rounded font-medium flex items-center gap-1`}>
                               <Clock className="w-3 h-3" />
                               {pendingTicketTasks.length}
                             </span>
@@ -97,7 +97,7 @@ export function KanbanBoard({ isLoading, filteredStages, searchTerm, onDragStart
 
                       {(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType) && (
                         <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
-                          {ticket.ticketType && <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded truncate border border-blue-100">{ticket.ticketType}</span>}
+                          {ticket.ticketType && <span className="bg-highlight/30 text-brand-900 text-[10px] font-bold px-1.5 py-0.5 rounded truncate border border-highlight-warm/80">{ticket.ticketType}</span>}
                           {ticket.customerType && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.customerType}</span>}
                           {ticket.marca && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.marca}</span>}
                           {ticket.modelo && <span className="bg-slate-100 text-slate-600 text-[10px] font-medium px-1.5 py-0.5 rounded truncate">{ticket.modelo}</span>}

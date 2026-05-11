@@ -19,21 +19,21 @@ export function ProxyForm({ proxyForm, setProxyForm, loadingProxies, handleSaveP
       <form className="p-6 flex flex-col gap-4" onSubmit={handleSaveProxy}>
         <div className="space-y-2">
           <label className="text-sm font-medium leading-none text-slate-700">Identificação</label>
-          <input value={proxyForm.name} onChange={e => setProxyForm({...proxyForm, name: e.target.value})} placeholder="Ex: Nó Europa 01" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required />
+          <input value={proxyForm.name} onChange={e => setProxyForm({...proxyForm, name: e.target.value})} placeholder="Ex: Nó Europa 01" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" required />
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">Endereço IP / Host</label>
-            <input value={proxyForm.host} onChange={e => setProxyForm({...proxyForm, host: e.target.value})} placeholder="203.0.113.50" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required />
+            <input value={proxyForm.host} onChange={e => setProxyForm({...proxyForm, host: e.target.value})} placeholder="203.0.113.50" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">Porta</label>
-            <input value={proxyForm.port} onChange={e => setProxyForm({...proxyForm, port: e.target.value})} type="number" placeholder="8080" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required />
+            <input value={proxyForm.port} onChange={e => setProxyForm({...proxyForm, port: e.target.value})} type="number" placeholder="8080" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" required />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">Protocolo</label>
-            <select value={proxyForm.protocol} onChange={e => setProxyForm({...proxyForm, protocol: e.target.value})} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" required>
+            <select value={proxyForm.protocol} onChange={e => setProxyForm({...proxyForm, protocol: e.target.value})} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" required>
               <option value="http">HTTP</option>
               <option value="https">HTTPS</option>
               <option value="socks5">SOCKS5</option>
@@ -44,8 +44,8 @@ export function ProxyForm({ proxyForm, setProxyForm, loadingProxies, handleSaveP
         <div className="pt-4 border-t border-slate-100 mt-2">
           <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-widest">Autenticação (Opcional)</p>
           <div className="space-y-4">
-            <input value={proxyForm.username} onChange={e => setProxyForm({...proxyForm, username: e.target.value})} placeholder="Nome de Utilizador" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-            <input value={proxyForm.password} onChange={e => setProxyForm({...proxyForm, password: e.target.value})} type="password" placeholder="Palavra-passe" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+            <input value={proxyForm.username} onChange={e => setProxyForm({...proxyForm, username: e.target.value})} placeholder="Nome de Utilizador" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+            <input value={proxyForm.password} onChange={e => setProxyForm({...proxyForm, password: e.target.value})} type="password" placeholder="Palavra-passe" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
           </div>
         </div>
 

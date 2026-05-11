@@ -89,7 +89,7 @@ export function LoginForm() {
             <input
               id="email"
               type="email"
-              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="exemplo@suempresa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -102,14 +102,14 @@ export function LoginForm() {
               <label className="text-sm font-semibold text-slate-700" htmlFor="password">
                 Palavra-passe
               </label>
-              <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
+              <a href="#" className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors">
                 Esqueceu-se?
               </a>
             </div>
             <input
               id="password"
               type="password"
-              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono transition-colors placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono transition-colors placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

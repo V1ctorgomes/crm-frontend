@@ -16,7 +16,7 @@ export function UsuariosHeader({ totalUsers, searchTerm, onSearchChange, onNewUs
       </div>
       
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full sm:w-[300px] shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <div className="bg-white border border-slate-200 rounded-md flex items-center px-3 h-10 w-full sm:w-[300px] shadow-sm focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400 mr-2 shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
           </svg>

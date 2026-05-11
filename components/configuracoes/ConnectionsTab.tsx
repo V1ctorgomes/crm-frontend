@@ -26,8 +26,8 @@ export function ConnectionsTab({
   return (
     <div className="animate-in fade-in duration-500 flex flex-col gap-6">
       {!selectedProvider ? (
-        <div onClick={() => setSelectedProvider('evolution')} className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 flex items-center gap-6 cursor-pointer hover:border-blue-400 transition-all group">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+        <div onClick={() => setSelectedProvider('evolution')} className="rounded-xl border border-slate-200 bg-white shadow-sm p-6 flex items-center gap-6 cursor-pointer hover:border-brand-400 transition-all group">
+          <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center shrink-0 border border-brand-100 group-hover:scale-105 transition-transform">
             <Smartphone className="w-8 h-8" />
           </div>
           <div className="flex-1">
@@ -45,11 +45,11 @@ export function ConnectionsTab({
             <form onSubmit={handleCreateInstance} className="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nome Instância</label>
-                <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proxy (Opcional)</label>
-                <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                <select value={selectedProxyId} onChange={e => setSelectedProxyId(e.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
                   <option value="">Nenhum Proxy</option>
                   {availableProxies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>

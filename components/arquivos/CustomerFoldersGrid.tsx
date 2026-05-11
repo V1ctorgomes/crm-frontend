@@ -23,10 +23,10 @@ export function CustomerFoldersGrid({ filteredFolders, setSelectedCustomer }: Cu
           <div 
             key={folder.contact.number} 
             onClick={() => setSelectedCustomer(folder)} 
-            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-400 hover:-translate-y-0.5 transition-all cursor-pointer group flex flex-col items-center text-center relative"
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-brand-400 hover:-translate-y-0.5 transition-all cursor-pointer group flex flex-col items-center text-center relative"
           >
             <div className="relative mb-4 mt-2">
-              <FolderOpen className="w-20 h-20 text-blue-500/90 group-hover:text-blue-500 transition-colors" strokeWidth={1.2} />
+              <FolderOpen className="w-20 h-20 text-brand-500/90 group-hover:text-brand-500 transition-colors" strokeWidth={1.2} />
               <div className="absolute -top-1 -right-1 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
                 {folder.tickets.length} {folder.tickets.length === 1 ? 'OS' : 'OS'}
               </div>

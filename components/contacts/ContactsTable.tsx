@@ -51,7 +51,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: Contact
                 <tr key={contact.number} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="p-4 align-middle">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-100 flex items-center justify-center font-bold text-blue-700 text-xs overflow-hidden shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-100 to-brand-50 border border-brand-100 flex items-center justify-center font-bold text-brand-700 text-xs overflow-hidden shrink-0">
                         {contact.profilePictureUrl ? (
                           <img src={contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt={contact.name || ''}/>
                         ) : (

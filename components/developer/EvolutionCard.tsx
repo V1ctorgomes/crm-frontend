@@ -16,7 +16,7 @@ export function EvolutionCard({
     <div className="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm flex flex-col">
       <div className="p-6 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 text-blue-600">
+          <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center border border-brand-100 shrink-0 text-brand-600">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
           </div>
           <div>
@@ -24,7 +24,7 @@ export function EvolutionCard({
             <p className="text-sm text-slate-500 mt-1">Gateway Oficial do WhatsApp</p>
           </div>
         </div>
-        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-md border ${evoBaseUrl && evoApiKey ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-md border ${evoBaseUrl && evoApiKey ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
           {evoBaseUrl && evoApiKey ? 'Configurado' : 'Pendente'}
         </span>
       </div>
@@ -37,7 +37,7 @@ export function EvolutionCard({
             value={evoBaseUrl} 
             onChange={e => setEvoBaseUrl(e.target.value)} 
             placeholder="https://api.suaempresa.com" 
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" 
           />
         </div>
         <div className="space-y-2">
@@ -47,7 +47,7 @@ export function EvolutionCard({
             value={evoApiKey} 
             onChange={e => setEvoApiKey(e.target.value)} 
             placeholder="••••••••••••••••" 
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" 
+            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" 
           />
         </div>
       </div>

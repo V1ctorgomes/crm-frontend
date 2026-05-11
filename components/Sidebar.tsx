@@ -140,10 +140,10 @@ export default function Sidebar() {
               <Link key={item.path} href={item.path}>
                 <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                   active 
-                    ? 'bg-blue-50 text-blue-700 font-semibold' 
+                    ? 'bg-brand-50 text-brand-700 font-semibold' 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium'
                 }`}>
-                  <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} strokeWidth={active ? 2.5 : 2} />
+                  <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-brand-600' : 'text-slate-400'}`} strokeWidth={active ? 2.5 : 2} />
                   <span className="text-[14px]">{item.name}</span>
                 </div>
               </Link>
@@ -163,7 +163,7 @@ export default function Sidebar() {
             <div className="flex items-center gap-3">
               
               {/* Bolinha com a Foto (Real ou Iniciais) */}
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-blue-600 font-bold shrink-0 relative shadow-sm">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-brand-600 font-bold shrink-0 relative shadow-sm">
                 {currentUser?.profilePictureUrl ? (
                   <img 
                     src={currentUser.profilePictureUrl} 

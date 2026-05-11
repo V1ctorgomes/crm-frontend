@@ -29,9 +29,9 @@ export function FilesViewer({
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       {pendingFile ? (
-        <div className="bg-white border border-blue-200 shadow-sm rounded-xl p-5 flex flex-col md:flex-row gap-4 items-center mb-2">
+        <div className="bg-white border border-brand-200 shadow-sm rounded-xl p-5 flex flex-col md:flex-row gap-4 items-center mb-2">
           <div className="flex-1 flex items-center gap-3 w-full">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 bg-brand-50 text-brand-600 rounded-md flex items-center justify-center shrink-0">
               <File className="w-5 h-5" />
             </div>
             <div className="overflow-hidden min-w-0">
@@ -43,7 +43,7 @@ export function FilesViewer({
             <input 
               type="text" 
               placeholder="Adicionar legenda descritiva..." 
-              className="w-full bg-white border border-slate-300 rounded-md px-3 h-10 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors placeholder:text-slate-400"
+              className="w-full bg-white border border-slate-300 rounded-md px-3 h-10 text-sm outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors placeholder:text-slate-400"
               value={fileDescription}
               onChange={e => setFileDescription(e.target.value)}
               autoFocus
@@ -59,13 +59,13 @@ export function FilesViewer({
       ) : (
         <div 
           onClick={() => fileInputRef.current?.click()} 
-          className="w-full bg-white border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50/50 hover:border-blue-400 transition-colors mb-2 group"
+          className="w-full bg-white border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-brand-50/50 hover:border-brand-400 transition-colors mb-2 group"
         >
           <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-          <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-3 group-hover:text-blue-600 group-hover:bg-white border border-slate-100 shadow-sm transition-all duration-300">
+          <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-3 group-hover:text-brand-600 group-hover:bg-white border border-slate-100 shadow-sm transition-all duration-300">
             <UploadCloud className="w-6 h-6" />
           </div>
-          <span className="font-medium text-slate-700 text-sm group-hover:text-blue-700 transition-colors">Clique para anexar um ficheiro</span>
+          <span className="font-medium text-slate-700 text-sm group-hover:text-brand-700 transition-colors">Clique para anexar um ficheiro</span>
         </div>
       )}
 
@@ -79,7 +79,7 @@ export function FilesViewer({
           {selectedTicket.files.map(file => (
             <div key={file.id} className="bg-white border border-slate-200 rounded-xl flex flex-col hover:shadow-md transition-all group overflow-hidden relative">
               <div className="p-4 flex items-start gap-3">
-                <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border ${file.mimeType.includes('image') ? 'bg-blue-50 border-blue-100 text-blue-600' : file.mimeType.includes('pdf') ? 'bg-red-50 border-red-100 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border ${file.mimeType.includes('image') ? 'bg-brand-50 border-brand-100 text-brand-600' : file.mimeType.includes('pdf') ? 'bg-red-50 border-red-100 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                    {file.mimeType.includes('image') ? <ImageIcon className="w-5 h-5" />
                     : file.mimeType.includes('pdf') ? <FileText className="w-5 h-5" />
                     : <File className="w-5 h-5" />}
@@ -94,7 +94,7 @@ export function FilesViewer({
                 </div>
 
                 <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white pl-1 rounded-md">
-                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Abrir/Descarregar"><ExternalLink className="w-4 h-4" /></a>
+                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors" title="Abrir/Descarregar"><ExternalLink className="w-4 h-4" /></a>
                    <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
