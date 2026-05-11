@@ -1,13 +1,14 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { Stage, Ticket } from './types';
+import { isTaskDueOnCalendarToday, isTaskOverdue } from '@/lib/solicitacoes-reminders';
 
 interface KanbanBoardProps {
   isLoading: boolean;
   filteredStages: Stage[];
   searchTerm: string;
-  /** Lembretes do dia ainda não “vistos”, por id de OS (estilo WhatsApp). */
-  reminderUnackedByTicketId?: Record<string, number>;
+  reminderGreenByTicketId?: Record<string, number>;
+  reminderRedByTicketId?: Record<string, number>;
   onDragStart: (e: React.DragEvent, ticketId: string, sourceStageId: string) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, targetStageId: string) => void;
@@ -18,7 +19,8 @@ export function KanbanBoard({
   isLoading,
   filteredStages,
   searchTerm,
-  reminderUnackedByTicketId = {},
+  reminderGreenByTicketId = {},
+  reminderRedByTicketId = {},
   onDragStart,
   onDragOver,
   onDrop,
@@ -68,8 +70,11 @@ export function KanbanBoard({
                 ) : (
                   stage.tickets.map((ticket) => {
                     const pendingTicketTasks = ticket.tasks?.filter((t) => !t.isCompleted) || [];
-                    const hasOverdue = pendingTicketTasks.some((t) => new Date(t.dueDate) < new Date());
-                    const unackedReminders = reminderUnackedByTicketId[ticket.id] || 0;
+                    const greenR = reminderGreenByTicketId[ticket.id] || 0;
+                    const redR = reminderRedByTicketId[ticket.id] || 0;
+                    const futurePendingCount = pendingTicketTasks.filter(
+                      (t) => !isTaskOverdue(t.dueDate) && !isTaskDueOnCalendarToday(t.dueDate),
+                    ).length;
 
                     return (
                     <div 
@@ -81,18 +86,21 @@ export function KanbanBoard({
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded font-mono">OS-{ticket.id.split('-')[0].toUpperCase()}</span>
-                        <div className="flex gap-1.5">
-                          {unackedReminders > 0 && (
+                        <div className="flex gap-1.5 flex-wrap justify-end">
+                          {greenR > 0 && (
                             <span className="text-[10px] text-white bg-emerald-500 border border-emerald-600/30 px-1.5 py-0.5 rounded-full font-bold min-w-[1.125rem] flex items-center justify-center tabular-nums leading-none">
-                              {unackedReminders > 99 ? '99+' : unackedReminders}
+                              {greenR > 99 ? '99+' : greenR}
                             </span>
                           )}
-                          {unackedReminders === 0 && pendingTicketTasks.length > 0 && (
-                            <span
-                              className={`text-[10px] ${hasOverdue ? 'text-red-600 bg-red-50 border-red-100' : 'text-brand-600 bg-brand-50 border-brand-100'} border px-1.5 py-0.5 rounded font-medium flex items-center gap-1`}
-                            >
+                          {redR > 0 && (
+                            <span className="text-[10px] text-white bg-red-500 border border-red-600/30 px-1.5 py-0.5 rounded-full font-bold min-w-[1.125rem] flex items-center justify-center tabular-nums leading-none">
+                              {redR > 99 ? '99+' : redR}
+                            </span>
+                          )}
+                          {futurePendingCount > 0 && (
+                            <span className="text-[10px] text-brand-600 bg-brand-50 border border-brand-100 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {pendingTicketTasks.length}
+                              {futurePendingCount}
                             </span>
                           )}
                           {(ticket.files || []).length > 0 && (

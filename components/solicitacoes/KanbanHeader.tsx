@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Bell, X } from 'lucide-react';
 import { Task, Ticket } from './types';
 
@@ -6,8 +6,6 @@ interface KanbanHeaderProps {
   searchTerm: string;
   setSearchTerm: (val: string) => void;
   pendingTasks: Task[];
-  /** Ao abrir o painel de lembretes (marca como vistos no servidor local). */
-  onRemindersPanelOpened?: () => void;
   onTaskClick: (ticket: Ticket) => void;
   onOpenArchive: () => void;
   onOpenStageManager: () => void;
@@ -18,22 +16,12 @@ export function KanbanHeader({
   searchTerm,
   setSearchTerm,
   pendingTasks,
-  onRemindersPanelOpened,
   onTaskClick,
   onOpenArchive,
   onOpenStageManager,
   onOpenNewTicket,
 }: KanbanHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const remindersAckForOpenRef = useRef(false);
-
-  useEffect(() => {
-    if (isNotificationsOpen && !remindersAckForOpenRef.current) {
-      remindersAckForOpenRef.current = true;
-      onRemindersPanelOpened?.();
-    }
-    if (!isNotificationsOpen) remindersAckForOpenRef.current = false;
-  }, [isNotificationsOpen, onRemindersPanelOpened]);
 
   return (
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-4 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">

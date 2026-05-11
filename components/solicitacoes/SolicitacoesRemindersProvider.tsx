@@ -4,11 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import type { Stage } from '@/components/solicitacoes/types';
-import {
-  broadcastReminderBadgeFromStages,
-  REMINDER_ACK_TASK_IDS_KEY,
-  SOLICITACOES_BOARD_SYNC_EVENT,
-} from '@/lib/solicitacoes-reminders';
+import { broadcastReminderBadgeFromStages, SOLICITACOES_BOARD_SYNC_EVENT } from '@/lib/solicitacoes-reminders';
 
 const POLL_MS = 90_000;
 
@@ -56,17 +52,12 @@ export function SolicitacoesRemindersProvider({ children }: { children: React.Re
     const onVis = () => {
       if (document.visibilityState === 'visible') void pollBoard();
     };
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === REMINDER_ACK_TASK_IDS_KEY) void pollBoard();
-    };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('storage', onStorage);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('storage', onStorage);
     };
   }, [allowed, pathname]);
 

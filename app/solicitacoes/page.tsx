@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -14,11 +14,9 @@ import { ArchivedTicketsModal } from '@/components/solicitacoes/ArchivedTicketsM
 import { Contact, Stage, Ticket } from '@/components/solicitacoes/types';
 import { apiRequest } from '@/lib/api-client';
 import {
-  ackReminderTaskIds,
   broadcastReminderBadgeFromStages,
-  extractPendingReminderTasksFromStages,
-  isTaskDueThroughEndOfToday,
-  loadAckedReminderTaskIds,
+  computeReminderGreenRedByTicketId,
+  extractTasksDueCalendarToday,
   SOLICITACOES_BOARD_SYNC_EVENT,
 } from '@/lib/solicitacoes-reminders';
 
@@ -28,7 +26,6 @@ export default function SolicitacoesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados dos Modais
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [initialTab, setInitialTab] = useState<'tasks' | 'notes' | 'files'>('tasks');
@@ -36,10 +33,8 @@ export default function SolicitacoesPage() {
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [isArchivedModalOpen, setIsArchivedModalOpen] = useState(false);
 
-  // Sistema de Feedback Global
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; onClose: () => void; } | null>(null);
-  const [reminderAckVersion, setReminderAckVersion] = useState(0);
 
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -53,7 +48,9 @@ export default function SolicitacoesPage() {
       const data = await apiRequest('/tickets/board');
       setStages(data);
       return data;
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
     return null;
   };
 
@@ -61,7 +58,9 @@ export default function SolicitacoesPage() {
     try {
       const data = await apiRequest('/whatsapp/contacts');
       setContacts(data);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const fetchData = async () => {
@@ -71,7 +70,9 @@ export default function SolicitacoesPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const onBoardSync = (e: Event) => {
@@ -85,53 +86,24 @@ export default function SolicitacoesPage() {
   useEffect(() => {
     if (isLoading) return;
     broadcastReminderBadgeFromStages(stages);
-    setReminderAckVersion((x) => x + 1);
   }, [stages, isLoading]);
 
-  const pendingUnackedTasks = useMemo(() => {
-    const pending = extractPendingReminderTasksFromStages(stages);
-    const pendingIds = new Set(pending.map((t) => t.id));
-    const acked = loadAckedReminderTaskIds();
-    const relevantAcked = new Set([...acked].filter((id) => pendingIds.has(id)));
-    return pending.filter((t) => !relevantAcked.has(t.id));
-  }, [stages, reminderAckVersion]);
+  const tasksDueToday = useMemo(() => extractTasksDueCalendarToday(stages), [stages]);
 
-  const reminderUnackedByTicketId = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const t of pendingUnackedTasks) {
-      const tid = t.ticket?.id;
-      if (tid) m[tid] = (m[tid] || 0) + 1;
-    }
-    return m;
-  }, [pendingUnackedTasks]);
-
-  const onRemindersPanelOpened = useCallback(() => {
-    const ids = extractPendingReminderTasksFromStages(stages).map((t) => t.id);
-    ackReminderTaskIds(ids, stages);
-    setReminderAckVersion((x) => x + 1);
-  }, [stages]);
-
-  const openTicketWithReminderAck = useCallback(
-    (ticket: Ticket) => {
-      const ids =
-        ticket.tasks
-          ?.filter((t) => !t.isCompleted && isTaskDueThroughEndOfToday(t.dueDate))
-          .map((t) => t.id) ?? [];
-      if (ids.length) ackReminderTaskIds(ids, stages);
-      setReminderAckVersion((x) => x + 1);
-      setActiveTicket(ticket);
-      setInitialTab('tasks');
-    },
+  const { greenByTicketId, redByTicketId } = useMemo(
+    () => computeReminderGreenRedByTicketId(stages),
     [stages],
   );
 
-  // Atualiza o ticket ativo se houver mudanças no quadro
   const handleTicketUpdated = async () => {
     const boardData = await fetchBoardData();
     if (activeTicket && boardData) {
       for (const stage of boardData) {
         const found = stage.tickets.find((t: Ticket) => t.id === activeTicket.id);
-        if (found) { setActiveTicket(found); return; }
+        if (found) {
+          setActiveTicket(found);
+          return;
+        }
       }
     }
   };
@@ -140,55 +112,58 @@ export default function SolicitacoesPage() {
     e.dataTransfer.setData('ticketId', ticketId);
     e.dataTransfer.setData('sourceStageId', sourceStageId);
   };
-  
+
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-  
+
   const handleDrop = async (e: React.DragEvent, targetStageId: string) => {
     e.preventDefault();
     const ticketId = e.dataTransfer.getData('ticketId');
     const sourceStageId = e.dataTransfer.getData('sourceStageId');
     if (sourceStageId === targetStageId) return;
 
-    setStages(prev => {
+    setStages((prev) => {
       const newStages = [...prev];
-      const sourceStage = newStages.find(s => s.id === sourceStageId);
-      const targetStage = newStages.find(s => s.id === targetStageId);
+      const sourceStage = newStages.find((s) => s.id === sourceStageId);
+      const targetStage = newStages.find((s) => s.id === targetStageId);
       if (sourceStage && targetStage) {
-        const ticketIndex = sourceStage.tickets.findIndex(t => t.id === ticketId);
-        if(ticketIndex !== -1) {
+        const ticketIndex = sourceStage.tickets.findIndex((t) => t.id === ticketId);
+        if (ticketIndex !== -1) {
           const [ticket] = sourceStage.tickets.splice(ticketIndex, 1);
-          targetStage.tickets.unshift(ticket); 
+          targetStage.tickets.unshift(ticket);
         }
       }
       return newStages;
     });
 
-    try { 
-      await apiRequest(`/tickets/${ticketId}/stage`, { method: 'PUT', body: JSON.stringify({ stageId: targetStageId }) }); 
-    } catch (err) { 
-      fetchBoardData(); 
+    try {
+      await apiRequest(`/tickets/${ticketId}/stage`, {
+        method: 'PUT',
+        body: JSON.stringify({ stageId: targetStageId }),
+      });
+    } catch (err) {
+      fetchBoardData();
     }
   };
 
   const handleCloseTicketConfirm = async (resolution: 'SUCCESS' | 'CANCELLED', reason: string) => {
     if (!activeTicket) return;
     try {
-      await apiRequest(`/tickets/${activeTicket.id}/archive`, { 
+      await apiRequest(`/tickets/${activeTicket.id}/archive`, {
         method: 'PUT',
         body: JSON.stringify({ isArchived: true, resolution, resolutionReason: reason }),
       });
-      setActiveTicket(null); 
+      setActiveTicket(null);
       setIsCloseModalOpen(false);
       await fetchBoardData();
       showFeedback('success', 'OS encerrada e enviada para o Histórico.');
-    } catch (err) { 
-      showFeedback('error', 'Erro ao encerrar OS.'); 
+    } catch (err) {
+      showFeedback('error', 'Erro ao encerrar OS.');
     }
   };
 
-  const filteredStages = stages.map(stage => ({
+  const filteredStages = stages.map((stage) => ({
     ...stage,
-    tickets: stage.tickets.filter(t => {
+    tickets: stage.tickets.filter((t) => {
       if (!searchTerm) return true;
       const lowerSearch = searchTerm.toLowerCase();
       return (
@@ -199,7 +174,7 @@ export default function SolicitacoesPage() {
         t.customerType?.toLowerCase().includes(lowerSearch) ||
         t.ticketType?.toLowerCase().includes(lowerSearch)
       );
-    })
+    }),
   }));
 
   return (
@@ -207,47 +182,53 @@ export default function SolicitacoesPage() {
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">
-        
         {toast && <Toast type={toast.type} message={toast.message} />}
 
-        <KanbanHeader 
+        <KanbanHeader
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          pendingTasks={pendingUnackedTasks}
-          onRemindersPanelOpened={onRemindersPanelOpened}
-          onTaskClick={openTicketWithReminderAck}
+          pendingTasks={tasksDueToday}
+          onTaskClick={(ticket) => {
+            setActiveTicket(ticket);
+            setInitialTab('tasks');
+          }}
           onOpenArchive={() => setIsArchivedModalOpen(true)}
           onOpenStageManager={() => setIsStageManagerOpen(true)}
           onOpenNewTicket={() => setIsNewTicketModalOpen(true)}
         />
 
-        <KanbanBoard 
+        <KanbanBoard
           isLoading={isLoading}
           filteredStages={filteredStages}
           searchTerm={searchTerm}
-          reminderUnackedByTicketId={reminderUnackedByTicketId}
+          reminderGreenByTicketId={greenByTicketId}
+          reminderRedByTicketId={redByTicketId}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          onTicketClick={openTicketWithReminderAck}
+          onTicketClick={(ticket) => {
+            setActiveTicket(ticket);
+            setInitialTab('tasks');
+          }}
         />
-
       </main>
 
-      {/* Renderização Condicional dos Modais */}
       {isNewTicketModalOpen && (
-        <NewTicketModal 
-          contacts={contacts} 
-          stages={stages} 
+        <NewTicketModal
+          contacts={contacts}
+          stages={stages}
           baseUrl={baseUrl}
           onClose={() => setIsNewTicketModalOpen(false)}
-          onSuccess={() => { setIsNewTicketModalOpen(false); fetchBoardData(); }}
+          onSuccess={() => {
+            setIsNewTicketModalOpen(false);
+            fetchBoardData();
+          }}
           showFeedback={showFeedback}
         />
       )}
 
       {activeTicket && (
-        <TicketDetailsModal 
+        <TicketDetailsModal
           ticket={activeTicket}
           baseUrl={baseUrl}
           initialTab={initialTab}
@@ -260,14 +241,11 @@ export default function SolicitacoesPage() {
       )}
 
       {isCloseModalOpen && (
-        <CloseTicketModal 
-          onClose={() => setIsCloseModalOpen(false)}
-          onConfirm={handleCloseTicketConfirm}
-        />
+        <CloseTicketModal onClose={() => setIsCloseModalOpen(false)} onConfirm={handleCloseTicketConfirm} />
       )}
 
       {isStageManagerOpen && (
-        <StageManagerModal 
+        <StageManagerModal
           baseUrl={baseUrl}
           onClose={() => setIsStageManagerOpen(false)}
           onStagesChanged={fetchBoardData}
@@ -277,7 +255,7 @@ export default function SolicitacoesPage() {
       )}
 
       {isArchivedModalOpen && (
-        <ArchivedTicketsModal 
+        <ArchivedTicketsModal
           baseUrl={baseUrl}
           onClose={() => setIsArchivedModalOpen(false)}
           onRestoreSuccess={fetchBoardData}
@@ -286,14 +264,13 @@ export default function SolicitacoesPage() {
       )}
 
       {confirmModal && (
-        <ConfirmModal 
+        <ConfirmModal
           title={confirmModal.title}
           message={confirmModal.message}
           onConfirm={confirmModal.onConfirm}
           onClose={confirmModal.onClose}
         />
       )}
-
     </div>
   );
 }

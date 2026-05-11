@@ -1,101 +1,88 @@
 import type { Stage, Task, Ticket } from '@/components/solicitacoes/types';
 
-export const REMINDER_ACK_TASK_IDS_KEY = 'crm_reminders_acked_task_ids_v1';
 export const REMINDERS_BADGE_EVENT = 'crm-reminders-badge';
 /** Payload: `Stage[]` — actualiza o Kanban sem novo pedido quando o poll global traz dados. */
 export const SOLICITACOES_BOARD_SYNC_EVENT = 'crm-solicitacoes-board-sync';
 
 export type ReminderBadgeDetail = {
-  /** OS com pelo menos um lembrete (hoje) ainda não “visto”. */
-  ticketsWithUnackedReminders: number;
-  /** Total de lembretes não vistos. */
-  totalUnacked: number;
-  byTicketId: Record<string, number>;
+  /** Lembretes com data **hoje** (calendário) e hora ainda não passou. */
+  greenCount: number;
+  /** Lembretes com data/hora já passadas (atrasados), qualquer dia. */
+  redCount: number;
 };
 
-export function isTaskDueThroughEndOfToday(dueDate: string): boolean {
+/** Mesmo dia civil que “hoje” no dispositivo. */
+export function isTaskDueOnCalendarToday(dueDate: string): boolean {
   const due = new Date(dueDate);
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
-  return due <= endOfToday;
+  const now = new Date();
+  return (
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
+  );
 }
 
-/** Lembretes do dia (até fim do dia) ainda não concluídos, com referência ao ticket. */
-export function extractPendingReminderTasksFromStages(stages: Stage[]): Array<Task & { ticket: Ticket }> {
+export function isTaskOverdue(dueDate: string): boolean {
+  return new Date(dueDate).getTime() < Date.now();
+}
+
+/** Sino: todos os lembretes do dia civil de hoje, até serem concluídos ou removidos. */
+export function extractTasksDueCalendarToday(stages: Stage[]): Array<Task & { ticket: Ticket }> {
   return stages
     .flatMap((s) => s.tickets)
     .flatMap((t) => (t.tasks ? t.tasks.map((task) => ({ ...task, ticket: t })) : []))
-    .filter((task) => {
-      if (task.isCompleted) return false;
-      return isTaskDueThroughEndOfToday(task.dueDate);
-    })
+    .filter((task) => !task.isCompleted && isTaskDueOnCalendarToday(task.dueDate))
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 }
 
-export function loadAckedReminderTaskIds(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(REMINDER_ACK_TASK_IDS_KEY);
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw) as unknown;
-    if (!Array.isArray(arr)) return new Set();
-    return new Set(arr.filter((x) => typeof x === 'string'));
-  } catch {
-    return new Set();
+function forEachOpenTask(stages: Stage[], fn: (task: Task, ticket: Ticket) => void) {
+  for (const s of stages) {
+    for (const t of s.tickets) {
+      for (const task of t.tasks || []) {
+        if (task.isCompleted) continue;
+        fn(task, t);
+      }
+    }
   }
 }
 
-function saveAckedReminderTaskIds(ids: Set<string>) {
-  if (typeof window === 'undefined') return;
-  const max = 4000;
-  const arr = Array.from(ids).slice(-max);
-  localStorage.setItem(REMINDER_ACK_TASK_IDS_KEY, JSON.stringify(arr));
-}
-
-function pruneAckedAgainstPending(acked: Set<string>, pendingTaskIds: Set<string>): Set<string> {
-  return new Set([...acked].filter((id) => pendingTaskIds.has(id)));
-}
-
+/** Contagens globais para o menu lateral. */
 export function computeReminderBadgeFromStages(stages: Stage[]): ReminderBadgeDetail {
-  const pending = extractPendingReminderTasksFromStages(stages);
-  const pendingIds = new Set(pending.map((t) => t.id));
-  const pruned = pruneAckedAgainstPending(loadAckedReminderTaskIds(), pendingIds);
-  saveAckedReminderTaskIds(pruned);
+  let greenCount = 0;
+  let redCount = 0;
+  forEachOpenTask(stages, (task) => {
+    if (isTaskOverdue(task.dueDate)) {
+      redCount += 1;
+      return;
+    }
+    if (isTaskDueOnCalendarToday(task.dueDate)) {
+      greenCount += 1;
+    }
+  });
+  return { greenCount, redCount };
+}
 
-  const unacked = pending.filter((t) => !pruned.has(t.id));
-  const byTicketId: Record<string, number> = {};
-  for (const t of unacked) {
-    const tid = t.ticket?.id;
-    if (!tid) continue;
-    byTicketId[tid] = (byTicketId[tid] || 0) + 1;
-  }
-  const ticketsWithUnackedReminders = Object.keys(byTicketId).length;
-  return {
-    ticketsWithUnackedReminders,
-    totalUnacked: unacked.length,
-    byTicketId,
-  };
+export function computeReminderGreenRedByTicketId(stages: Stage[]): {
+  greenByTicketId: Record<string, number>;
+  redByTicketId: Record<string, number>;
+} {
+  const greenByTicketId: Record<string, number> = {};
+  const redByTicketId: Record<string, number> = {};
+  forEachOpenTask(stages, (task, ticket) => {
+    const tid = ticket.id;
+    if (isTaskOverdue(task.dueDate)) {
+      redByTicketId[tid] = (redByTicketId[tid] || 0) + 1;
+      return;
+    }
+    if (isTaskDueOnCalendarToday(task.dueDate)) {
+      greenByTicketId[tid] = (greenByTicketId[tid] || 0) + 1;
+    }
+  });
+  return { greenByTicketId, redByTicketId };
 }
 
 export function broadcastReminderBadgeFromStages(stages: Stage[]): void {
   if (typeof window === 'undefined') return;
   const detail = computeReminderBadgeFromStages(stages);
   window.dispatchEvent(new CustomEvent(REMINDERS_BADGE_EVENT, { detail }));
-}
-
-/** Marca lembretes como vistos (abriu painel, OS, etc.). */
-export function ackReminderTaskIds(taskIds: string[], stages: Stage[]): void {
-  if (typeof window === 'undefined') return;
-  if (taskIds.length === 0) {
-    broadcastReminderBadgeFromStages(stages);
-    return;
-  }
-  const pending = extractPendingReminderTasksFromStages(stages);
-  const pendingIds = new Set(pending.map((t) => t.id));
-  const merged = pruneAckedAgainstPending(loadAckedReminderTaskIds(), pendingIds);
-  for (const id of taskIds) {
-    if (pendingIds.has(id)) merged.add(id);
-  }
-  saveAckedReminderTaskIds(merged);
-  broadcastReminderBadgeFromStages(stages);
 }
