@@ -19,7 +19,7 @@ import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 import { apiRequest } from '@/lib/api-client';
 import {
   loadUnreadByContact,
-  unreadTotal,
+  unreadConversationsCount,
   WHATSAPP_UNREAD_STORAGE_KEY,
 } from '@/lib/whatsapp-notifications';
 
@@ -107,11 +107,12 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setWhatsappUnreadTotal(unreadTotal(loadUnreadByContact()));
+    setWhatsappUnreadTotal(unreadConversationsCount(loadUnreadByContact()));
 
     const onUnread = (e: Event) => {
-      const ce = e as CustomEvent<{ total?: number }>;
-      if (typeof ce.detail?.total === 'number') setWhatsappUnreadTotal(ce.detail.total);
+      const ce = e as CustomEvent<{ unreadConversations?: number; total?: number }>;
+      const n = ce.detail?.unreadConversations ?? ce.detail?.total;
+      if (typeof n === 'number') setWhatsappUnreadTotal(n);
     };
 
     const onStorage = (ev: StorageEvent) => {
@@ -131,7 +132,7 @@ export default function Sidebar() {
           const n = Number(v);
           if (Number.isFinite(n) && n > 0) map[k] = Math.min(n, 999);
         }
-        setWhatsappUnreadTotal(unreadTotal(map));
+        setWhatsappUnreadTotal(unreadConversationsCount(map));
       } catch {
         setWhatsappUnreadTotal(0);
       }

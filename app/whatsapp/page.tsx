@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import Sidebar from '@/components/Sidebar'; 
 import { Toast } from '@/components/ui/toast';
 import { Message, Contact, Stage } from '@/components/whatsapp/types';
@@ -260,10 +261,68 @@ export default function WhatsAppPage() {
             return tailA === tailB;
           };
 
-          const historySnap = chatHistoryRef.current[contactNumber] || [];
-          const alreadyHave = historySnap.some((m) => idMatches(m.id, waId));
+          /** Som + não lidas só quando o estado de histórico confirma mensagem nova (evita corrida com chatHistoryRef). */
+          const incomingNotify = { appendedIncoming: false };
 
-          if (!isFromMe && !alreadyHave) {
+          flushSync(() => {
+            setChatHistory((prev) => {
+              incomingNotify.appendedIncoming = false;
+              const history = prev[contactNumber] || [];
+
+              if (history.some((m) => idMatches(m.id, waId))) return prev;
+
+              if (isFromMe) {
+                // 1) Casa com mensagem otimista (ainda com id numérico)
+                let dupOptimistic = history.find(
+                  (m) => m.fromMe && m.text === incomingText && typeof m.id === 'number',
+                );
+
+                // 2) Caso a resposta HTTP de /send-media já tenha promovido o id para string,
+                // casa pela combinação fileName + mimeType + isMedia (últimas mensagens recentes do nosso lado).
+                if (!dupOptimistic && newMessage.isMedia) {
+                  const recent = history.slice(-6);
+                  dupOptimistic = recent.find(
+                    (m) =>
+                      m.fromMe &&
+                      m.isMedia === true &&
+                      (m.fileName || '') === (newMessage.fileName || '') &&
+                      (m.mimeType || '') === (newMessage.mimeType || ''),
+                  );
+                }
+
+                if (dupOptimistic) {
+                  const next = {
+                    ...prev,
+                    [contactNumber]: history.map((m) =>
+                      m === dupOptimistic
+                        ? {
+                            ...m,
+                            id: waId,
+                            sentAt: m.sentAt ?? sentAtIso,
+                            mediaData: newMessage.mediaData || m.mediaData,
+                            mimeType: newMessage.mimeType || m.mimeType,
+                            fileName: newMessage.fileName || m.fileName,
+                          }
+                        : m,
+                    ),
+                  };
+                  chatHistoryRef.current = next;
+                  return next;
+                }
+
+                const nextSent = { ...prev, [contactNumber]: [...history, newMessage] };
+                chatHistoryRef.current = nextSent;
+                return nextSent;
+              }
+
+              incomingNotify.appendedIncoming = true;
+              const nextIn = { ...prev, [contactNumber]: [...history, newMessage] };
+              chatHistoryRef.current = nextIn;
+              return nextIn;
+            });
+          });
+
+          if (incomingNotify.appendedIncoming) {
             const viewing =
               activeContactRef.current?.number === contactNumber &&
               typeof document !== 'undefined' &&
@@ -277,52 +336,6 @@ export default function WhatsAppPage() {
               });
             }
           }
-
-          setChatHistory(prev => {
-            const history = prev[contactNumber] || [];
-
-            if (history.some((m) => idMatches(m.id, waId))) return prev;
-
-            if (isFromMe) {
-              // 1) Casa com mensagem otimista (ainda com id numérico)
-              let dupOptimistic = history.find(
-                (m) => m.fromMe && m.text === incomingText && typeof m.id === 'number',
-              );
-
-              // 2) Caso a resposta HTTP de /send-media já tenha promovido o id para string,
-              // casa pela combinação fileName + mimeType + isMedia (últimas mensagens recentes do nosso lado).
-              if (!dupOptimistic && newMessage.isMedia) {
-                const recent = history.slice(-6);
-                dupOptimistic = recent.find(
-                  (m) =>
-                    m.fromMe &&
-                    m.isMedia === true &&
-                    (m.fileName || '') === (newMessage.fileName || '') &&
-                    (m.mimeType || '') === (newMessage.mimeType || ''),
-                );
-              }
-
-              if (dupOptimistic) {
-                return {
-                  ...prev,
-                  [contactNumber]: history.map((m) =>
-                    m === dupOptimistic
-                      ? {
-                          ...m,
-                          id: waId,
-                          sentAt: m.sentAt ?? sentAtIso,
-                          mediaData: newMessage.mediaData || m.mediaData,
-                          mimeType: newMessage.mimeType || m.mimeType,
-                          fileName: newMessage.fileName || m.fileName,
-                        }
-                      : m,
-                  ),
-                };
-              }
-            }
-
-            return { ...prev, [contactNumber]: [...history, newMessage] };
-          });
 
           setContacts(prev => {
             const idx = prev.findIndex(c => c.number === contactNumber);

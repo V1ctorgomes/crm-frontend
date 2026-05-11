@@ -19,8 +19,14 @@ export function loadUnreadByContact(): Record<string, number> {
   }
 }
 
-export function unreadTotal(map: Record<string, number>): number {
+/** Soma de mensagens não lidas (por contacto). */
+export function unreadMessagesTotal(map: Record<string, number>): number {
   return Object.values(map).reduce((a, b) => a + (Number(b) > 0 ? Number(b) : 0), 0);
+}
+
+/** Quantidade de conversas com pelo menos uma mensagem não lida (para badge no menu). */
+export function unreadConversationsCount(map: Record<string, number>): number {
+  return Object.values(map).filter((v) => Number(v) > 0).length;
 }
 
 export function saveUnreadAndBroadcast(map: Record<string, number>) {
@@ -31,7 +37,15 @@ export function saveUnreadAndBroadcast(map: Record<string, number>) {
   }
   localStorage.setItem(WHATSAPP_UNREAD_STORAGE_KEY, JSON.stringify(cleaned));
   window.dispatchEvent(
-    new CustomEvent('crm-whatsapp-unread', { detail: { total: unreadTotal(cleaned), map: cleaned } }),
+    new CustomEvent('crm-whatsapp-unread', {
+      detail: {
+        map: cleaned,
+        /** @deprecated usar unreadConversations para o menu lateral */
+        total: unreadConversationsCount(cleaned),
+        unreadConversations: unreadConversationsCount(cleaned),
+        unreadMessages: unreadMessagesTotal(cleaned),
+      },
+    }),
   );
 }
 
