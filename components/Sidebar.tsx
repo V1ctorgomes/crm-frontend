@@ -17,6 +17,11 @@ import {
 } from 'lucide-react';
 import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 import { apiRequest } from '@/lib/api-client';
+import {
+  loadUnreadByContact,
+  unreadTotal,
+  WHATSAPP_UNREAD_STORAGE_KEY,
+} from '@/lib/whatsapp-notifications';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -37,7 +42,8 @@ export default function Sidebar() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+  const [whatsappUnreadTotal, setWhatsappUnreadTotal] = useState(0);
+
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
 
@@ -99,6 +105,46 @@ export default function Sidebar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setWhatsappUnreadTotal(unreadTotal(loadUnreadByContact()));
+
+    const onUnread = (e: Event) => {
+      const ce = e as CustomEvent<{ total?: number }>;
+      if (typeof ce.detail?.total === 'number') setWhatsappUnreadTotal(ce.detail.total);
+    };
+
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key !== WHATSAPP_UNREAD_STORAGE_KEY) return;
+      if (!ev.newValue) {
+        setWhatsappUnreadTotal(0);
+        return;
+      }
+      try {
+        const o = JSON.parse(ev.newValue) as Record<string, unknown>;
+        if (!o || typeof o !== 'object') {
+          setWhatsappUnreadTotal(0);
+          return;
+        }
+        const map: Record<string, number> = {};
+        for (const [k, v] of Object.entries(o)) {
+          const n = Number(v);
+          if (Number.isFinite(n) && n > 0) map[k] = Math.min(n, 999);
+        }
+        setWhatsappUnreadTotal(unreadTotal(map));
+      } catch {
+        setWhatsappUnreadTotal(0);
+      }
+    };
+
+    window.addEventListener('crm-whatsapp-unread', onUnread as EventListener);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('crm-whatsapp-unread', onUnread as EventListener);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
   return (
     <>
       {/* CABEÇALHO MOBILE (Visível apenas em ecrãs pequenos) */}
@@ -150,13 +196,18 @@ export default function Sidebar() {
             
             return (
               <Link key={item.path} href={item.path}>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                <div className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                   active 
                     ? 'bg-brand-50 text-brand-700 font-semibold' 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-brand-950 font-medium'
                 }`}>
                   <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-brand-600' : 'text-slate-400'}`} strokeWidth={active ? 2.5 : 2} />
-                  <span className="text-[14px]">{item.name}</span>
+                  <span className="text-[14px] flex-1 min-w-0 truncate">{item.name}</span>
+                  {item.path === '/whatsapp' && whatsappUnreadTotal > 0 && (
+                    <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums shrink-0 leading-none">
+                      {whatsappUnreadTotal > 99 ? '99+' : whatsappUnreadTotal}
+                    </span>
+                  )}
                 </div>
               </Link>
             );

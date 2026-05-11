@@ -12,11 +12,12 @@ interface ContactsSidebarProps {
   filteredNewContacts: Contact[];
   handleSelectContact: (contact: Contact | null) => void;
   startChatWithContact: (contact: any) => void;
+  unreadByContact: Record<string, number>;
 }
 
 export function ContactsSidebar({
   activeContact, customerSearch, setCustomerSearch, instances, selectedInstance, onOpenInstanceModal, 
-  filteredActiveContacts, filteredNewContacts, handleSelectContact, startChatWithContact
+  filteredActiveContacts, filteredNewContacts, handleSelectContact, startChatWithContact, unreadByContact,
 }: ContactsSidebarProps) {
   return (
     <div className={`w-full md:w-[320px] flex-col border-r border-slate-200 bg-white shrink-0 z-20 ${activeContact ? 'hidden md:flex' : 'flex'}`}>
@@ -57,9 +58,16 @@ export function ContactsSidebar({
               </div>
             )}
             <div className="flex-1 overflow-hidden">
-              <div className="flex justify-between items-center mb-0.5">
-                <span className="font-semibold text-brand-950 text-sm truncate">{contact.name}</span>
-                <span className="text-[10px] text-slate-400 shrink-0">{contact.lastMessageTime}</span>
+              <div className="flex justify-between items-center mb-0.5 gap-2 min-w-0">
+                <span className="font-semibold text-brand-950 text-sm truncate min-w-0">{contact.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {(unreadByContact[contact.number] || 0) > 0 && (
+                    <span className="min-w-[1.125rem] h-5 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums leading-none">
+                      {(unreadByContact[contact.number] || 0) > 99 ? '99+' : unreadByContact[contact.number]}
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-400">{contact.lastMessageTime}</span>
+                </div>
               </div>
               <div className="text-xs text-slate-500 truncate">{contact.lastMessage || 'Nova Conversa'}</div>
             </div>

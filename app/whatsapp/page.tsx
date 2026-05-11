@@ -14,6 +14,12 @@ import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } f
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
+import {
+  loadUnreadByContact,
+  playIncomingMessageSound,
+  primeWhatsappNotificationAudio,
+  saveUnreadAndBroadcast,
+} from '@/lib/whatsapp-notifications';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -53,6 +59,24 @@ export default function WhatsAppPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
+  const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
+
+  const chatHistoryRef = useRef<Record<string, Message[]>>({});
+  const activeContactRef = useRef<Contact | null>(null);
+  useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+  useEffect(() => {
+    activeContactRef.current = activeContact;
+  }, [activeContact]);
+
+  useEffect(() => {
+    const once = () => {
+      primeWhatsappNotificationAudio();
+    };
+    window.addEventListener('pointerdown', once, { once: true });
+    return () => window.removeEventListener('pointerdown', once);
+  }, []);
 
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -98,10 +122,18 @@ export default function WhatsAppPage() {
   };
 
   const handleSelectContact = (contact: Contact | null) => {
+    if (contact?.number) {
+      setUnreadByContact((prev) => {
+        if (!prev[contact.number]) return prev;
+        const next = { ...prev, [contact.number]: 0 };
+        saveUnreadAndBroadcast(next);
+        return next;
+      });
+    }
     setActiveContact(contact);
     setIsSearchChatOpen(false);
     setChatSearchTerm('');
-    setCustomerSearch(''); 
+    setCustomerSearch('');
     if (contact) localStorage.setItem('lastActiveContact', contact.number);
     else localStorage.removeItem('lastActiveContact');
   };
@@ -219,18 +251,35 @@ export default function WhatsAppPage() {
             fileName: customMedia.fileName,
           };
 
+          const idMatches = (a: string | number, b: string | number) => {
+            const sa = String(a);
+            const sb = String(b);
+            if (sa === sb) return true;
+            const tailA = sa.includes(':') ? sa.split(':').pop()! : sa;
+            const tailB = sb.includes(':') ? sb.split(':').pop()! : sb;
+            return tailA === tailB;
+          };
+
+          const historySnap = chatHistoryRef.current[contactNumber] || [];
+          const alreadyHave = historySnap.some((m) => idMatches(m.id, waId));
+
+          if (!isFromMe && !alreadyHave) {
+            const viewing =
+              activeContactRef.current?.number === contactNumber &&
+              typeof document !== 'undefined' &&
+              document.visibilityState === 'visible';
+            playIncomingMessageSound(viewing);
+            if (!viewing) {
+              setUnreadByContact((prev) => {
+                const next = { ...prev, [contactNumber]: (prev[contactNumber] || 0) + 1 };
+                saveUnreadAndBroadcast(next);
+                return next;
+              });
+            }
+          }
+
           setChatHistory(prev => {
             const history = prev[contactNumber] || [];
-
-            // Normaliza os ids para comparar sem o prefixo "userId:"
-            const idMatches = (a: string | number, b: string | number) => {
-              const sa = String(a);
-              const sb = String(b);
-              if (sa === sb) return true;
-              const tailA = sa.includes(':') ? sa.split(':').pop()! : sa;
-              const tailB = sb.includes(':') ? sb.split(':').pop()! : sb;
-              return tailA === tailB;
-            };
 
             if (history.some((m) => idMatches(m.id, waId))) return prev;
 
@@ -307,6 +356,13 @@ export default function WhatsAppPage() {
     try {
       await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
       setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+      const deletedNumber = activeContact.number;
+      setUnreadByContact((prev) => {
+        const next = { ...prev };
+        delete next[deletedNumber];
+        saveUnreadAndBroadcast(next);
+        return next;
+      });
       setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
       setActiveContact(null);
       localStorage.removeItem('lastActiveContact');
@@ -601,6 +657,7 @@ export default function WhatsAppPage() {
               instances={instances} selectedInstance={selectedInstance} onOpenInstanceModal={() => setIsInstanceModalOpen(true)}
               filteredActiveContacts={filteredActiveContacts} filteredNewContacts={filteredNewContacts}
               handleSelectContact={handleSelectContact} startChatWithContact={startChatWithContact}
+              unreadByContact={unreadByContact}
             />
 
             <div className={`flex-1 flex-col relative bg-brand-canvas overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
