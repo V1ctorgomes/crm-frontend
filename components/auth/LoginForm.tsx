@@ -47,17 +47,19 @@ export function LoginForm() {
     <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative bg-gradient-to-br from-white via-brand-canvas to-brand-50/60">
       <div className="w-full max-w-[420px] mx-auto flex flex-col">
         
-        {/* Logo com carregamento direto (unoptimized) para evitar erros de cache/servidor */}
-        <div className="mb-10">
-          <Image 
-            src="/logoBar.png" 
-            alt="Logo do CRM" 
-            width={160} 
-            height={45} 
+        <div className="mb-10 flex items-center gap-3">
+          <Image
+            src="/icon.png"
+            alt=""
+            width={48}
+            height={48}
             priority
             unoptimized
-            className="h-[45px] w-auto object-contain" 
+            className="h-12 w-12 shrink-0 object-contain"
           />
+          <span className="text-xl font-bold tracking-tight text-brand-950 sm:text-2xl">
+            Suporte Imagem
+          </span>
         </div>
 
         {/* Cabeçalho */}
