@@ -29,7 +29,9 @@ function getTicketTimelineBucket(t: Ticket): string | null {
   return `${y}-${mo}-${da}`;
 }
 
-/** Labels estáveis a partir da chave YYYY-MM-DD (evita depender só do locale no eixo). */
+const MESES_EIXO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const;
+
+/** Labels estáveis a partir da chave YYYY-MM-DD (eixo curto evita cortar nas pontas do SVG). */
 function formatSortKeyForChart(sortKey: string): { axisLabel: string; dayLong: string } {
   const [ys, ms, ds] = sortKey.split('-');
   const y = Number(ys);
@@ -38,7 +40,7 @@ function formatSortKeyForChart(sortKey: string): { axisLabel: string; dayLong: s
   if (!y || !mo || !da) return { axisLabel: sortKey, dayLong: sortKey };
   const d = new Date(y, mo - 1, da);
   if (Number.isNaN(d.getTime())) return { axisLabel: sortKey, dayLong: sortKey };
-  const axisLabel = `${String(da).padStart(2, '0')}/${String(mo).padStart(2, '0')}/${String(y).slice(-2)}`;
+  const axisLabel = `${String(ds).padStart(2, '0')} ${MESES_EIXO[mo - 1]}`;
   const dayLong = d.toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: 'numeric',

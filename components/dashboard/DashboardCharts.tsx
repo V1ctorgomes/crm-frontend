@@ -67,6 +67,39 @@ const renderCustomLegend = (props: any) => {
   );
 };
 
+/** Tick do eixo de datas: âncora nas pontas evita cortar rótulos no clip do SVG. */
+function TrendDateTick(props: any) {
+  const { x, y, payload, index, tickCount, crowded } = props;
+  const xi = Number(x);
+  const yi = Number(y);
+  const label = String(payload?.value ?? '');
+  if (crowded) {
+    return (
+      <g transform={`translate(${xi},${yi})`}>
+        <text transform="rotate(-32)" textAnchor="end" y={4} fill="#3d5245" fontSize={10} fontWeight={500}>
+          {label}
+        </text>
+      </g>
+    );
+  }
+  let textAnchor: 'start' | 'middle' | 'end' = 'middle';
+  let dx = 0;
+  if (tickCount > 1) {
+    if (index === 0) {
+      textAnchor = 'start';
+      dx = 4;
+    } else if (index === tickCount - 1) {
+      textAnchor = 'end';
+      dx = -4;
+    }
+  }
+  return (
+    <text x={xi} y={yi} dy={14} dx={dx} textAnchor={textAnchor} fill="#3d5245" fontSize={11} fontWeight={500}>
+      {label}
+    </text>
+  );
+}
+
 export function DashboardCharts({ trendData, brandRanking, funnelData, customerTypeRanking, totalCustomers }: DashboardChartsProps) {
   const trendTickLabels = trendData.map((d) => d.month);
   const crowdedTrendAxis = trendData.length > 8;
@@ -93,10 +126,10 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                   <AreaChart
                     data={trendData}
                     margin={{
-                      left: 8,
-                      right: 8,
+                      left: 16,
+                      right: 16,
                       top: 12,
-                      bottom: crowdedTrendAxis ? 48 : 32,
+                      bottom: crowdedTrendAxis ? 52 : 38,
                     }}
                   >
                     <defs>
@@ -122,11 +155,16 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                       minTickGap={0}
                       tickLine={false}
                       axisLine={false}
-                      tickMargin={6}
-                      height={crowdedTrendAxis ? 46 : 32}
-                      angle={crowdedTrendAxis ? -32 : 0}
-                      textAnchor={crowdedTrendAxis ? 'end' : 'middle'}
-                      tick={{ fill: '#3d5245', fontSize: crowdedTrendAxis ? 10 : 11 }}
+                      tickMargin={4}
+                      height={crowdedTrendAxis ? 50 : 36}
+                      padding={{ left: 8, right: 8 }}
+                      tick={(props) => (
+                        <TrendDateTick
+                          {...props}
+                          tickCount={trendData.length}
+                          crowded={crowdedTrendAxis}
+                        />
+                      )}
                     />
                     <Tooltip cursor={false} content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#3d5245', paddingTop: '10px' }} />
