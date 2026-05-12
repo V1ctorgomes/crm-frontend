@@ -8,6 +8,7 @@ import {
   resolveVapidPublicKey,
   subscribeWebPushState,
 } from '@/lib/web-push-client';
+import { getWebPushBlockInfo, type WebPushBlockInfo } from '@/lib/web-push-support';
 
 type Props = {
   onToast?: (message: string, type: 'success' | 'error') => void;
@@ -18,20 +19,24 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
   const [pushActive, setPushActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>('default');
+  const [blockInfo, setBlockInfo] = useState<WebPushBlockInfo | null>(null);
 
   const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
-    if (!('Notification' in window)) {
+    const block = getWebPushBlockInfo();
+    setBlockInfo(block);
+    if ('Notification' in window) {
+      setPerm(Notification.permission);
+    } else {
       setPerm('unsupported');
-      return;
     }
-    setPerm(Notification.permission);
-    const [key, active] = await Promise.all([
-      resolveVapidPublicKey(),
-      isWebPushActive(),
-    ]);
+    const key = await resolveVapidPublicKey();
     setVapidOk(Boolean(key));
-    setPushActive(active);
+    if (key && block.canTrySubscribe) {
+      setPushActive(await isWebPushActive());
+    } else {
+      setPushActive(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -41,7 +46,16 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
     });
   }, [refresh]);
 
-  if (perm === 'unsupported') return null;
+  if (!vapidOk) return null;
+
+  if (blockInfo && !blockInfo.canTrySubscribe && !pushActive) {
+    return (
+      <p className="text-[11px] text-sky-900/95 leading-snug bg-sky-50 border border-sky-100 rounded-md px-2.5 py-2">
+        <span className="font-semibold block mb-0.5">{blockInfo.hintTitle}</span>
+        {blockInfo.hintBody}
+      </p>
+    );
+  }
 
   if (perm === 'denied') {
     return (
@@ -51,7 +65,7 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
     );
   }
 
-  if (!vapidOk || pushActive) return null;
+  if (pushActive) return null;
 
   return (
     <div className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2">
@@ -70,7 +84,7 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
               await refresh();
               if (ok) {
                 onToast?.('Notificações ativadas.', 'success');
-              } else if (Notification.permission === 'denied') {
+              } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
                 onToast?.('Permissão negada.', 'error');
               } else {
                 onToast?.(

@@ -1,4 +1,5 @@
 import { getAuthToken, withAuthHeaders } from '@/lib/api-client';
+import { getWebPushBlockInfo } from './web-push-support';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://crm-crm-backend.pknzmz.easypanel.host';
@@ -17,7 +18,8 @@ export function notifyWebPushStateChanged(): void {
 /** Permissão concedida e subscrição push ativa neste browser. */
 export async function isWebPushActive(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+  if (!getWebPushBlockInfo().canTrySubscribe) return false;
+  if (Notification.permission !== 'granted') return false;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
@@ -59,6 +61,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 /** Garante SW + subscrição push e regista no backend (requer JWT em cookie). */
 export async function ensureWebPushSubscription(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
+  if (!getWebPushBlockInfo().canTrySubscribe) return false;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
   if (!getAuthToken()) return false;
 

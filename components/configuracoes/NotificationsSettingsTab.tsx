@@ -9,6 +9,7 @@ import {
   revokeWebPushSubscription,
   subscribeWebPushState,
 } from '@/lib/web-push-client';
+import { getWebPushBlockInfo, type WebPushBlockInfo } from '@/lib/web-push-support';
 
 type Props = {
   showFeedback: (type: 'success' | 'error', message: string) => void;
@@ -19,21 +20,24 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
   const [pushActive, setPushActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>('default');
-  const [browserOk, setBrowserOk] = useState(true);
+  const [blockInfo, setBlockInfo] = useState<WebPushBlockInfo | null>(null);
 
   const refresh = useCallback(async () => {
     if (typeof window === 'undefined') return;
-    if (!('Notification' in window)) {
+    const block = getWebPushBlockInfo();
+    setBlockInfo(block);
+    if ('Notification' in window) {
+      setPerm(Notification.permission);
+    } else {
       setPerm('unsupported');
-      setBrowserOk(false);
-      setVapidReady(false);
-      return;
     }
-    setPerm(Notification.permission);
     const key = await resolveVapidPublicKey();
     setVapidReady(Boolean(key));
-    if (key) setPushActive(await isWebPushActive());
-    else setPushActive(false);
+    if (key && block.canTrySubscribe) {
+      setPushActive(await isWebPushActive());
+    } else {
+      setPushActive(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -42,12 +46,6 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
       void refresh();
     });
   }, [refresh]);
-
-  if (!browserOk) {
-    return (
-      <p className="text-sm text-slate-600">Este browser não suporta notificações push.</p>
-    );
-  }
 
   if (vapidReady === null) {
     return (
@@ -63,6 +61,15 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
         O servidor ainda não expõe chaves VAPID. Confirme{' '}
         <code className="rounded bg-white/80 px-1">VAPID_PUBLIC_KEY</code> e{' '}
         <code className="rounded bg-white/80 px-1">VAPID_PRIVATE_KEY</code> no backend e reinicie o serviço.
+      </div>
+    );
+  }
+
+  if (blockInfo && !blockInfo.canTrySubscribe) {
+    return (
+      <div className="rounded-xl border border-sky-100 bg-sky-50/90 p-4 text-sm text-sky-950 space-y-2">
+        <h3 className="font-semibold text-sky-950">{blockInfo.hintTitle}</h3>
+        <p className="text-sky-900/90 leading-relaxed">{blockInfo.hintBody}</p>
       </div>
     );
   }
@@ -135,7 +142,7 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
             const ok = await ensureWebPushSubscription();
             await refresh();
             if (ok) showFeedback('success', 'Notificações ativadas.');
-            else if (Notification.permission === 'denied') {
+            else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
               showFeedback('error', 'Permissão negada.');
             } else {
               showFeedback(
