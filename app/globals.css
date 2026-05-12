@@ -146,6 +146,42 @@
   }
 }
 
+/* Toast: entrada e saída */
+@keyframes crm-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(14px, -10px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes crm-toast-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(18px, -12px, 0) scale(0.92);
+  }
+}
+
+.crm-toast-shell {
+  will-change: transform, opacity;
+}
+
+.crm-toast-shell--enter {
+  animation: crm-toast-enter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.crm-toast-shell--leave {
+  animation: crm-toast-exit 0.34s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
 /* Barra de tempo do toast (diminui até desaparecer) */
 @keyframes crm-toast-progress-shrink {
   from {
