@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { Message } from './types';
+import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
 
 type Props = {
   x: number;
@@ -32,8 +33,13 @@ export function MessageContextMenu({ x, y, message, onClose, onDelete, onEdit }:
     };
   }, [onClose]);
 
-  const canDelete = message.fromMe && typeof message.id !== 'number';
-  const canEdit = canDelete && !message.isMedia && !!(message.text && message.text.trim());
+  const baseOwn = message.fromMe && typeof message.id !== 'number';
+  const canDelete = baseOwn && canDeleteMessageByTime(message.sentAt);
+  const canEdit =
+    baseOwn &&
+    !message.isMedia &&
+    !!(message.text && message.text.trim()) &&
+    canEditMessageByTime(message.sentAt);
 
   if (!canDelete && !canEdit) return null;
 

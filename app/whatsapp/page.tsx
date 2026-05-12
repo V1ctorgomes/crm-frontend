@@ -28,6 +28,7 @@ import {
 import { mergeWhatsappIngressDetail } from '@/lib/whatsapp-merge-ingress';
 import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
 import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
+import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -249,6 +250,10 @@ export default function WhatsAppPage() {
       return;
     }
     if (!window.confirm('Apagar esta mensagem para todos no WhatsApp?')) return;
+    if (!canDeleteMessageByTime(msg.sentAt)) {
+      showFeedback('error', 'Só é possível apagar até 50 horas após o envio.');
+      return;
+    }
     const inst = instanceForActiveContact();
     const num = activeContact.number;
     try {
@@ -290,6 +295,10 @@ export default function WhatsAppPage() {
     if (!activeContact || !editMessage || typeof editMessage.id === 'number') return;
     const text = editDraft.trim();
     if (!text) return;
+    if (!canEditMessageByTime(editMessage.sentAt)) {
+      showFeedback('error', 'Só é possível editar até 14 minutos após o envio.');
+      return;
+    }
     setEditSaving(true);
     const inst = instanceForActiveContact();
     const num = activeContact.number;

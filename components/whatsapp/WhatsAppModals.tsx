@@ -64,7 +64,9 @@ export function EditMessageModal({ onClose, draft, setDraft, onSave, isSaving }:
       >
         <div className="px-6 py-4 border-b border-slate-100">
           <h3 className="font-semibold text-lg text-brand-950">Editar mensagem</h3>
-          <p className="text-xs text-slate-500 mt-1">Só mensagens de texto enviadas por si, dentro do limite do WhatsApp.</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Só mensagens de texto enviadas por si. No WhatsApp só é possível editar até <strong>14 minutos</strong> após o envio.
+          </p>
         </div>
         <div className="p-6">
           <textarea

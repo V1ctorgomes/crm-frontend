@@ -3,6 +3,7 @@ import { CheckCheck } from 'lucide-react';
 import { Message } from './types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
 import { MessageContextMenu } from './MessageContextMenu';
+import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
 
 interface MessageListProps {
   filteredMessages: Message[];
@@ -67,8 +68,9 @@ export function MessageList({
               onContextMenu={(e) => {
                 if (!msg.fromMe || typeof msg.id === 'number') return;
                 const canEditText = !msg.isMedia && !!(msg.text && msg.text.trim());
-                const wantsEdit = canEditText && !!onMessageEditRequest;
-                const wantsDelete = !!onMessageDelete;
+                const wantsEdit =
+                  canEditText && !!onMessageEditRequest && canEditMessageByTime(msg.sentAt);
+                const wantsDelete = !!onMessageDelete && canDeleteMessageByTime(msg.sentAt);
                 if (!wantsEdit && !wantsDelete) return;
                 e.preventDefault();
                 setCtx({ x: e.clientX, y: e.clientY, msg });
