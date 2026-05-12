@@ -12,7 +12,15 @@ const PUSH_STATE_EVENT = 'crm-web-push-state';
 
 export function notifyWebPushStateChanged(): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(PUSH_STATE_EVENT));
+  const run = () => {
+    try {
+      window.dispatchEvent(new CustomEvent(PUSH_STATE_EVENT));
+    } catch {
+      /* listener externo não deve rebentar o fluxo de subscrição */
+    }
+  };
+  if (typeof queueMicrotask === 'function') queueMicrotask(run);
+  else setTimeout(run, 0);
 }
 
 /** Permissão concedida e subscrição push ativa neste browser. */
@@ -71,35 +79,55 @@ export async function ensureWebPushSubscription(): Promise<boolean> {
   let permission = Notification.permission;
   if (permission === 'denied') return false;
   if (permission === 'default') {
-    permission = await Notification.requestPermission();
+    try {
+      permission = await Notification.requestPermission();
+    } catch {
+      return false;
+    }
     if (permission !== 'granted') return false;
   }
 
-  const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  await reg.update().catch(() => undefined);
+  let reg: ServiceWorkerRegistration;
+  try {
+    reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await reg.update().catch(() => undefined);
+  } catch {
+    return false;
+  }
 
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublic),
-    });
+  let sub: PushSubscription | null = null;
+  try {
+    sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublic),
+      });
+    }
+  } catch {
+    return false;
   }
 
   const json = sub.toJSON();
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
 
-  const res = await fetch(`${apiBase()}/notifications/push/subscribe`, {
-    method: 'POST',
-    headers: withAuthHeaders({ 'Content-Type': 'application/json' }) as HeadersInit,
-    body: JSON.stringify({
-      endpoint: json.endpoint,
-      keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
-    }),
-  });
-  const ok = res.ok;
-  if (ok) notifyWebPushStateChanged();
-  return ok;
+  let serverOk = false;
+  try {
+    const res = await fetch(`${apiBase()}/notifications/push/subscribe`, {
+      method: 'POST',
+      headers: withAuthHeaders({ 'Content-Type': 'application/json' }) as HeadersInit,
+      body: JSON.stringify({
+        endpoint: json.endpoint,
+        keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+      }),
+    });
+    serverOk = res.ok;
+  } catch {
+    serverOk = false;
+  }
+
+  if (serverOk) notifyWebPushStateChanged();
+  return serverOk;
 }
 
 /** Remove subscrição no servidor e no browser (chamar antes de limpar o token). */

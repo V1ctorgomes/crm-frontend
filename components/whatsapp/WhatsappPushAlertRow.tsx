@@ -80,8 +80,15 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
           onClick={async () => {
             setBusy(true);
             try {
-              const ok = await ensureWebPushSubscription();
-              await refresh();
+              let ok = await ensureWebPushSubscription();
+              if (!ok) {
+                try {
+                  ok = await isWebPushActive();
+                } catch {
+                  /* ignore */
+                }
+              }
+              await refresh().catch(() => undefined);
               if (ok) {
                 onToast?.('Notificações ativadas.', 'success');
               } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
@@ -93,7 +100,16 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
                 );
               }
             } catch {
-              onToast?.('Erro ao ativar notificações.', 'error');
+              await refresh().catch(() => undefined);
+              try {
+                if (await isWebPushActive()) {
+                  onToast?.('Notificações ativadas.', 'success');
+                } else {
+                  onToast?.('Erro ao ativar notificações.', 'error');
+                }
+              } catch {
+                onToast?.('Erro ao ativar notificações.', 'error');
+              }
             } finally {
               setBusy(false);
             }

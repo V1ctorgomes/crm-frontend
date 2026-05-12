@@ -139,8 +139,15 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
         onClick={async () => {
           setBusy(true);
           try {
-            const ok = await ensureWebPushSubscription();
-            await refresh();
+            let ok = await ensureWebPushSubscription();
+            if (!ok) {
+              try {
+                ok = await isWebPushActive();
+              } catch {
+                /* ignore */
+              }
+            }
+            await refresh().catch(() => undefined);
             if (ok) showFeedback('success', 'Notificações ativadas.');
             else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
               showFeedback('error', 'Permissão negada.');
@@ -151,7 +158,16 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
               );
             }
           } catch {
-            showFeedback('error', 'Erro ao ativar notificações.');
+            await refresh().catch(() => undefined);
+            try {
+              if (await isWebPushActive()) {
+                showFeedback('success', 'Notificações ativadas.');
+              } else {
+                showFeedback('error', 'Erro ao ativar notificações.');
+              }
+            } catch {
+              showFeedback('error', 'Erro ao ativar notificações.');
+            }
           } finally {
             setBusy(false);
           }
