@@ -75,6 +75,18 @@ export default function WhatsAppPage() {
     };
   }, [activeContact]);
 
+  /** Inclui conversa restaurada de `lastActiveContact` sem passar por `handleSelectContact`. */
+  useEffect(() => {
+    const n = activeContact?.number;
+    if (!n) return;
+    setUnreadByContact((prev) => {
+      if (!(prev[n] > 0)) return prev;
+      const next = { ...prev, [n]: 0 };
+      saveUnreadAndBroadcast(next);
+      return next;
+    });
+  }, [activeContact?.number]);
+
   useEffect(() => {
     whatsappIngressMergerRef.current = (detail) =>
       mergeWhatsappIngressDetail(detail, setChatHistory, setContacts, chatHistoryRef);
@@ -140,14 +152,6 @@ export default function WhatsAppPage() {
   };
 
   const handleSelectContact = (contact: Contact | null) => {
-    if (contact?.number) {
-      setUnreadByContact((prev) => {
-        if (!prev[contact.number]) return prev;
-        const next = { ...prev, [contact.number]: 0 };
-        saveUnreadAndBroadcast(next);
-        return next;
-      });
-    }
     setActiveContact(contact);
     setIsSearchChatOpen(false);
     setChatSearchTerm('');
