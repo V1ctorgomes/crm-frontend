@@ -69,7 +69,7 @@ export async function resolveVapidPublicKey(): Promise<string | null> {
   }
 }
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
@@ -77,7 +77,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   for (let i = 0; i < rawData.length; i += 1) {
     outputArray[i] = rawData.charCodeAt(i);
   }
-  return outputArray;
+  return outputArray.buffer.slice(0) as ArrayBuffer;
 }
 
 function parseNestErrorMessage(text: string): string | undefined {
@@ -100,7 +100,7 @@ export function pushSubscribeUserFeedback(
   r: EnsureWebPushResult,
   pushActiveAfter: boolean,
 ): { ok: boolean; message: string } {
-  if (pushActiveAfter || r.serverSynced) {
+  if (pushActiveAfter || r.serverSynced || r.hasLocalSubscription) {
     return { ok: true, message: 'Notificações ativadas.' };
   }
   if (r.blocked === 'permission-denied' || r.blocked === 'permission-error') {
@@ -160,13 +160,6 @@ export function pushSubscribeUserFeedback(
   if (r.serverError) {
     const tail = r.httpStatus ? ` (HTTP ${r.httpStatus})` : '';
     return { ok: false, message: `${r.serverError}${tail}` };
-  }
-  if (r.hasLocalSubscription && !r.serverSynced) {
-    return {
-      ok: false,
-      message:
-        'O browser subscreveu, mas o servidor não confirmou. Confirme sessão, URL da API e migrações da base de dados.',
-    };
   }
   return {
     ok: false,
