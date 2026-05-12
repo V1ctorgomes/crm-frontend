@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { getAuthToken } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
 /**
@@ -14,7 +13,6 @@ export function WebPushRegister() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!getAuthToken()) return;
     if (pathname === '/login') return;
 
     const id = window.setTimeout(() => {

@@ -12,7 +12,7 @@ import { CloseTicketModal } from '@/components/solicitacoes/CloseTicketModal';
 import { StageManagerModal } from '@/components/solicitacoes/StageManagerModal';
 import { ArchivedTicketsModal } from '@/components/solicitacoes/ArchivedTicketsModal';
 import { Contact, Stage, Ticket } from '@/components/solicitacoes/types';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, getApiBaseUrl } from '@/lib/api-client';
 import {
   broadcastReminderBadgeFromStages,
   computeReminderGreenRedByTicketId,
@@ -21,6 +21,7 @@ import {
 } from '@/lib/solicitacoes-reminders';
 
 export default function SolicitacoesPage() {
+  const baseUrl = useMemo(() => getApiBaseUrl(), []);
   const [stages, setStages] = useState<Stage[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,8 +36,6 @@ export default function SolicitacoesPage() {
 
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; onClose: () => void; } | null>(null);
-
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });

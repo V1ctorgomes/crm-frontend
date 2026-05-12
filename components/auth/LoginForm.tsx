@@ -8,7 +8,7 @@ import { apiRequest } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
 type LoginResponse = {
-  access_token: string;
+  name?: string;
   role?: string;
 };
 
@@ -30,19 +30,14 @@ export function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (data?.access_token) {
-        document.cookie = `token=${data.access_token}; path=/; max-age=28800; SameSite=Lax`;
-
-        const dest =
-          data.role === 'DEVELOPER'
-            ? '/developer'
-            : '/dashboard';
+      if (data?.name != null && data?.role != null) {
+        const dest = data.role === 'DEVELOPER' ? '/developer' : '/dashboard';
         // Mesmo stack do clique em «Entrar» — melhora a chance do browser mostrar o pedido de notificações.
         await ensureWebPushSubscription().catch(() => undefined);
         router.replace(dest);
         router.refresh();
       } else {
-        throw new Error('Token não recebido pelo servidor.');
+        throw new Error('Resposta de login inválida.');
       }
     } catch (err: any) {
       setError(err.message || 'Erro de conexão com o servidor.');

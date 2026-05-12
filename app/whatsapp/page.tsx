@@ -157,8 +157,6 @@ export default function WhatsAppPage() {
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCancelledRef = useRef<boolean>(false);
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
   };
@@ -207,7 +205,7 @@ export default function WhatsAppPage() {
       } catch (err) { setHasInstances(false); }
     };
     fetchInitialData();
-  }, [baseUrl]);
+  }, []);
 
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
@@ -235,7 +233,7 @@ export default function WhatsAppPage() {
       };
       fetchHistory();
     }
-  }, [activeContact, baseUrl, chatHistory]);
+  }, [activeContact, chatHistory]);
 
   const instanceForActiveContact = () =>
     activeContact?.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);

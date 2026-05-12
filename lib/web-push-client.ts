@@ -1,11 +1,8 @@
-import { getAuthToken, withAuthHeaders } from '@/lib/api-client';
+import { getApiBaseUrl } from '@/lib/api-client';
 import { getWebPushBlockInfo, hasPushManagerCapability, isPushFeedbackMobileContext } from './web-push-support';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://crm-crm-backend.pknzmz.easypanel.host';
-
 function apiBase(): string {
-  return API_URL.replace(/\/$/, '');
+  return getApiBaseUrl();
 }
 
 const PUSH_STATE_EVENT = 'crm-web-push-state';
@@ -59,7 +56,9 @@ export async function resolveVapidPublicKey(): Promise<string | null> {
   const fromEnv = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
   if (fromEnv) return fromEnv;
   try {
-    const res = await fetch(`${apiBase()}/notifications/push/vapid-public-key`);
+    const res = await fetch(`${apiBase()}/notifications/push/vapid-public-key`, {
+      credentials: 'include',
+    });
     if (!res.ok) return null;
     const data = (await res.json()) as { publicKey?: string };
     const k = String(data.publicKey || '').trim();
@@ -154,7 +153,7 @@ export function pushSubscribeUserFeedback(
   if (r.httpStatus === 404) {
     return {
       ok: false,
-      message: `API não encontrada (404). Verifique se NEXT_PUBLIC_API_URL aponta para o backend certo (${apiBase()}).`,
+      message: `API não encontrada (404). Confirme NEXT_PUBLIC_API_URL ou o proxy /api/proxy no Next (${apiBase()}).`,
     };
   }
   if (r.serverError) {
@@ -183,10 +182,6 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
   if (!('serviceWorker' in navigator)) {
     return { ...empty(), blocked: 'no-sw' };
   }
-  if (!getAuthToken()) {
-    return { ...empty(), blocked: 'no-token' };
-  }
-
   const vapidPublic = await resolveVapidPublicKey();
   if (!vapidPublic) {
     return { ...empty(), blocked: 'no-vapid' };
@@ -244,7 +239,8 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
   try {
     const res = await fetch(`${apiBase()}/notifications/push/subscribe`, {
       method: 'POST',
-      headers: withAuthHeaders({ 'Content-Type': 'application/json' }) as HeadersInit,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         endpoint: json.endpoint,
         keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
@@ -258,7 +254,7 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
     }
   } catch {
     serverError =
-      'Sem ligação ao servidor (rede, CORS ou URL errado). Confirme NEXT_PUBLIC_API_URL.';
+      'Sem ligação ao servidor (rede, CORS ou URL errado). Confirme NEXT_PUBLIC_API_URL ou o proxy /api/proxy.';
   }
 
   const hasLocalSubscription = Boolean(await reg.pushManager.getSubscription());
@@ -269,8 +265,6 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
 /** Remove subscrição no servidor e no browser (chamar antes de limpar o token). */
 export async function revokeWebPushSubscription(): Promise<void> {
   if (typeof window === 'undefined') return;
-  const token = getAuthToken();
-  if (!token) return;
   const base = apiBase();
 
   try {
@@ -280,7 +274,8 @@ export async function revokeWebPushSubscription(): Promise<void> {
     const endpoint = sub.endpoint;
     await fetch(`${base}/notifications/push/subscribe`, {
       method: 'DELETE',
-      headers: withAuthHeaders({ 'Content-Type': 'application/json' }) as HeadersInit,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint }),
     }).catch(() => undefined);
     await sub.unsubscribe().catch(() => undefined);

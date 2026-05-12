@@ -79,7 +79,7 @@ export default function Sidebar() {
     globalUserCache = null;
     localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    await apiRequest('/auth/logout', { method: 'POST' }).catch(() => undefined);
     router.replace('/login');
   };
 

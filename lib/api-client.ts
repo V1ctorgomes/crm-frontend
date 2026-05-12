@@ -1,38 +1,46 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://crm-crm-backend.pknzmz.easypanel.host';
-
-function getCookieValue(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+/**
+ * Base da API:
+ * - Se `NEXT_PUBLIC_API_URL` estiver definido, usa-se (ex.: backend noutro domínio com proxy reverso).
+ * - Caso contrário no browser usa-se `/api/proxy` (rewrite no Next → mesmo site → cookie HttpOnly).
+ * - Em SSR (sem `window`), usa `INTERNAL_API_URL` ou localhost.
+ */
+export function getApiBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '').trim();
+  if (fromEnv) return fromEnv;
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/proxy`;
+  }
+  return (process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001').replace(/\/$/, '');
 }
 
+/** @deprecated O token JWT passa a ser HttpOnly; não ler de `document.cookie`. */
 export function getAuthToken(): string | null {
-  return getCookieValue('token');
+  return null;
 }
 
 export function withAuthHeaders(headers: HeadersInit = {}): HeadersInit {
-  const token = getAuthToken();
-  if (!token) return headers;
-  return { ...headers, Authorization: `Bearer ${token}` };
+  return headers;
 }
 
 export async function apiRequest<T = unknown>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T | null> {
-  const url = `${API_URL}${endpoint}`;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${getApiBaseUrl()}${path}`;
 
   const isFormData =
     typeof FormData !== 'undefined' && options.body instanceof FormData;
 
-  const headers: HeadersInit = withAuthHeaders({
+  const headers: HeadersInit = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
-  });
+  };
 
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   const raw = await response.text();

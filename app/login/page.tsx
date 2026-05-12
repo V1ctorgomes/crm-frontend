@@ -4,11 +4,15 @@ import { LoginForm } from '@/components/auth/LoginForm';
 /** Sempre ir buscar os últimos membros ao servidor (não cache estático na build). */
 export const dynamic = 'force-dynamic';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const serverApiBase =
+  (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001').replace(
+    /\/$/,
+    '',
+  );
 
 async function getRecentMembers(): Promise<RecentMember[]> {
   try {
-    const res = await fetch(`${API_URL}/auth/recent-members?limit=3`, {
+    const res = await fetch(`${serverApiBase}/auth/recent-members?limit=3`, {
       cache: 'no-store',
     });
     if (!res.ok) return [];

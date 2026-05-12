@@ -11,6 +11,7 @@ import {
   saveUnreadAndBroadcast,
 } from '@/lib/whatsapp-notifications';
 import { applyTabFaviconBadgeIfHidden, resetTabFaviconToDefault } from '@/lib/tab-favicon-badge';
+import { getApiBaseUrl } from '@/lib/api-client';
 
 const sseIncomingSeenKeys = new Set<string>();
 
@@ -54,7 +55,7 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (!clientReady) return;
-    const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+    const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/whatsapp/stream`;
 
     let stopped = false;
@@ -114,7 +115,7 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
     const connect = () => {
       if (stopped) return;
       eventSource?.close();
-      eventSource = new EventSource(url);
+      eventSource = new EventSource(url, { withCredentials: true });
       eventSource.onmessage = handleMessage;
       eventSource.onerror = () => {
         eventSource?.close();
