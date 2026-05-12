@@ -1,5 +1,5 @@
 import { getAuthToken, withAuthHeaders } from '@/lib/api-client';
-import { getWebPushBlockInfo } from './web-push-support';
+import { getWebPushBlockInfo, isPushFeedbackMobileContext } from './web-push-support';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://crm-crm-backend.pknzmz.easypanel.host';
@@ -123,10 +123,17 @@ export function pushSubscribeUserFeedback(
     r.blocked === 'subscribe-failed' ||
     r.blocked === 'sw-register-failed'
   ) {
+    if (isPushFeedbackMobileContext()) {
+      return {
+        ok: false,
+        message:
+          'Não foi possível preparar notificações neste telemóvel. Atualize o Chrome ou o Safari, abra o CRM em HTTPS ou siga as instruções em Configurações → Notificações.',
+      };
+    }
     return {
       ok: false,
       message:
-        'Não foi possível preparar notificações neste browser. Atualize o Chrome/Edge ou use o modo recomendado no telemóvel.',
+        'Não foi possível preparar notificações neste browser no PC. Use Chrome ou Edge atualizado, confirme HTTPS no endereço do CRM, desative extensões que bloqueiem scripts ou recarregue a página (Ctrl+F5).',
     };
   }
   if (r.blocked === 'invalid-subscription-json') {
@@ -161,8 +168,9 @@ export function pushSubscribeUserFeedback(
   }
   return {
     ok: false,
-    message:
-      'Não foi possível concluir. Confirme VAPID no servidor, HTTPS e se NEXT_PUBLIC_API_URL coincide com o domínio do backend.',
+    message: isPushFeedbackMobileContext()
+      ? 'Não foi possível concluir no telemóvel. Confirme HTTPS, VAPID no servidor e NEXT_PUBLIC_API_URL; no iPhone use a app no ecrã inicial (iOS 16.4+).'
+      : 'Não foi possível concluir no PC. Confirme VAPID no servidor, HTTPS no CRM e se NEXT_PUBLIC_API_URL aponta para o backend certo.',
   };
 }
 

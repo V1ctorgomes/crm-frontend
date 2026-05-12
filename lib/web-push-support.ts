@@ -4,6 +4,18 @@ export type WebPushBlockReason =
   | 'ios-requires-home-screen'
   | 'in-app-browser';
 
+/** Para toasts e textos: mensagens de telemóvel só quando faz sentido (não em PC Windows/Mac). */
+export function isPushFeedbackMobileContext(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  if (/iP(hone|od)/i.test(ua)) return true;
+  if (/iPad/i.test(ua)) return true;
+  if (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return true;
+  if (/Android/i.test(ua)) return true;
+  if (/webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+  return false;
+}
+
 export type WebPushBlockInfo = {
   reason: WebPushBlockReason;
   /** Se o fluxo `ensureWebPushSubscription` pode ser tentado com sucesso esperado */
@@ -99,12 +111,14 @@ export function getWebPushBlockInfo(): WebPushBlockInfo {
   }
 
   if (!('Notification' in window)) {
+    const mobile = isPushFeedbackMobileContext();
     return {
       reason: 'no-core-apis',
       canTrySubscribe: false,
       hintTitle: 'Notificações indisponíveis',
-      hintBody:
-        'Neste modo o sistema não expõe notificações. No iPhone, adicione o CRM ao ecrã inicial e abra pelo ícone; no Android, abra no Chrome em vez do browser da app.',
+      hintBody: mobile
+        ? 'Neste modo o sistema não expõe notificações. No iPhone, adicione o CRM ao ecrã inicial e abra pelo ícone; no Android, abra no Chrome em vez do browser da app.'
+        : 'Neste browser o sistema não expõe a API de notificações. Experimente outro browser (Chrome ou Edge), confirme HTTPS e que não está em modo restrito ou janela anónima com bloqueios.',
     };
   }
 
