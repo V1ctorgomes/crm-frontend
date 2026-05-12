@@ -40,7 +40,6 @@ export default function SolicitacoesPage() {
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchBoardData = async () => {
@@ -182,7 +181,13 @@ export default function SolicitacoesPage() {
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">
-        {toast && <Toast type={toast.type} message={toast.message} />}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onDismiss={() => setToast(null)}
+          />
+        )}
 
         <KanbanHeader
           searchTerm={searchTerm}

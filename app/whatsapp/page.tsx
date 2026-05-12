@@ -148,7 +148,6 @@ export default function WhatsAppPage() {
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
   };
 
   const handleSelectContact = (contact: Contact | null) => {
@@ -526,7 +525,13 @@ export default function WhatsAppPage() {
       <Sidebar />
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
         
-        {toast && <Toast type={toast.type} message={toast.message} />}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onDismiss={() => setToast(null)}
+          />
+        )}
 
         {hasInstances === null ? (
           <div className="flex-1 flex items-center justify-center bg-brand-canvas"><div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div></div>

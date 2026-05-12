@@ -38,7 +38,6 @@ export default function UsuariosPage() {
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchUsers = async () => {
@@ -146,7 +145,13 @@ export default function UsuariosPage() {
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-brand-100 selection:text-brand-900">
         
-        {toast && <Toast type={toast.type} message={toast.message} />}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onDismiss={() => setToast(null)}
+          />
+        )}
 
         <UsuariosHeader 
           totalUsers={users.length}

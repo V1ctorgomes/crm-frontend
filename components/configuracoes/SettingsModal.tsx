@@ -42,7 +42,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
   };
 
   useEffect(() => {
@@ -154,7 +153,13 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-brand-canvas rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] h-[700px] overflow-hidden flex flex-col border border-slate-200 animate-in zoom-in-95 duration-200" onMouseDown={e => e.stopPropagation()}>
         
-        {toast && <Toast type={toast.type} message={toast.message} />}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onDismiss={() => setToast(null)}
+          />
+        )}
 
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">

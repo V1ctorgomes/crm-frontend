@@ -145,3 +145,26 @@
     @apply font-sans;
   }
 }
+
+/* Barra de tempo do toast (diminui até desaparecer) */
+@keyframes crm-toast-progress-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.crm-toast-progress {
+  transform-origin: left center;
+  animation: crm-toast-progress-shrink var(--toast-duration, 4500ms) linear forwards;
+}
+
+.crm-toast-progress--success {
+  background-color: #059669;
+}
+
+.crm-toast-progress--error {
+  background-color: #dc2626;
+}
