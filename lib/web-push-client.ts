@@ -10,6 +10,18 @@ function apiBase(): string {
 
 const PUSH_STATE_EVENT = 'crm-web-push-state';
 
+export type EnsureWebPushResult = {
+  /** POST /subscribe respondeu 2xx */
+  serverSynced: boolean;
+  /** Existe subscrição no PushManager deste separador */
+  hasLocalSubscription: boolean;
+  httpStatus?: number;
+  /** Corpo de erro do Nest ou falha de rede */
+  serverError?: string;
+  /** Falhou antes do POST (sem token, sem VAPID, etc.) */
+  blocked?: string;
+};
+
 export function notifyWebPushStateChanged(): void {
   if (typeof window === 'undefined') return;
   const run = () => {
@@ -66,25 +78,130 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+function parseNestErrorMessage(text: string): string | undefined {
+  const t = text.trim();
+  if (!t) return undefined;
+  try {
+    const j = JSON.parse(t) as { message?: string | string[] };
+    if (Array.isArray(j.message)) return j.message.join(', ');
+    if (typeof j.message === 'string') return j.message;
+  } catch {
+    /* not JSON */
+  }
+  return t.length > 200 ? `${t.slice(0, 200)}…` : t;
+}
+
+/**
+ * Mensagem curta para toast, com base no resultado do POST e no estado real do browser.
+ */
+export function pushSubscribeUserFeedback(
+  r: EnsureWebPushResult,
+  pushActiveAfter: boolean,
+): { ok: boolean; message: string } {
+  if (pushActiveAfter || r.serverSynced) {
+    return { ok: true, message: 'Notificações ativadas.' };
+  }
+  if (r.blocked === 'permission-denied' || r.blocked === 'permission-error') {
+    return { ok: false, message: 'Permissão negada.' };
+  }
+  if (r.blocked === 'no-token') {
+    return {
+      ok: false,
+      message: 'Inicie sessão para guardar a subscrição no servidor.',
+    };
+  }
+  if (r.blocked === 'no-vapid') {
+    return {
+      ok: false,
+      message:
+        'O servidor não enviou chave VAPID. Confirme VAPID_PUBLIC_KEY no backend e NEXT_PUBLIC_API_URL no frontend.',
+    };
+  }
+  if (
+    r.blocked === 'unsupported-environment' ||
+    r.blocked === 'no-sw' ||
+    r.blocked === 'subscribe-failed' ||
+    r.blocked === 'sw-register-failed'
+  ) {
+    return {
+      ok: false,
+      message:
+        'Não foi possível preparar notificações neste browser. Atualize o Chrome/Edge ou use o modo recomendado no telemóvel.',
+    };
+  }
+  if (r.blocked === 'invalid-subscription-json') {
+    return {
+      ok: false,
+      message: 'Resposta inválida do browser ao subscrever push. Tente recarregar a página.',
+    };
+  }
+  if (r.httpStatus === 401 || r.httpStatus === 403) {
+    return {
+      ok: false,
+      message:
+        'Sessão inválida ou expirada. Inicie sessão novamente e tente ativar as notificações outra vez.',
+    };
+  }
+  if (r.httpStatus === 404) {
+    return {
+      ok: false,
+      message: `API não encontrada (404). Verifique se NEXT_PUBLIC_API_URL aponta para o backend certo (${apiBase()}).`,
+    };
+  }
+  if (r.serverError) {
+    const tail = r.httpStatus ? ` (HTTP ${r.httpStatus})` : '';
+    return { ok: false, message: `${r.serverError}${tail}` };
+  }
+  if (r.hasLocalSubscription && !r.serverSynced) {
+    return {
+      ok: false,
+      message:
+        'O browser subscreveu, mas o servidor não confirmou. Confirme sessão, URL da API e migrações da base de dados.',
+    };
+  }
+  return {
+    ok: false,
+    message:
+      'Não foi possível concluir. Confirme VAPID no servidor, HTTPS e se NEXT_PUBLIC_API_URL coincide com o domínio do backend.',
+  };
+}
+
 /** Garante SW + subscrição push e regista no backend (requer JWT em cookie). */
-export async function ensureWebPushSubscription(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  if (!getWebPushBlockInfo().canTrySubscribe) return false;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-  if (!getAuthToken()) return false;
+export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> {
+  const empty = (): EnsureWebPushResult => ({
+    serverSynced: false,
+    hasLocalSubscription: false,
+  });
+
+  if (typeof window === 'undefined') return empty();
+  if (!getWebPushBlockInfo().canTrySubscribe) {
+    return { ...empty(), blocked: 'unsupported-environment' };
+  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { ...empty(), blocked: 'no-sw' };
+  }
+  if (!getAuthToken()) {
+    return { ...empty(), blocked: 'no-token' };
+  }
 
   const vapidPublic = await resolveVapidPublicKey();
-  if (!vapidPublic) return false;
+  if (!vapidPublic) {
+    return { ...empty(), blocked: 'no-vapid' };
+  }
 
   let permission = Notification.permission;
-  if (permission === 'denied') return false;
+  if (permission === 'denied') {
+    return { ...empty(), blocked: 'permission-denied' };
+  }
   if (permission === 'default') {
     try {
       permission = await Notification.requestPermission();
     } catch {
-      return false;
+      return { ...empty(), blocked: 'permission-error' };
     }
-    if (permission !== 'granted') return false;
+    if (permission !== 'granted') {
+      return { ...empty(), blocked: 'permission-denied' };
+    }
   }
 
   let reg: ServiceWorkerRegistration;
@@ -92,7 +209,7 @@ export async function ensureWebPushSubscription(): Promise<boolean> {
     reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await reg.update().catch(() => undefined);
   } catch {
-    return false;
+    return { ...empty(), blocked: 'sw-register-failed' };
   }
 
   let sub: PushSubscription | null = null;
@@ -105,13 +222,17 @@ export async function ensureWebPushSubscription(): Promise<boolean> {
       });
     }
   } catch {
-    return false;
+    return { ...empty(), blocked: 'subscribe-failed' };
   }
 
   const json = sub.toJSON();
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+    return { ...empty(), blocked: 'invalid-subscription-json' };
+  }
 
-  let serverOk = false;
+  let serverSynced = false;
+  let httpStatus: number | undefined;
+  let serverError: string | undefined;
   try {
     const res = await fetch(`${apiBase()}/notifications/push/subscribe`, {
       method: 'POST',
@@ -121,13 +242,20 @@ export async function ensureWebPushSubscription(): Promise<boolean> {
         keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
       }),
     });
-    serverOk = res.ok;
+    httpStatus = res.status;
+    serverSynced = res.ok;
+    if (!serverSynced) {
+      const text = await res.text().catch(() => '');
+      serverError = parseNestErrorMessage(text);
+    }
   } catch {
-    serverOk = false;
+    serverError =
+      'Sem ligação ao servidor (rede, CORS ou URL errado). Confirme NEXT_PUBLIC_API_URL.';
   }
 
-  if (serverOk) notifyWebPushStateChanged();
-  return serverOk;
+  const hasLocalSubscription = Boolean(await reg.pushManager.getSubscription());
+  if (serverSynced) notifyWebPushStateChanged();
+  return { serverSynced, hasLocalSubscription, httpStatus, serverError };
 }
 
 /** Remove subscrição no servidor e no browser (chamar antes de limpar o token). */

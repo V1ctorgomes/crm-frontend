@@ -5,6 +5,7 @@ import { Bell, Loader2 } from 'lucide-react';
 import {
   ensureWebPushSubscription,
   isWebPushActive,
+  pushSubscribeUserFeedback,
   resolveVapidPublicKey,
   revokeWebPushSubscription,
   subscribeWebPushState,
@@ -139,32 +140,27 @@ export function NotificationsSettingsTab({ showFeedback }: Props) {
         onClick={async () => {
           setBusy(true);
           try {
-            let ok = await ensureWebPushSubscription();
-            if (!ok) {
+            let r = await ensureWebPushSubscription();
+            let pushActiveAfter = r.serverSynced;
+            if (!pushActiveAfter) {
               try {
-                ok = await isWebPushActive();
+                pushActiveAfter = await isWebPushActive();
               } catch {
-                /* ignore */
+                pushActiveAfter = false;
               }
             }
             await refresh().catch(() => undefined);
-            if (ok) showFeedback('success', 'Notificações ativadas.');
-            else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-              showFeedback('error', 'Permissão negada.');
-            } else {
-              showFeedback(
-                'error',
-                'Não foi possível concluir. Verifique HTTPS, VAPID no servidor e sessão iniciada.',
-              );
-            }
+            const fb = pushSubscribeUserFeedback(r, pushActiveAfter);
+            showFeedback(fb.ok ? 'success' : 'error', fb.message);
           } catch {
             await refresh().catch(() => undefined);
             try {
-              if (await isWebPushActive()) {
-                showFeedback('success', 'Notificações ativadas.');
-              } else {
-                showFeedback('error', 'Erro ao ativar notificações.');
-              }
+              const active = await isWebPushActive();
+              const fb = pushSubscribeUserFeedback(
+                { serverSynced: false, hasLocalSubscription: active },
+                active,
+              );
+              showFeedback(fb.ok ? 'success' : 'error', fb.message);
             } catch {
               showFeedback('error', 'Erro ao ativar notificações.');
             }

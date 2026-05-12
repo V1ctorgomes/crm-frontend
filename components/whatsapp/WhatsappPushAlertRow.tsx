@@ -5,6 +5,7 @@ import { Bell, Loader2 } from 'lucide-react';
 import {
   ensureWebPushSubscription,
   isWebPushActive,
+  pushSubscribeUserFeedback,
   resolveVapidPublicKey,
   subscribeWebPushState,
 } from '@/lib/web-push-client';
@@ -80,33 +81,27 @@ export function WhatsappPushAlertRow({ onToast }: Props) {
           onClick={async () => {
             setBusy(true);
             try {
-              let ok = await ensureWebPushSubscription();
-              if (!ok) {
+              let r = await ensureWebPushSubscription();
+              let pushActiveAfter = r.serverSynced;
+              if (!pushActiveAfter) {
                 try {
-                  ok = await isWebPushActive();
+                  pushActiveAfter = await isWebPushActive();
                 } catch {
-                  /* ignore */
+                  pushActiveAfter = false;
                 }
               }
               await refresh().catch(() => undefined);
-              if (ok) {
-                onToast?.('Notificações ativadas.', 'success');
-              } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-                onToast?.('Permissão negada.', 'error');
-              } else {
-                onToast?.(
-                  'Não foi possível concluir. Confirme VAPID no servidor e HTTPS.',
-                  'error',
-                );
-              }
+              const fb = pushSubscribeUserFeedback(r, pushActiveAfter);
+              onToast?.(fb.message, fb.ok ? 'success' : 'error');
             } catch {
               await refresh().catch(() => undefined);
               try {
-                if (await isWebPushActive()) {
-                  onToast?.('Notificações ativadas.', 'success');
-                } else {
-                  onToast?.('Erro ao ativar notificações.', 'error');
-                }
+                const active = await isWebPushActive();
+                const fb = pushSubscribeUserFeedback(
+                  { serverSynced: false, hasLocalSubscription: active },
+                  active,
+                );
+                onToast?.(fb.message, fb.ok ? 'success' : 'error');
               } catch {
                 onToast?.('Erro ao ativar notificações.', 'error');
               }
