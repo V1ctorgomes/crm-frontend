@@ -18,7 +18,7 @@ interface Ticket {
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
 /** Data do eixo: criação para OS abertas; última atualização (arquivamento) para ganhas/canceladas. */
-function getTicketTimelineBucket(t: Ticket): { sortKey: string; label: string } | null {
+function getTicketTimelineBucket(t: Ticket): string | null {
   const iso = t.isArchived ? (t.updatedAt || t.createdAt) : t.createdAt;
   if (!iso) return null;
   const d = new Date(iso);
@@ -26,9 +26,26 @@ function getTicketTimelineBucket(t: Ticket): { sortKey: string; label: string } 
   const y = d.getFullYear();
   const mo = String(d.getMonth() + 1).padStart(2, '0');
   const da = String(d.getDate()).padStart(2, '0');
-  const sortKey = `${y}-${mo}-${da}`;
-  const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-  return { sortKey, label };
+  return `${y}-${mo}-${da}`;
+}
+
+/** Labels estáveis a partir da chave YYYY-MM-DD (evita depender só do locale no eixo). */
+function formatSortKeyForChart(sortKey: string): { axisLabel: string; dayLong: string } {
+  const [ys, ms, ds] = sortKey.split('-');
+  const y = Number(ys);
+  const mo = Number(ms);
+  const da = Number(ds);
+  if (!y || !mo || !da) return { axisLabel: sortKey, dayLong: sortKey };
+  const d = new Date(y, mo - 1, da);
+  if (Number.isNaN(d.getTime())) return { axisLabel: sortKey, dayLong: sortKey };
+  const axisLabel = `${String(da).padStart(2, '0')}/${String(mo).padStart(2, '0')}/${String(y).slice(-2)}`;
+  const dayLong = d.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  return { axisLabel, dayLong };
 }
 
 export default function DashboardPage() {
@@ -47,7 +64,9 @@ export default function DashboardPage() {
 
   const [brandRanking, setBrandRanking] = useState<{name: string, count: number}[]>([]);
   const [customerTypeRanking, setCustomerTypeRanking] = useState<{name: string, count: number}[]>([]);
-  const [trendData, setTrendData] = useState<{month: string, ganhas: number, perdidas: number, andamento: number}[]>([]);
+  const [trendData, setTrendData] = useState<
+    { month: string; dayLong: string; ganhas: number; perdidas: number; andamento: number }[]
+  >([]);
 
   useEffect(() => setIsMounted(true), []);
 
@@ -88,7 +107,10 @@ export default function DashboardPage() {
         const typeMap = new Map<string, number>();
         
         // Mapa para a linha do tempo (Gráfico de Área)
-        const timeMap = new Map<string, { month: string, ganhas: number, perdidas: number, andamento: number }>();
+        const timeMap = new Map<
+          string,
+          { month: string; dayLong: string; ganhas: number; perdidas: number; andamento: number }
+        >();
 
         allTickets.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
@@ -102,19 +124,21 @@ export default function DashboardPage() {
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
 
-          const bucket = getTicketTimelineBucket(t);
-          if (!bucket) return;
+          const sortKey = getTicketTimelineBucket(t);
+          if (!sortKey) return;
 
-          if (!timeMap.has(bucket.sortKey)) {
-            timeMap.set(bucket.sortKey, {
-              month: bucket.label,
+          if (!timeMap.has(sortKey)) {
+            const { axisLabel, dayLong } = formatSortKeyForChart(sortKey);
+            timeMap.set(sortKey, {
+              month: axisLabel,
+              dayLong,
               ganhas: 0,
               perdidas: 0,
               andamento: 0,
             });
           }
 
-          const entry = timeMap.get(bucket.sortKey)!;
+          const entry = timeMap.get(sortKey)!;
 
           if (t.isArchived) {
             if (t.resolution === 'CANCELLED') {

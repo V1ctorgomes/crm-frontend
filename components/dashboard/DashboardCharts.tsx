@@ -5,7 +5,13 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
-interface TrendData { month: string; ganhas: number; perdidas: number; andamento: number; }
+interface TrendData {
+  month: string;
+  dayLong: string;
+  ganhas: number;
+  perdidas: number;
+  andamento: number;
+}
 interface RankingData { name: string; count: number; }
 interface FunnelData { name: string; Quantidade: number; }
 
@@ -23,9 +29,11 @@ const BRAND_CHART_PALETTE = ['#148C26', '#1FA634', '#F2CE1B', '#F2E41D', '#0d5f1
 // Tooltip Flutuante Moderno e Inteligente
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const datum = payload[0]?.payload as TrendData | undefined;
+    const title = datum?.dayLong ?? label;
     return (
       <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-slate-200/60 bg-white px-3 py-2.5 text-sm shadow-xl z-50">
-        <span className="text-xs font-medium text-slate-500 mb-1">{label || payload[0].name}</span>
+        <span className="text-xs font-medium text-slate-500 mb-1 capitalize">{title}</span>
         {payload.map((entry: any, index: number) => {
           const displayLabel = entry.name === 'value' || entry.name === 'count' ? 'Registos' : entry.name === 'Quantidade' ? 'Em Fila' : entry.name;
           return (
@@ -60,6 +68,9 @@ const renderCustomLegend = (props: any) => {
 };
 
 export function DashboardCharts({ trendData, brandRanking, funnelData, customerTypeRanking, totalCustomers }: DashboardChartsProps) {
+  const trendTickLabels = trendData.map((d) => d.month);
+  const crowdedTrendAxis = trendData.length > 8;
+
   return (
     <div className="flex flex-col gap-6">
       {/* 2. GRÁFICOS PRINCIPAIS */}
@@ -74,12 +85,20 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px] w-full">
+            <div className="h-[268px] w-full">
               {trendData.length === 0 ? (
                  <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sem dados suficientes.</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trendData} margin={{ left: 12, right: 12, top: 12, bottom: 0 }}>
+                  <AreaChart
+                    data={trendData}
+                    margin={{
+                      left: 8,
+                      right: 8,
+                      top: 12,
+                      bottom: crowdedTrendAxis ? 48 : 32,
+                    }}
+                  >
                     <defs>
                       <linearGradient id="colorGanhas" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#148C26" stopOpacity={0.45}/>
@@ -95,7 +114,20 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="#cfe8d4" strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#3d5245', fontSize: 11 }} />
+                    <XAxis
+                      dataKey="month"
+                      type="category"
+                      ticks={trendTickLabels}
+                      interval={0}
+                      minTickGap={0}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={6}
+                      height={crowdedTrendAxis ? 46 : 32}
+                      angle={crowdedTrendAxis ? -32 : 0}
+                      textAnchor={crowdedTrendAxis ? 'end' : 'middle'}
+                      tick={{ fill: '#3d5245', fontSize: crowdedTrendAxis ? 10 : 11 }}
+                    />
                     <Tooltip cursor={false} content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#3d5245', paddingTop: '10px' }} />
                     <Area stackId="1" name="Ganhas" dataKey="ganhas" type="monotone" fill="url(#colorGanhas)" fillOpacity={1} stroke="#148C26" strokeWidth={2} />
