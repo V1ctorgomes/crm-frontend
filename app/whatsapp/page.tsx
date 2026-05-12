@@ -13,6 +13,7 @@ import { ChatInput } from '@/components/whatsapp/ChatInput';
 import {
   InstanceModal,
   DeleteChatModal,
+  DeleteMessageModal,
   CreateTicketModal,
   MediaViewerModal,
   EditMessageModal,
@@ -133,6 +134,7 @@ export default function WhatsAppPage() {
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [messagePendingDelete, setMessagePendingDelete] = useState<Message | null>(null);
 
   // States: Formulário de OS
   const [stages, setStages] = useState<Stage[]>([]);
@@ -244,12 +246,22 @@ export default function WhatsAppPage() {
   const instanceForActiveContact = () =>
     activeContact?.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
 
-  const handleDeleteSingleMessage = async (msg: Message) => {
+  const handleRequestDeleteMessage = (msg: Message) => {
     if (!activeContact || typeof msg.id === 'number') {
       showFeedback('error', 'Aguarde a confirmação do envio antes de apagar.');
       return;
     }
-    if (!window.confirm('Apagar esta mensagem para todos no WhatsApp?')) return;
+    if (!canDeleteMessageByTime(msg.sentAt)) {
+      showFeedback('error', 'Só é possível apagar até 50 horas após o envio.');
+      return;
+    }
+    setMessagePendingDelete(msg);
+  };
+
+  const confirmDeleteSingleMessage = async () => {
+    const msg = messagePendingDelete;
+    setMessagePendingDelete(null);
+    if (!msg || !activeContact || typeof msg.id === 'number') return;
     if (!canDeleteMessageByTime(msg.sentAt)) {
       showFeedback('error', 'Só é possível apagar até 50 horas após o envio.');
       return;
@@ -668,7 +680,7 @@ export default function WhatsAppPage() {
                     chatSearchTerm={chatSearchTerm}
                     setViewerMessage={setViewerMessage}
                     messagesEndRef={messagesEndRef}
-                    onMessageDelete={handleDeleteSingleMessage}
+                    onMessageDelete={handleRequestDeleteMessage}
                     onMessageEditRequest={handleEditMessageRequest}
                   />
 
@@ -690,6 +702,13 @@ export default function WhatsAppPage() {
         )}
       </main>
 
+      {messagePendingDelete && (
+        <DeleteMessageModal
+          message={messagePendingDelete}
+          onClose={() => setMessagePendingDelete(null)}
+          onConfirm={confirmDeleteSingleMessage}
+        />
+      )}
       {isInstanceModalOpen && <InstanceModal onClose={() => setIsInstanceModalOpen(false)} instances={instances} selectedInstance={selectedInstance} setSelectedInstance={setSelectedInstance} handleSelectContact={handleSelectContact} />}
       {isDeleteModalOpen && <DeleteChatModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDeleteConversation} />}
       {isNewTicketModalOpen && (
