@@ -69,7 +69,9 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
         <Card>
           <CardHeader>
             <CardTitle>Desempenho de Entradas</CardTitle>
-            <CardDescription>Evolução e desfecho das solicitações inseridas por dia</CardDescription>
+            <CardDescription>
+              Por dia: em andamento pela data de criação; ganhas e canceladas pela data em que foram arquivadas.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[250px] w-full">
@@ -84,8 +86,8 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                         <stop offset="95%" stopColor="#148C26" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorAndamento" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#1FA634" stopOpacity={0.45}/>
-                        <stop offset="95%" stopColor="#1FA634" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#F2CE1B" stopOpacity={0.5}/>
+                        <stop offset="95%" stopColor="#F2CE1B" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorPerdidas" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
@@ -93,11 +95,11 @@ export function DashboardCharts({ trendData, brandRanking, funnelData, customerT
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="#cfe8d4" strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#3d5245', fontSize: 12 }} tickFormatter={(value) => value.slice(0, 5)} />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tick={{ fill: '#3d5245', fontSize: 11 }} />
                     <Tooltip cursor={false} content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#3d5245', paddingTop: '10px' }} />
                     <Area stackId="1" name="Ganhas" dataKey="ganhas" type="monotone" fill="url(#colorGanhas)" fillOpacity={1} stroke="#148C26" strokeWidth={2} />
-                    <Area stackId="1" name="Em Andamento" dataKey="andamento" type="monotone" fill="url(#colorAndamento)" fillOpacity={1} stroke="#1FA634" strokeWidth={2} />
+                    <Area stackId="1" name="Em Andamento" dataKey="andamento" type="monotone" fill="url(#colorAndamento)" fillOpacity={1} stroke="#F2CE1B" strokeWidth={2} />
                     <Area stackId="1" name="Canceladas" dataKey="perdidas" type="monotone" fill="url(#colorPerdidas)" fillOpacity={1} stroke="#ef4444" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>

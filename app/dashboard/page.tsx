@@ -13,9 +13,23 @@ interface Contact { number: string; name: string; }
 interface Ticket {
   id: string; contactNumber: string; marca: string | null;
   modelo: string | null; customerType: string | null; isArchived: boolean; 
-  resolution?: string; createdAt: string;
+  resolution?: string; createdAt: string; updatedAt?: string;
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
+
+/** Data do eixo: criação para OS abertas; última atualização (arquivamento) para ganhas/canceladas. */
+function getTicketTimelineBucket(t: Ticket): { sortKey: string; label: string } | null {
+  const iso = t.isArchived ? (t.updatedAt || t.createdAt) : t.createdAt;
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  const sortKey = `${y}-${mo}-${da}`;
+  const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return { sortKey, label };
+}
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,32 +101,39 @@ export default function DashboardPage() {
             const ct = t.customerType.toUpperCase().trim();
             typeMap.set(ct, (typeMap.get(ct) || 0) + 1);
           }
-          
-          if (t.createdAt) {
-            const dateObj = new Date(t.createdAt);
-            const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-            
-            if (!timeMap.has(dateStr)) {
-              timeMap.set(dateStr, { month: dateStr, ganhas: 0, perdidas: 0, andamento: 0 });
-            }
-            
-            const entry = timeMap.get(dateStr)!;
-            
-            if (t.isArchived) {
-              if (t.resolution === 'CANCELLED') {
-                entry.perdidas += 1;
-              } else {
-                entry.ganhas += 1;
-              }
+
+          const bucket = getTicketTimelineBucket(t);
+          if (!bucket) return;
+
+          if (!timeMap.has(bucket.sortKey)) {
+            timeMap.set(bucket.sortKey, {
+              month: bucket.label,
+              ganhas: 0,
+              perdidas: 0,
+              andamento: 0,
+            });
+          }
+
+          const entry = timeMap.get(bucket.sortKey)!;
+
+          if (t.isArchived) {
+            if (t.resolution === 'CANCELLED') {
+              entry.perdidas += 1;
             } else {
-              entry.andamento += 1;
+              entry.ganhas += 1;
             }
+          } else {
+            entry.andamento += 1;
           }
         });
 
         setBrandRanking(Array.from(brandMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 6));
         setCustomerTypeRanking(Array.from(typeMap.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
-        setTrendData(Array.from(timeMap.values()));
+        setTrendData(
+          Array.from(timeMap.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([, row]) => row),
+        );
 
       } catch (error) {
         console.error('Erro ao carregar BI:', error);
