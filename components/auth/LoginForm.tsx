@@ -7,6 +7,11 @@ import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
+type LoginResponse = {
+  access_token: string;
+  role?: string;
+};
+
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,12 +25,12 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      const data = await apiRequest('/auth/login', {
+      const data = await apiRequest<LoginResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
-      if (data.access_token) {
+      if (data?.access_token) {
         document.cookie = `token=${data.access_token}; path=/; max-age=28800; SameSite=Lax`;
 
         const dest =

@@ -16,7 +16,10 @@ export function withAuthHeaders(headers: HeadersInit = {}): HeadersInit {
   return { ...headers, Authorization: `Bearer ${token}` };
 }
 
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export async function apiRequest<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T | null> {
   const url = `${API_URL}${endpoint}`;
 
   const isFormData =
@@ -50,7 +53,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   if (!raw || !raw.trim()) return null;
 
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }
