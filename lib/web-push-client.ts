@@ -41,7 +41,9 @@ export async function isWebPushActive(): Promise<boolean> {
   if (!getWebPushBlockInfo().canTrySubscribe) return false;
   if (Notification.permission !== 'granted') return false;
   if (!('serviceWorker' in navigator) || !hasPushManagerCapability()) return false;
-  const reg = await navigator.serviceWorker.getRegistration();
+  const reg =
+    (await navigator.serviceWorker.ready.catch(() => null)) ??
+    (await navigator.serviceWorker.getRegistration());
   const sub = await reg?.pushManager.getSubscription();
   return Boolean(sub);
 }
@@ -185,7 +187,7 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
   if (!getWebPushBlockInfo().canTrySubscribe) {
     return { ...empty(), blocked: 'unsupported-environment' };
   }
-  if (!('serviceWorker' in navigator) || !hasPushManagerCapability()) {
+  if (!('serviceWorker' in navigator)) {
     return { ...empty(), blocked: 'no-sw' };
   }
   if (!getAuthToken()) {
@@ -214,11 +216,15 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
 
   let reg: ServiceWorkerRegistration;
   try {
-    reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    reg = await navigator.serviceWorker.ready;
     await reg.update().catch(() => undefined);
-    await reg.ready.catch(() => undefined);
   } catch {
     return { ...empty(), blocked: 'sw-register-failed' };
+  }
+
+  if (!reg.pushManager) {
+    return { ...empty(), blocked: 'no-sw' };
   }
 
   let sub: PushSubscription | null = null;
