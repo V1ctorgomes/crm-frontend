@@ -77,18 +77,23 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const fetchOpts = { cache: 'no-store' as RequestCache };
-        const [activeStages, archivedOS, me] = await Promise.all([
+        const instanceConnectedPromise = apiRequest('/users/me', fetchOpts as RequestInit)
+          .then((me) =>
+            me?.id
+              ? apiRequest(`/instances/user/${me.id}`, fetchOpts as RequestInit).catch(() => [])
+              : [],
+          )
+          .then((instances) => instances.some((i: any) => i.status === 'connected'))
+          .catch(() => false);
+
+        const [activeStages, archivedOS, isConnected] = await Promise.all([
           apiRequest('/tickets/board', fetchOpts as RequestInit).catch(() => [] as Stage[]),
           apiRequest('/tickets/archived', fetchOpts as RequestInit).catch(() => [] as Ticket[]),
-          apiRequest('/users/me', fetchOpts as RequestInit).catch(() => null as any),
+          instanceConnectedPromise,
         ]);
         
         setStages(activeStages);
-
-        if (me?.id) {
-          const instances = await apiRequest(`/instances/user/${me.id}`, fetchOpts as RequestInit).catch(() => []);
-          setIsInstanceConnected(instances.some((i: any) => i.status === 'connected'));
-        }
+        setIsInstanceConnected(isConnected);
 
         // ================= CÁLCULO DOS KPIs =================
         const activeCount = activeStages.reduce((acc, stage) => acc + stage.tickets.length, 0);

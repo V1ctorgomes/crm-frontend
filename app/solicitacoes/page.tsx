@@ -64,8 +64,10 @@ export default function SolicitacoesPage() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    await fetchContactsData();
-    await fetchBoardData();
+    await Promise.all([
+      fetchContactsData(),
+      fetchBoardData(),
+    ]);
     setIsLoading(false);
   };
 

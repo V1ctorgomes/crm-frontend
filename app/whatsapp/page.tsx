@@ -176,17 +176,14 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const me = await apiRequest('/users/me').catch(() => null);
-        if (me?.id) {
-          const fetchedInstances = await apiRequest(`/instances/user/${me.id}`).catch(() => []);
-          const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
-          setInstances(connected);
-          setHasInstances(connected.length > 0);
-        } else {
-          setHasInstances(false);
-        }
+        const [me, contactsData, stagesData, catData, customersData] = await Promise.all([
+          apiRequest('/users/me').catch(() => null),
+          apiRequest('/whatsapp/contacts').catch(() => []),
+          apiRequest('/tickets/stages').catch(() => []),
+          apiRequest('/ticket-catalog').catch(() => null),
+          apiRequest('/customers').catch(() => []),
+        ]);
 
-        const contactsData = await apiRequest('/whatsapp/contacts').catch(() => []);
         const formattedContacts = contactsData.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }));
         setContacts(formattedContacts);
 
@@ -196,20 +193,18 @@ export default function WhatsAppPage() {
           if (foundContact) setActiveContact(foundContact);
         }
 
-        const stagesData = await apiRequest('/tickets/stages').catch(() => []);
         setStages(stagesData);
-
-        let catData: TicketCatalogOptions | null = null;
-        try {
-          catData = (await apiRequest('/ticket-catalog')) as TicketCatalogOptions;
-        } catch {
-          catData = null;
-        }
-        setTicketCatalog(catData);
-
-        const customersData = await apiRequest('/customers').catch(() => []);
+        setTicketCatalog(catData as TicketCatalogOptions | null);
         setCrmCustomers(customersData);
 
+        if (me?.id) {
+          const fetchedInstances = await apiRequest(`/instances/user/${me.id}`).catch(() => []);
+          const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
+          setInstances(connected);
+          setHasInstances(connected.length > 0);
+        } else {
+          setHasInstances(false);
+        }
       } catch (err) { setHasInstances(false); }
     };
     fetchInitialData();

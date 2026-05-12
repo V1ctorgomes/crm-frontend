@@ -45,9 +45,28 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   };
 
   useEffect(() => {
-    fetchUserData();
-    fetchInstances();
-    fetchProxies();
+    const fetchSettingsData = async () => {
+      const userPromise = apiRequest('/users/me').catch(() => null);
+      const proxiesPromise = fetchProxies();
+      const currentUser = await userPromise;
+
+      if (currentUser) {
+        setUserData(currentUser);
+        setName(currentUser.name || '');
+        setEmail(currentUser.email || '');
+        if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
+      } else {
+        showFeedback('error', 'Erro ao carregar utilizador.');
+      }
+      setIsProfileLoading(false);
+
+      await Promise.all([
+        proxiesPromise,
+        currentUser?.id ? fetchInstances(currentUser.id) : Promise.resolve(setIsInstancesLoading(false)),
+      ]);
+    };
+
+    void fetchSettingsData();
   }, []);
 
   const fetchProxies = async () => {
@@ -55,17 +74,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       const data = await apiRequest('/proxies');
       setAvailableProxies(data);
     } catch (err) {}
-  };
-
-  const fetchUserData = async () => {
-    try {
-      const currentUser = await apiRequest('/users/me');
-      setUserData(currentUser);
-      setName(currentUser.name || '');
-      setEmail(currentUser.email || '');
-      if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
-    } catch (error) { showFeedback('error', 'Erro ao carregar utilizador.'); } 
-    finally { setIsProfileLoading(false); }
   };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,10 +99,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     finally { setIsSavingProfile(false); }
   };
 
-  const fetchInstances = async () => {
+  const fetchInstances = async (userId?: string) => {
     try {
-      const me = await apiRequest('/users/me');
-      const instances = await apiRequest(`/instances/user/${me.id}`);
+      const resolvedUserId = userId || (await apiRequest('/users/me')).id;
+      const instances = await apiRequest(`/instances/user/${resolvedUserId}`);
       setInstances(instances);
     } catch (error) {} 
     finally { setIsInstancesLoading(false); }
