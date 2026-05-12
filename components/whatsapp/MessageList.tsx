@@ -53,6 +53,7 @@ export function MessageList({
       {filteredMessages.map((msg, idx) => {
         const prev = idx > 0 ? filteredMessages[idx - 1] : null;
         const showDayDivider = !prev || dayKeyFromSentAt(prev.sentAt) !== dayKeyFromSentAt(msg.sentAt);
+        const isFilePreview = msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/');
 
         return (
           <Fragment key={String(msg.id)}>
@@ -64,7 +65,7 @@ export function MessageList({
               </div>
             )}
             <div
-              className={`max-w-[85%] md:max-w-[70%] w-fit min-w-0 relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+              className={`${isFilePreview ? 'max-w-[min(85%,304px)]' : 'max-w-[85%] md:max-w-[70%]'} w-fit min-w-0 relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
               onContextMenu={(e) => {
                 if (!msg.fromMe || typeof msg.id === 'number') return;
                 const canEditText = !msg.isMedia && !!(msg.text && msg.text.trim());
@@ -89,7 +90,7 @@ export function MessageList({
                   </div>
                 ) : (
                   <div
-                    className={`mb-1.5 w-max max-w-[min(280px,100%)] min-w-0 overflow-hidden rounded-lg border p-2 ${msg.fromMe ? 'border-brand-400 bg-brand-500/90' : 'border-slate-200 bg-slate-50'}`}
+                    className={`mb-1.5 w-fit max-w-full min-w-0 overflow-hidden rounded-lg border p-2 ${msg.fromMe ? 'border-brand-400 bg-brand-500/90' : 'border-slate-200 bg-slate-50'}`}
                   >
                     <div className="flex min-w-0 items-start gap-2">
                       <div
