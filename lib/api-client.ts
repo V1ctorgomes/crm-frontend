@@ -32,10 +32,26 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers,
   });
 
+  const raw = await response.text();
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Erro na requisição');
+    let errorMessage = 'Erro na requisição';
+    if (raw) {
+      try {
+        const errorData = JSON.parse(raw) as { message?: string };
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        errorMessage = raw.slice(0, 200) || errorMessage;
+      }
+    }
+    throw new Error(errorMessage);
   }
 
-  return response.json();
+  if (!raw || !raw.trim()) return null;
+
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
 }
