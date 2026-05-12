@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useState } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { Message } from './types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
@@ -6,14 +6,21 @@ import { MessageContextMenu } from './MessageContextMenu';
 import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
 
 interface MessageListProps {
+  /** Identifica o contacto ativo; ao mudar, a lista deve ir ao fim. */
+  conversationKey: string;
   filteredMessages: Message[];
   chatSearchTerm: string;
   setViewerMessage: (msg: Message) => void;
-  /** Contentor com scroll (mensagens); o pai usa isto para ir ao fim após carregar histórico. */
+  /** Contentor com scroll (mensagens). */
   listScrollRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onMessageDelete?: (msg: Message) => void;
   onMessageEditRequest?: (msg: Message) => void;
+}
+
+function scrollListToBottom(el: HTMLElement | null) {
+  if (!el) return;
+  el.scrollTop = el.scrollHeight;
 }
 
 function startOfLocalDay(d: Date) {
@@ -37,6 +44,7 @@ function formatDaySeparatorLabel(sentAt?: string): string {
 }
 
 export function MessageList({
+  conversationKey,
   filteredMessages,
   chatSearchTerm,
   setViewerMessage,
@@ -46,6 +54,27 @@ export function MessageList({
   onMessageEditRequest,
 }: MessageListProps) {
   const [ctx, setCtx] = useState<{ x: number; y: number; msg: Message } | null>(null);
+
+  const len = filteredMessages.length;
+  const headId = len ? String(filteredMessages[0]!.id) : '';
+  const tailId = len ? String(filteredMessages[len - 1]!.id) : '';
+  const scrollAnchor = `${len}:${headId}:${tailId}`;
+
+  useLayoutEffect(() => {
+    scrollListToBottom(listScrollRef.current);
+  }, [conversationKey, scrollAnchor, chatSearchTerm]);
+
+  useEffect(() => {
+    const el = listScrollRef.current;
+    if (!el) return;
+    scrollListToBottom(el);
+    const raf = requestAnimationFrame(() => scrollListToBottom(el));
+    const t = window.setTimeout(() => scrollListToBottom(el), 150);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [conversationKey, scrollAnchor, chatSearchTerm]);
 
   return (
     <div

@@ -173,27 +173,6 @@ export default function WhatsAppPage() {
   };
 
   useEffect(() => {
-    const n = activeContact?.number;
-    const el = messageListScrollRef.current;
-    if (!n || !el) return;
-
-    const scrollToBottom = () => {
-      el.scrollTop = el.scrollHeight;
-    };
-
-    scrollToBottom();
-    const raf1 = requestAnimationFrame(scrollToBottom);
-    const raf2 = requestAnimationFrame(() => requestAnimationFrame(scrollToBottom));
-    const t = window.setTimeout(scrollToBottom, 80);
-
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      window.clearTimeout(t);
-    };
-  }, [activeContact?.number, chatHistory, chatSearchTerm]);
-
-  useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const [me, contactsData, stagesData, catData, customersData] = await Promise.all([
@@ -707,6 +686,8 @@ export default function WhatsAppPage() {
                   )}
 
                   <MessageList
+                    key={activeContact.number}
+                    conversationKey={activeContact.number}
                     filteredMessages={filteredMessages}
                     chatSearchTerm={chatSearchTerm}
                     setViewerMessage={setViewerMessage}
