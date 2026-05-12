@@ -9,6 +9,8 @@ interface MessageListProps {
   filteredMessages: Message[];
   chatSearchTerm: string;
   setViewerMessage: (msg: Message) => void;
+  /** Contentor com scroll (mensagens); o pai usa isto para ir ao fim após carregar histórico. */
+  listScrollRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onMessageDelete?: (msg: Message) => void;
   onMessageEditRequest?: (msg: Message) => void;
@@ -38,6 +40,7 @@ export function MessageList({
   filteredMessages,
   chatSearchTerm,
   setViewerMessage,
+  listScrollRef,
   messagesEndRef,
   onMessageDelete,
   onMessageEditRequest,
@@ -45,7 +48,10 @@ export function MessageList({
   const [ctx, setCtx] = useState<{ x: number; y: number; msg: Message } | null>(null);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 no-scrollbar bg-slate-50/50">
+    <div
+      ref={listScrollRef}
+      className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 no-scrollbar bg-slate-50/50"
+    >
       {filteredMessages.length === 0 && chatSearchTerm && (
         <div className="text-center text-slate-500 text-sm mt-4">Nenhuma mensagem encontrada.</div>
       )}

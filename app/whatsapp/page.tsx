@@ -121,6 +121,7 @@ export default function WhatsAppPage() {
   const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageListScrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // States: Pesquisas e Modais
@@ -171,7 +172,26 @@ export default function WhatsAppPage() {
     else localStorage.removeItem('lastActiveContact');
   };
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "auto" }); }, [chatHistory, activeContact, chatSearchTerm]);
+  useEffect(() => {
+    const n = activeContact?.number;
+    const el = messageListScrollRef.current;
+    if (!n || !el) return;
+
+    const scrollToBottom = () => {
+      el.scrollTop = el.scrollHeight;
+    };
+
+    scrollToBottom();
+    const raf1 = requestAnimationFrame(scrollToBottom);
+    const raf2 = requestAnimationFrame(() => requestAnimationFrame(scrollToBottom));
+    const t = window.setTimeout(scrollToBottom, 80);
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      window.clearTimeout(t);
+    };
+  }, [activeContact?.number, chatHistory, chatSearchTerm]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -690,6 +710,7 @@ export default function WhatsAppPage() {
                     filteredMessages={filteredMessages}
                     chatSearchTerm={chatSearchTerm}
                     setViewerMessage={setViewerMessage}
+                    listScrollRef={messageListScrollRef}
                     messagesEndRef={messagesEndRef}
                     onMessageDelete={handleRequestDeleteMessage}
                     onMessageEditRequest={handleEditMessageRequest}
