@@ -1,5 +1,5 @@
 import { getAuthToken, withAuthHeaders } from '@/lib/api-client';
-import { getWebPushBlockInfo, isPushFeedbackMobileContext } from './web-push-support';
+import { getWebPushBlockInfo, hasPushManagerCapability, isPushFeedbackMobileContext } from './web-push-support';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://crm-crm-backend.pknzmz.easypanel.host';
@@ -40,7 +40,7 @@ export async function isWebPushActive(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   if (!getWebPushBlockInfo().canTrySubscribe) return false;
   if (Notification.permission !== 'granted') return false;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (!('serviceWorker' in navigator) || !hasPushManagerCapability()) return false;
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   return Boolean(sub);
@@ -185,7 +185,7 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
   if (!getWebPushBlockInfo().canTrySubscribe) {
     return { ...empty(), blocked: 'unsupported-environment' };
   }
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!('serviceWorker' in navigator) || !hasPushManagerCapability()) {
     return { ...empty(), blocked: 'no-sw' };
   }
   if (!getAuthToken()) {
@@ -216,6 +216,7 @@ export async function ensureWebPushSubscription(): Promise<EnsureWebPushResult> 
   try {
     reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await reg.update().catch(() => undefined);
+    await reg.ready.catch(() => undefined);
   } catch {
     return { ...empty(), blocked: 'sw-register-failed' };
   }

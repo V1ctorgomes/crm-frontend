@@ -1,3 +1,20 @@
+/**
+ * Em alguns Chrome/Edge no Windows `('PushManager' in window)` é falso mesmo com push suportado.
+ * O que importa é `ServiceWorkerRegistration#pushManager`.
+ */
+export function hasPushManagerCapability(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  if ('PushManager' in window) return true;
+  try {
+    return (
+      typeof ServiceWorkerRegistration !== 'undefined' &&
+      'pushManager' in ServiceWorkerRegistration.prototype
+    );
+  } catch {
+    return false;
+  }
+}
+
 export type WebPushBlockReason =
   | 'ok'
   | 'no-core-apis'
@@ -59,7 +76,7 @@ function hasCoreWebPushApis(): boolean {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   return (
     'serviceWorker' in navigator &&
-    'PushManager' in window &&
+    hasPushManagerCapability() &&
     'Notification' in window
   );
 }
@@ -100,13 +117,13 @@ export function getWebPushBlockInfo(): WebPushBlockInfo {
     };
   }
 
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!('serviceWorker' in navigator) || !hasPushManagerCapability()) {
     return {
       reason: 'no-core-apis',
       canTrySubscribe: false,
       hintTitle: 'Browser sem suporte',
       hintBody:
-        'Este browser não inclui Service Worker / Push. Use a versão atual do Chrome ou Safari.',
+        'Este browser não inclui Service Worker ou Push. Use a versão atual do Chrome ou Edge.',
     };
   }
 
