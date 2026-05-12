@@ -64,11 +64,7 @@ export function MessageList({
               </div>
             )}
             <div
-              className={`max-w-[85%] md:max-w-[70%] w-fit min-w-0 relative rounded-xl shadow-sm ${
-                msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/')
-                  ? 'px-3 py-2.5 flex flex-col gap-1'
-                  : 'px-3 py-2 flex flex-col break-words'
-              } ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+              className={`max-w-[85%] md:max-w-[70%] w-full min-w-0 sm:w-fit relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
               onContextMenu={(e) => {
                 if (!msg.fromMe || typeof msg.id === 'number') return;
                 const canEditText = !msg.isMedia && !!(msg.text && msg.text.trim());
@@ -92,31 +88,35 @@ export function MessageList({
                     />
                   </div>
                 ) : (
-                  <div className="flex max-w-[min(100%,260px)] items-start gap-2.5 min-w-0">
-                    <div
-                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${msg.fromMe ? 'bg-white/20 text-white' : 'border border-slate-200 bg-slate-100 text-slate-600'}`}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold leading-snug">{msg.fileName || 'Ficheiro'}</p>
-                      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-                        <span className={`font-mono text-[10px] uppercase shrink-0 ${msg.fromMe ? 'text-white/85' : 'text-slate-500'}`}>
-                          {msg.mimeType?.split('/')[1] || 'ficheiro'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setViewerMessage(msg)}
-                          className={`shrink-0 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-colors ${msg.fromMe ? 'bg-white/20 text-white hover:bg-white/30' : 'border border-slate-200 bg-white text-brand-700 hover:bg-brand-50'}`}
-                        >
-                          Abrir
-                        </button>
+                  <div
+                    className={`mb-1.5 w-full max-w-[min(100%,280px)] rounded-lg border p-2 ${msg.fromMe ? 'border-brand-400 bg-brand-500/90' : 'border-slate-200 bg-slate-50'}`}
+                  >
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div
+                        className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${msg.fromMe ? 'bg-brand-400/50' : 'border border-slate-200 bg-white'}`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold leading-snug">{msg.fileName || 'Ficheiro'}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                          <span className={`font-mono text-[10px] uppercase ${msg.fromMe ? 'text-white/90' : 'text-slate-500'}`}>
+                            {msg.mimeType?.split('/')[1] || 'ficheiro'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setViewerMessage(msg)}
+                            className={`shrink-0 rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${msg.fromMe ? 'bg-white/95 text-brand-700 hover:bg-white' : 'border border-slate-300 bg-white text-brand-700 hover:bg-brand-50'}`}
+                          >
+                            Abrir
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -140,7 +140,7 @@ export function MessageList({
               )}
 
               <div
-                className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${msg.fromMe ? 'text-white/85' : 'text-slate-400'}`}
+                className={`mt-1 flex items-center justify-end gap-1 self-stretch text-[10px] ${msg.fromMe ? 'text-white/85' : 'text-slate-400'}`}
               >
                 <span>{msg.time}</span>
                 {msg.fromMe && <CheckCheck className="h-3.5 w-3.5 shrink-0 opacity-95" strokeWidth={2.25} aria-hidden />}
