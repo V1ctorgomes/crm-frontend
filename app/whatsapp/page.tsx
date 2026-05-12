@@ -10,7 +10,13 @@ import { ChatHeader } from '@/components/whatsapp/ChatHeader';
 import { FilePreview } from '@/components/whatsapp/FilePreview';
 import { MessageList } from '@/components/whatsapp/MessageList';
 import { ChatInput } from '@/components/whatsapp/ChatInput';
-import { InstanceModal, DeleteChatModal, CreateTicketModal, MediaViewerModal } from '@/components/whatsapp/WhatsAppModals';
+import {
+  InstanceModal,
+  DeleteChatModal,
+  CreateTicketModal,
+  MediaViewerModal,
+  EditMessageModal,
+} from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
@@ -123,6 +129,9 @@ export default function WhatsAppPage() {
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState<Message | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   // States: Formulário de OS
   const [stages, setStages] = useState<Stage[]>([]);
@@ -230,6 +239,90 @@ export default function WhatsAppPage() {
       fetchHistory();
     }
   }, [activeContact, baseUrl, chatHistory]);
+
+  const instanceForActiveContact = () =>
+    activeContact?.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
+
+  const handleDeleteSingleMessage = async (msg: Message) => {
+    if (!activeContact || typeof msg.id === 'number') {
+      showFeedback('error', 'Aguarde a confirmação do envio antes de apagar.');
+      return;
+    }
+    if (!window.confirm('Apagar esta mensagem para todos no WhatsApp?')) return;
+    const inst = instanceForActiveContact();
+    const num = activeContact.number;
+    try {
+      await apiRequest<{ success?: boolean }>('/whatsapp/messages/delete-for-everyone', {
+        method: 'POST',
+        body: JSON.stringify({
+          contactNumber: num,
+          messageId: String(msg.id),
+          ...(inst ? { instanceName: inst } : {}),
+        }),
+      });
+      const list = (chatHistoryRef.current[num] || []).filter((m) => m.id !== msg.id);
+      setChatHistory((prev) => ({ ...prev, [num]: list }));
+      const last = list[list.length - 1];
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.number === num
+            ? {
+                ...c,
+                lastMessage: last ? last.text || (last.isMedia ? 'Mídia' : '') || '' : '',
+                lastMessageTime: last?.time ?? c.lastMessageTime,
+              }
+            : c,
+        ),
+      );
+      showFeedback('success', 'Mensagem apagada.');
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao apagar mensagem.');
+    }
+  };
+
+  const handleEditMessageRequest = (msg: Message) => {
+    if (typeof msg.id === 'number') return;
+    setEditMessage(msg);
+    setEditDraft(msg.text || '');
+  };
+
+  const handleSaveEditedMessage = async () => {
+    if (!activeContact || !editMessage || typeof editMessage.id === 'number') return;
+    const text = editDraft.trim();
+    if (!text) return;
+    setEditSaving(true);
+    const inst = instanceForActiveContact();
+    const num = activeContact.number;
+    const cur = chatHistoryRef.current[num] || [];
+    const isLast = cur.length > 0 && cur[cur.length - 1].id === editMessage.id;
+    try {
+      await apiRequest<{ success?: boolean }>('/whatsapp/messages/update-text', {
+        method: 'POST',
+        body: JSON.stringify({
+          contactNumber: num,
+          messageId: String(editMessage.id),
+          text,
+          ...(inst ? { instanceName: inst } : {}),
+        }),
+      });
+      setChatHistory((prev) => ({
+        ...prev,
+        [num]: (prev[num] || []).map((m) => (m.id === editMessage.id ? { ...m, text } : m)),
+      }));
+      if (isLast) {
+        setContacts((prev) =>
+          prev.map((c) => (c.number === num ? { ...c, lastMessage: text } : c)),
+        );
+      }
+      setEditMessage(null);
+      setEditDraft('');
+      showFeedback('success', 'Mensagem atualizada.');
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao editar mensagem.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
@@ -561,7 +654,14 @@ export default function WhatsAppPage() {
                     <FilePreview previewFile={previewFile} previewUrl={previewUrl} cancelPreview={cancelPreview} inputText={inputText} setInputText={setInputText} handleSendMessage={handleSendMessage} isSending={isSending} />
                   )}
 
-                  <MessageList filteredMessages={filteredMessages} chatSearchTerm={chatSearchTerm} setViewerMessage={setViewerMessage} messagesEndRef={messagesEndRef} />
+                  <MessageList
+                    filteredMessages={filteredMessages}
+                    chatSearchTerm={chatSearchTerm}
+                    setViewerMessage={setViewerMessage}
+                    messagesEndRef={messagesEndRef}
+                    onMessageDelete={handleDeleteSingleMessage}
+                    onMessageEditRequest={handleEditMessageRequest}
+                  />
 
                   <ChatInput 
                     fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isRecording={isRecording} recordingTime={recordingTime} 
@@ -602,6 +702,20 @@ export default function WhatsAppPage() {
           setFormTicketType={setFormTicketType}
           handleCreateTicket={handleCreateTicket}
           ticketCatalog={ticketCatalog}
+        />
+      )}
+      {editMessage && (
+        <EditMessageModal
+          onClose={() => {
+            if (!editSaving) {
+              setEditMessage(null);
+              setEditDraft('');
+            }
+          }}
+          draft={editDraft}
+          setDraft={setEditDraft}
+          isSaving={editSaving}
+          onSave={() => void handleSaveEditedMessage()}
         />
       )}
       {viewerMessage && viewerMessage.mediaData && <MediaViewerModal viewerMessage={viewerMessage} onClose={() => setViewerMessage(null)} />}

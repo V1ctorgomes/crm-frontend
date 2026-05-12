@@ -1,13 +1,16 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { Message } from './types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
+import { MessageContextMenu } from './MessageContextMenu';
 
 interface MessageListProps {
   filteredMessages: Message[];
   chatSearchTerm: string;
   setViewerMessage: (msg: Message) => void;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  onMessageDelete?: (msg: Message) => void;
+  onMessageEditRequest?: (msg: Message) => void;
 }
 
 function startOfLocalDay(d: Date) {
@@ -30,7 +33,16 @@ function formatDaySeparatorLabel(sentAt?: string): string {
   return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage, messagesEndRef }: MessageListProps) {
+export function MessageList({
+  filteredMessages,
+  chatSearchTerm,
+  setViewerMessage,
+  messagesEndRef,
+  onMessageDelete,
+  onMessageEditRequest,
+}: MessageListProps) {
+  const [ctx, setCtx] = useState<{ x: number; y: number; msg: Message } | null>(null);
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 no-scrollbar bg-slate-50/50">
       {filteredMessages.length === 0 && chatSearchTerm && (
@@ -52,6 +64,15 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
             )}
             <div
               className={`max-w-[85%] md:max-w-[70%] w-full min-w-0 sm:w-fit relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+              onContextMenu={(e) => {
+                if (!msg.fromMe || typeof msg.id === 'number') return;
+                const canEditText = !msg.isMedia && !!(msg.text && msg.text.trim());
+                const wantsEdit = canEditText && !!onMessageEditRequest;
+                const wantsDelete = !!onMessageDelete;
+                if (!wantsEdit && !wantsDelete) return;
+                e.preventDefault();
+                setCtx({ x: e.clientX, y: e.clientY, msg });
+              }}
             >
               {msg.isMedia && msg.mediaData && (
                 msg.mimeType?.startsWith('audio/') ? (
@@ -127,6 +148,17 @@ export function MessageList({ filteredMessages, chatSearchTerm, setViewerMessage
         );
       })}
       <div ref={messagesEndRef} />
+
+      {ctx && (onMessageDelete || onMessageEditRequest) && (
+        <MessageContextMenu
+          x={ctx.x}
+          y={ctx.y}
+          message={ctx.msg}
+          onClose={() => setCtx(null)}
+          onDelete={() => onMessageDelete?.(ctx.msg)}
+          onEdit={() => onMessageEditRequest?.(ctx.msg)}
+        />
+      )}
     </div>
   );
 }
