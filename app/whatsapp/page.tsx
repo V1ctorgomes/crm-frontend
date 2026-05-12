@@ -438,7 +438,11 @@ export default function WhatsAppPage() {
           if (typeof msg.mediaData === 'string' && msg.mediaData.startsWith('blob:')) {
             URL.revokeObjectURL(msg.mediaData);
           }
-          return { ...msg, id: savedData.id, mediaData: savedData.mediaData };
+          return {
+            ...msg,
+            id: (savedData as { messageId?: string; id?: string }).messageId || savedData.id,
+            mediaData: savedData.mediaData,
+          };
         }),
       }));
     } catch (error) { showFeedback('error', "Erro de conexão ao enviar arquivo."); } 
@@ -463,8 +467,9 @@ export default function WhatsAppPage() {
       const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const sentAtIso = now.toISOString();
       setIsSending(true);
+      const tempId = Date.now();
       const optimisticMsg: Message = {
-        id: Date.now(),
+        id: tempId,
         text: textToSend,
         type: 'sent',
         time: timeNow,
@@ -491,7 +496,18 @@ export default function WhatsAppPage() {
       setInputText('');
 
       try {
-        await apiRequest('/whatsapp/send', { method: 'POST', body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }) });
+        const res = await apiRequest<{ messageId?: string }>('/whatsapp/send', {
+          method: 'POST',
+          body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }),
+        });
+        if (res?.messageId) {
+          setChatHistory((prev) => ({
+            ...prev,
+            [targetNumber]: (prev[targetNumber] || []).map((m) =>
+              m.id === tempId ? { ...m, id: res.messageId! } : m,
+            ),
+          }));
+        }
       } catch (error) { showFeedback('error', "Erro de conexão."); } finally { setIsSending(false); }
     }
   };
