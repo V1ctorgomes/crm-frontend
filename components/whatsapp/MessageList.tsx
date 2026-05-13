@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useLayoutEffect, useState } from 'react';
+import React, { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { Message } from './types';
 import { VoiceNotePlayer } from './VoiceNotePlayer';
@@ -16,6 +16,10 @@ interface MessageListProps {
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onMessageDelete?: (msg: Message) => void;
   onMessageEditRequest?: (msg: Message) => void;
+  /** Paginação de histórico (estilo WhatsApp): há mensagens mais antigas fora do ecrã. */
+  hasMoreOlder?: boolean;
+  isLoadingOlder?: boolean;
+  onLoadOlder?: () => void | Promise<void>;
 }
 
 function scrollListToBottom(el: HTMLElement | null) {
@@ -52,17 +56,21 @@ export function MessageList({
   messagesEndRef,
   onMessageDelete,
   onMessageEditRequest,
+  hasMoreOlder = false,
+  isLoadingOlder = false,
+  onLoadOlder,
 }: MessageListProps) {
   const [ctx, setCtx] = useState<{ x: number; y: number; msg: Message } | null>(null);
+  const loadOlderThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const len = filteredMessages.length;
-  const headId = len ? String(filteredMessages[0]!.id) : '';
   const tailId = len ? String(filteredMessages[len - 1]!.id) : '';
-  const scrollAnchor = `${len}:${headId}:${tailId}`;
+  /** Só reencosta ao fim quando muda conversa, pesquisa ou a última mensagem visível — não ao carregar histórico acima. */
+  const bottomScrollKey = `${conversationKey}|${chatSearchTerm}|${tailId}`;
 
   useLayoutEffect(() => {
     scrollListToBottom(listScrollRef.current);
-  }, [conversationKey, scrollAnchor, chatSearchTerm]);
+  }, [bottomScrollKey, listScrollRef]);
 
   useEffect(() => {
     const el = listScrollRef.current;
@@ -74,13 +82,47 @@ export function MessageList({
       cancelAnimationFrame(raf);
       window.clearTimeout(t);
     };
-  }, [conversationKey, scrollAnchor, chatSearchTerm]);
+  }, [bottomScrollKey, listScrollRef]);
+
+  useEffect(() => {
+    const node = listScrollRef.current;
+    if (!node || !hasMoreOlder || !onLoadOlder || isLoadingOlder) return;
+
+    const trigger = () => {
+      if (node.scrollTop > 140) return;
+      if (loadOlderThrottleRef.current) return;
+      loadOlderThrottleRef.current = setTimeout(() => {
+        loadOlderThrottleRef.current = null;
+      }, 700);
+      void onLoadOlder();
+    };
+
+    const onScroll = () => trigger();
+    node.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      node.removeEventListener('scroll', onScroll);
+      if (loadOlderThrottleRef.current) {
+        clearTimeout(loadOlderThrottleRef.current);
+        loadOlderThrottleRef.current = null;
+      }
+    };
+  }, [hasMoreOlder, isLoadingOlder, onLoadOlder, listScrollRef, conversationKey]);
 
   return (
     <div
       ref={listScrollRef}
       className="crm-thin-scrollbar flex-1 min-h-0 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 bg-slate-50/50"
     >
+      {isLoadingOlder && (
+        <div
+          className="sticky top-0 z-[5] flex shrink-0 justify-center bg-slate-50/90 py-2 backdrop-blur-[2px]"
+          aria-live="polite"
+        >
+          <span className="rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200/80">
+            A carregar mensagens anteriores…
+          </span>
+        </div>
+      )}
       {filteredMessages.length === 0 && chatSearchTerm && (
         <div className="text-center text-slate-500 text-sm mt-4">Nenhuma mensagem encontrada.</div>
       )}

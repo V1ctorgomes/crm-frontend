@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar'; 
 import { Toast } from '@/components/ui/toast';
 import { Message, Contact, Stage } from '@/components/whatsapp/types';
@@ -30,6 +30,11 @@ import { mergeWhatsappIngressDetail } from '@/lib/whatsapp-merge-ingress';
 import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
 import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
 import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
+import {
+  WHATSAPP_HISTORY_PAGE_SIZE,
+  normalizeWhatsappHistoryResponse,
+  mapApiRowToMessage,
+} from '@/lib/whatsapp-history-pagination';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -69,12 +74,20 @@ export default function WhatsAppPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
+  const [historyMeta, setHistoryMeta] = useState<Record<string, { hasMoreOlder: boolean }>>({});
+  const historyMetaRef = useRef<Record<string, { hasMoreOlder: boolean }>>({});
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
   const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
 
   const chatHistoryRef = useRef<Record<string, Message[]>>({});
   useEffect(() => {
     chatHistoryRef.current = chatHistory;
   }, [chatHistory]);
+
+  useEffect(() => {
+    historyMetaRef.current = historyMeta;
+  }, [historyMeta]);
 
   useEffect(() => {
     whatsappActiveContactRef.current = activeContact?.number ?? null;
@@ -209,31 +222,69 @@ export default function WhatsAppPage() {
 
   useEffect(() => {
     if (activeContact && !chatHistory[activeContact.number]) {
+      const n = activeContact.number;
       const fetchHistory = async () => {
         try {
-          const data = await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`).catch(() => []);
-          const formattedMessages = data.map((m: any) => {
-            const ts = m.timestamp ? new Date(m.timestamp) : new Date();
-            return {
-              id: m.id,
-              text: m.text,
-              type: m.type,
-              time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              sentAt: ts.toISOString(),
-              fromMe: m.type === 'sent',
-              senderNumber: m.contactNumber,
-              isMedia: m.isMedia,
-              mediaData: m.mediaData,
-              mimeType: m.mimeType,
-              fileName: m.fileName,
-            };
-          });
-          setChatHistory(prev => ({ ...prev, [activeContact.number]: formattedMessages }));
-        } catch (err) {}
+          const raw = await apiRequest(
+            `/whatsapp/history/${encodeURIComponent(n)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}`,
+          ).catch(() => ({ messages: [], hasMoreOlder: false }));
+          const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
+          const formattedMessages = rows.map(mapApiRowToMessage);
+          setChatHistory((prev) => ({ ...prev, [n]: formattedMessages }));
+          setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder } }));
+        } catch {
+          setChatHistory((prev) => ({ ...prev, [n]: [] }));
+          setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder: false } }));
+        }
       };
-      fetchHistory();
+      void fetchHistory();
     }
   }, [activeContact, chatHistory]);
+
+  const loadOlderMessages = useCallback(async () => {
+    const n = activeContact?.number;
+    if (!n || loadingOlderRef.current) return;
+    const meta = historyMetaRef.current[n];
+    if (!meta?.hasMoreOlder) return;
+    const fullList = chatHistoryRef.current[n] || [];
+    const cursorMsg = fullList.find((m) => typeof m.id === 'string');
+    if (!cursorMsg) return;
+
+    loadingOlderRef.current = true;
+    setIsLoadingOlder(true);
+    const el = messageListScrollRef.current;
+    const prevScrollHeight = el?.scrollHeight ?? 0;
+    const prevScrollTop = el?.scrollTop ?? 0;
+
+    try {
+      const raw = await apiRequest(
+        `/whatsapp/history/${encodeURIComponent(n)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}&before=${encodeURIComponent(String(cursorMsg.id))}`,
+      ).catch(() => ({ messages: [], hasMoreOlder: false }));
+      const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
+      const older = rows.map(mapApiRowToMessage);
+      const existingIds = new Set(fullList.map((m) => String(m.id)));
+      const mergedOlder = older.filter((m) => !existingIds.has(String(m.id)));
+
+      setChatHistory((prev) => {
+        const cur = prev[n] || [];
+        return { ...prev, [n]: [...mergedOlder, ...cur] };
+      });
+      setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder } }));
+    } catch {
+      setToast({ type: 'error', message: 'Não foi possível carregar mensagens anteriores.' });
+    } finally {
+      loadingOlderRef.current = false;
+      setIsLoadingOlder(false);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el2 = messageListScrollRef.current;
+          if (el2) {
+            el2.scrollTop = el2.scrollHeight - prevScrollHeight + prevScrollTop;
+          }
+        });
+      });
+    }
+  }, [activeContact?.number]);
 
   const instanceForActiveContact = () =>
     activeContact?.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
@@ -343,6 +394,7 @@ export default function WhatsAppPage() {
     try {
       await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
       setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+      setHistoryMeta((prev) => ({ ...prev, [activeContact.number]: { hasMoreOlder: false } }));
       const deletedNumber = activeContact.number;
       setUnreadByContact((prev) => {
         const next = { ...prev };
@@ -693,6 +745,9 @@ export default function WhatsAppPage() {
                     messagesEndRef={messagesEndRef}
                     onMessageDelete={handleRequestDeleteMessage}
                     onMessageEditRequest={handleEditMessageRequest}
+                    hasMoreOlder={historyMeta[activeContact.number]?.hasMoreOlder ?? false}
+                    isLoadingOlder={isLoadingOlder}
+                    onLoadOlder={loadOlderMessages}
                   />
 
                   <ChatInput 
