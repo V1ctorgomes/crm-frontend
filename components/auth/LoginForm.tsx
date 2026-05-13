@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, ShieldCheck, UserPlus } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldCheck, UserPlus, KeyRound } from 'lucide-react';
 import { apiRequest } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
 
@@ -18,13 +18,14 @@ type RegisterResponse = {
 };
 
 export function LoginForm() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
   const [registerPassword2, setRegisterPassword2] = useState('');
   const [error, setError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -37,6 +38,7 @@ export function LoginForm() {
     setMode('login');
     setError('');
     setRegisterSuccess('');
+    setForgotSuccess('');
     resetRegisterFields();
   };
 
@@ -44,6 +46,16 @@ export function LoginForm() {
     setMode('register');
     setError('');
     setRegisterSuccess('');
+    setForgotSuccess('');
+    resetRegisterFields();
+  };
+
+  const switchToForgot = () => {
+    setMode('forgot');
+    setError('');
+    setRegisterSuccess('');
+    setForgotSuccess('');
+    setPassword('');
     resetRegisterFields();
   };
 
@@ -51,6 +63,7 @@ export function LoginForm() {
     e.preventDefault();
     setError('');
     setRegisterSuccess('');
+    setForgotSuccess('');
     setIsLoading(true);
 
     try {
@@ -78,6 +91,7 @@ export function LoginForm() {
     e.preventDefault();
     setError('');
     setRegisterSuccess('');
+    setForgotSuccess('');
     if (password !== registerPassword2) {
       setError('As palavras-passe não coincidem.');
       return;
@@ -105,6 +119,26 @@ export function LoginForm() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setRegisterSuccess('');
+    setForgotSuccess('');
+    setIsLoading(true);
+    try {
+      const data = await apiRequest<RegisterResponse>('/auth/request-password-reset', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      setForgotSuccess(data?.message || 'Pedido registado.');
+      setEmail('');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro de conexão com o servidor.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="w-full lg:w-1/2 flex flex-col px-8 sm:px-16 md:px-24 lg:px-32 py-12 justify-center relative bg-gradient-to-br from-white via-brand-canvas to-brand-50/60">
       <div className="w-full max-w-[420px] mx-auto flex flex-col">
@@ -123,18 +157,24 @@ export function LoginForm() {
 
         <div className="flex flex-col space-y-2 mb-6">
           <h1 className="text-3xl font-bold tracking-tight text-brand-950">
-            {mode === 'login' ? 'Bem-vindo de volta' : 'Pedir acesso'}
+            {mode === 'login'
+              ? 'Bem-vindo de volta'
+              : mode === 'register'
+                ? 'Pedir acesso'
+                : 'Esqueci a palavra-passe'}
           </h1>
           <p className="text-sm text-brand-800/80 font-medium">
             {mode === 'login'
               ? 'Insira as suas credenciais corporativas para aceder à plataforma.'
-              : 'Crie a sua conta como utilizador de atendimento. Um administrador terá de aprovar antes de poder iniciar sessão.'}
+              : mode === 'register'
+                ? 'Crie a sua conta como utilizador de atendimento. Um administrador terá de aprovar antes de poder iniciar sessão.'
+                : 'Indique o e-mail da sua conta. Um administrador criará uma nova palavra-passe na área de utilizadores (sem e-mail automático).'}
           </p>
         </div>
 
-        {registerSuccess && (
+        {(registerSuccess || forgotSuccess) && (
           <div className="mb-6 flex items-start gap-3 p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800 animate-in fade-in duration-300">
-            <span className="text-sm font-medium leading-relaxed">{registerSuccess}</span>
+            <span className="text-sm font-medium leading-relaxed">{registerSuccess || forgotSuccess}</span>
           </div>
         )}
 
@@ -180,13 +220,13 @@ export function LoginForm() {
                 <label className="text-sm font-semibold text-brand-900" htmlFor="password">
                   Palavra-passe
                 </label>
-                <a
-                  href="#"
+                <button
+                  type="button"
                   className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors"
-                  onClick={(e) => e.preventDefault()}
+                  onClick={switchToForgot}
                 >
                   Esqueceu-se?
-                </a>
+                </button>
               </div>
               <input
                 id="password"
@@ -226,7 +266,7 @@ export function LoginForm() {
               Pedir acesso (novo utilizador)
             </button>
           </form>
-        ) : (
+        ) : mode === 'register' ? (
           <form onSubmit={handleRegister} className="flex flex-col gap-5">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-brand-900" htmlFor="reg-name">
@@ -312,6 +352,47 @@ export function LoginForm() {
               className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline"
             >
               Já tenho conta — voltar ao login
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleForgotPassword} className="flex flex-col gap-5">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-brand-900" htmlFor="forgot-email">
+                E-mail da conta
+              </label>
+              <input
+                id="forgot-email"
+                type="email"
+                className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink transition-colors placeholder:text-brand-800/40 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
+                placeholder="exemplo@suempresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-8 text-sm font-medium text-white transition-all hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2 focus:ring-offset-brand-canvas disabled:pointer-events-none disabled:opacity-70"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  A enviar…
+                </>
+              ) : (
+                <>
+                  Pedir nova palavra-passe
+                  <KeyRound className="w-4 h-4" />
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={switchToLogin}
+              className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+            >
+              Voltar ao login
             </button>
           </form>
         )}

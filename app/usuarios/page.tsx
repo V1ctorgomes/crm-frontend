@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast'; // Reutilizando do refatoramento anterior
-import { User } from '@/components/usuarios/types';
+import { User, type PasswordResetRequestRow } from '@/components/usuarios/types';
 import { UsuariosHeader } from '@/components/usuarios/UsuariosHeader';
 import { UsuariosTable } from '@/components/usuarios/UsuariosTable';
 import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
 import { PendingUsersPanel } from '@/components/usuarios/PendingUsersPanel';
+import { PasswordResetRequestsPanel } from '@/components/usuarios/PasswordResetRequestsPanel';
 import { apiRequest } from '@/lib/api-client';
 
 const PAGE_SIZE = 8;
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequestRow[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +46,15 @@ export default function UsuariosPage() {
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
+  };
+
+  const fetchPasswordResetRequests = async () => {
+    try {
+      const data = await apiRequest<PasswordResetRequestRow[]>('/users/password-reset-requests');
+      setPasswordResetRequests(Array.isArray(data) ? data : []);
+    } catch {
+      setPasswordResetRequests([]);
+    }
   };
 
   const fetchPending = async () => {
@@ -75,6 +86,7 @@ export default function UsuariosPage() {
         setViewerRole(u.role || 'USER');
         if (u.role === 'ADMIN' || u.role === 'DEVELOPER') {
           void fetchPending();
+          void fetchPasswordResetRequests();
         }
       })
       .catch(() => {});
@@ -130,7 +142,10 @@ export default function UsuariosPage() {
       });
       setIsModalOpen(false);
       fetchUsers();
-      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') void fetchPending();
+      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') {
+        void fetchPending();
+        void fetchPasswordResetRequests();
+      }
       showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
     } catch (err: unknown) { 
       const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
@@ -147,7 +162,10 @@ export default function UsuariosPage() {
       showFeedback('success', "Utilizador removido da equipa.");
       setUserToDelete(null);
       fetchUsers();
-      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') void fetchPending();
+      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') {
+        void fetchPending();
+        void fetchPasswordResetRequests();
+      }
     } catch (err: unknown) { 
       const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
       showFeedback('error', msg);
@@ -163,6 +181,7 @@ export default function UsuariosPage() {
       });
       showFeedback('success', 'Utilizador aprovado. Já pode iniciar sessão.');
       void fetchPending();
+      void fetchPasswordResetRequests();
       void fetchUsers();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao aprovar.';
@@ -215,6 +234,9 @@ export default function UsuariosPage() {
         <UsuariosHeader 
           totalUsers={users.length}
           pendingCount={viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER' ? pendingUsers.length : 0}
+          passwordResetCount={
+            viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER' ? passwordResetRequests.length : 0
+          }
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onNewUser={() => openModal()}
@@ -225,6 +247,17 @@ export default function UsuariosPage() {
             users={pendingUsers}
             approvingId={approvingId}
             onApprove={handleApprovePending}
+          />
+        )}
+
+        {(viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') && (
+          <PasswordResetRequestsPanel
+            requests={passwordResetRequests}
+            onCompleted={() => {
+              void fetchPasswordResetRequests();
+              void fetchUsers();
+            }}
+            showFeedback={showFeedback}
           />
         )}
 

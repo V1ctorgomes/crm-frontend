@@ -3,6 +3,7 @@ import React from 'react';
 interface UsuariosHeaderProps {
   totalUsers: number;
   pendingCount?: number;
+  passwordResetCount?: number;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onNewUser: () => void;
@@ -11,6 +12,7 @@ interface UsuariosHeaderProps {
 export function UsuariosHeader({
   totalUsers,
   pendingCount = 0,
+  passwordResetCount = 0,
   searchTerm,
   onSearchChange,
   onNewUser,
@@ -21,7 +23,8 @@ export function UsuariosHeader({
         <h1 className="text-2xl font-bold tracking-tight text-brand-950">Equipa do Sistema</h1>
         <p className="text-slate-500 text-sm mt-1">
           Gira os utilizadores, permissões e contas de acesso ({totalUsers} activos
-          {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}).
+          {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}
+          {passwordResetCount > 0 ? ` · ${passwordResetCount} pedido(s) de nova palavra-passe` : ''}).
         </p>
       </div>
       
