@@ -10,13 +10,25 @@ function securityHeaders() {
     }
   }
 
+  const mediaSrc = ["'self'", 'blob:', 'data:'];
+  const r2Public = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim();
+  if (r2Public) {
+    try {
+      mediaSrc.push(new URL(r2Public).origin);
+    } catch {
+      /* ignore */
+    }
+  }
+  // Ficheiros de mídia no R2 (ou outro HTTPS) — sem isto o <audio> fica 0:00 / bloqueado pela CSP
+  mediaSrc.push('https:');
+
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "media-src 'self' blob: data:",
+    `media-src ${mediaSrc.join(' ')}`,
     `connect-src ${connectSrc.join(' ')}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
