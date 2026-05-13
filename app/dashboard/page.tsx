@@ -176,7 +176,7 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length }));
+  const funnelData = stages.map(stage => ({ name: stage.name, Quantidade: stage.tickets.length, color: stage.color }));
 
   const totalCustomers = useMemo(() => {
     return customerTypeRanking.reduce((acc, curr) => acc + curr.count, 0);
