@@ -501,6 +501,8 @@ export default function WhatsAppPage() {
         return { ...prev, [targetNumber]: list.filter((m) => m.id !== tempId) };
       });
     } finally {
+      setIsSending(false);
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
