@@ -204,3 +204,23 @@
 .crm-toast-progress--error {
   background-color: #dc2626;
 }
+
+/* Kanban solicitações: barra de scroll visível em cada fase (coluna) */
+.crm-kanban-phase-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+.crm-kanban-phase-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.crm-kanban-phase-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.crm-kanban-phase-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.crm-kanban-phase-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
