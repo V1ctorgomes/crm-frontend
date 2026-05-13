@@ -8,6 +8,7 @@ import { UsuariosHeader } from '@/components/usuarios/UsuariosHeader';
 import { UsuariosTable } from '@/components/usuarios/UsuariosTable';
 import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
+import { PendingUsersPanel } from '@/components/usuarios/PendingUsersPanel';
 import { apiRequest } from '@/lib/api-client';
 
 const PAGE_SIZE = 8;
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewerId, setViewerId] = useState<string | null>(null);
@@ -43,11 +46,20 @@ export default function UsuariosPage() {
     setToast({ type, message });
   };
 
+  const fetchPending = async () => {
+    try {
+      const data = await apiRequest<User[]>('/users/pending');
+      setPendingUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setPendingUsers([]);
+    }
+  };
+
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const data = await apiRequest('/users');
-      setUsers(data);
+      const data = await apiRequest<User[]>('/users');
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err) { 
       showFeedback('error', "Erro ao carregar a lista de utilizadores.");
     } finally { 
@@ -58,9 +70,12 @@ export default function UsuariosPage() {
   useEffect(() => {
     fetchUsers();
     apiRequest('/users/me')
-      .then((u) => {
-        setViewerId(u.id);
+      .then((u: { id?: string; role?: string }) => {
+        setViewerId(u.id ?? null);
         setViewerRole(u.role || 'USER');
+        if (u.role === 'ADMIN' || u.role === 'DEVELOPER') {
+          void fetchPending();
+        }
       })
       .catch(() => {});
   }, []);
@@ -115,6 +130,7 @@ export default function UsuariosPage() {
       });
       setIsModalOpen(false);
       fetchUsers();
+      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') void fetchPending();
       showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
     } catch (err: unknown) { 
       const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
@@ -131,9 +147,28 @@ export default function UsuariosPage() {
       showFeedback('success', "Utilizador removido da equipa.");
       setUserToDelete(null);
       fetchUsers();
+      if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') void fetchPending();
     } catch (err: unknown) { 
       const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
       showFeedback('error', msg);
+    }
+  };
+
+  const handleApprovePending = async (userId: string) => {
+    setApprovingId(userId);
+    try {
+      await apiRequest(`/users/pending/${userId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      showFeedback('success', 'Utilizador aprovado. Já pode iniciar sessão.');
+      void fetchPending();
+      void fetchUsers();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao aprovar.';
+      showFeedback('error', msg);
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -179,10 +214,19 @@ export default function UsuariosPage() {
 
         <UsuariosHeader 
           totalUsers={users.length}
+          pendingCount={viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER' ? pendingUsers.length : 0}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onNewUser={() => openModal()}
         />
+
+        {(viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') && (
+          <PendingUsersPanel
+            users={pendingUsers}
+            approvingId={approvingId}
+            onApprove={handleApprovePending}
+          />
+        )}
 
         <UsuariosTable 
           isLoading={isLoading}

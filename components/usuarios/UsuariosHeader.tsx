@@ -2,17 +2,27 @@ import React from 'react';
 
 interface UsuariosHeaderProps {
   totalUsers: number;
+  pendingCount?: number;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onNewUser: () => void;
 }
 
-export function UsuariosHeader({ totalUsers, searchTerm, onSearchChange, onNewUser }: UsuariosHeaderProps) {
+export function UsuariosHeader({
+  totalUsers,
+  pendingCount = 0,
+  searchTerm,
+  onSearchChange,
+  onNewUser,
+}: UsuariosHeaderProps) {
   return (
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-brand-950">Equipa do Sistema</h1>
-        <p className="text-slate-500 text-sm mt-1">Gira os utilizadores, permissões e contas de acesso ({totalUsers} no total).</p>
+        <p className="text-slate-500 text-sm mt-1">
+          Gira os utilizadores, permissões e contas de acesso ({totalUsers} activos
+          {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}).
+        </p>
       </div>
       
       <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">

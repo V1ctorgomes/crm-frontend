@@ -5,4 +5,6 @@ export interface User {
   role: string;
   createdAt: string;
   profilePictureUrl?: string;
+  /** false = registo público pendente de aprovação por admin */
+  approved?: boolean;
 }
