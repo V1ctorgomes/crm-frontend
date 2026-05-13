@@ -205,22 +205,22 @@
   background-color: #dc2626;
 }
 
-/* Kanban solicitações: barra de scroll visível em cada fase (coluna) */
-.crm-kanban-phase-scroll {
+/* Barra de scroll fina visível (Kanban, WhatsApp conversa / lista) */
+.crm-thin-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
 }
-.crm-kanban-phase-scroll::-webkit-scrollbar {
+.crm-thin-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
-.crm-kanban-phase-scroll::-webkit-scrollbar-track {
+.crm-thin-scrollbar::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 4px;
 }
-.crm-kanban-phase-scroll::-webkit-scrollbar-thumb {
+.crm-thin-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
-.crm-kanban-phase-scroll::-webkit-scrollbar-thumb:hover {
+.crm-thin-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }

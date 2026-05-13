@@ -106,7 +106,7 @@ export function KanbanBoard({
                 </span>
               </div>
               
-              <div className="crm-kanban-phase-scroll p-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-3">
+              <div className="crm-thin-scrollbar p-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-3">
                 {stage.tickets.length === 0 && searchTerm ? (
                   <p className="text-xs text-slate-400 text-center mt-4 font-medium">Nenhum resultado nesta fase.</p>
                 ) : (

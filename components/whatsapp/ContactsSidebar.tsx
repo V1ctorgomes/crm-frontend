@@ -51,7 +51,7 @@ export function ContactsSidebar({
         {onPushToast && <WhatsappPushAlertRow onToast={onPushToast} />}
       </div>
       
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
+      <div className="crm-thin-scrollbar flex-1 min-h-0 overflow-y-auto bg-white">
         {filteredActiveContacts.map((contact) => (
           <div key={contact.number} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-slate-50 ${activeContact?.number === contact.number ? 'bg-brand-50/50 border-l-2 border-l-brand-600' : 'hover:bg-slate-50 border-l-2 border-l-transparent'}`} onClick={() => handleSelectContact(contact)}>
             {contact.profilePictureUrl ? (

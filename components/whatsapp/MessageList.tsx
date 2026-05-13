@@ -79,7 +79,7 @@ export function MessageList({
   return (
     <div
       ref={listScrollRef}
-      className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 no-scrollbar bg-slate-50/50"
+      className="crm-thin-scrollbar flex-1 min-h-0 overflow-y-auto p-4 md:p-6 flex flex-col gap-2 z-10 bg-slate-50/50"
     >
       {filteredMessages.length === 0 && chatSearchTerm && (
         <div className="text-center text-slate-500 text-sm mt-4">Nenhuma mensagem encontrada.</div>
