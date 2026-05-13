@@ -7,7 +7,7 @@ interface ProdutividadeHeaderProps {
   onPeriodChange: (p: PeriodPreset) => void;
   isRefreshing: boolean;
   onRefresh: () => void;
-  onExportCsv?: () => void;
+  onExportSpreadsheet?: () => void;
   canExport?: boolean;
 }
 
@@ -22,7 +22,7 @@ export function ProdutividadeHeader({
   onPeriodChange,
   isRefreshing,
   onRefresh,
-  onExportCsv,
+  onExportSpreadsheet,
   canExport = true,
 }: ProdutividadeHeaderProps) {
   return (
@@ -63,16 +63,16 @@ export function ProdutividadeHeader({
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Recarregar
         </button>
-        {onExportCsv && (
+        {onExportSpreadsheet && (
           <button
             type="button"
-            onClick={onExportCsv}
+            onClick={onExportSpreadsheet}
             disabled={!canExport || isRefreshing}
             className="inline-flex h-10 items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 disabled:opacity-50 transition-colors shadow-sm"
-            title="Exportar CSV"
+            title="Exportar planilha Excel (.xlsx) com resumo e detalhe por membro"
           >
             <Download className="h-4 w-4" />
-            CSV
+            Excel
           </button>
         )}
       </div>

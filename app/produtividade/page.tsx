@@ -16,7 +16,7 @@ import type {
   TeamOverviewResponse,
 } from '@/components/produtividade/types';
 import { apiRequest } from '@/lib/api-client';
-import { buildCsv, downloadCsv } from '@/lib/csv-export';
+import { downloadProdutividadeWorkbook } from '@/lib/produtividade-export-xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,36 +88,19 @@ export default function ProdutividadePage() {
     void fetchData();
   }, [fetchData]);
 
-  const handleExportCsv = useCallback(() => {
+  const handleExportSpreadsheet = useCallback(async () => {
     if (data.perUser.length === 0) {
       setToast({ type: 'error', message: 'Nada para exportar no período seleccionado.' });
       return;
     }
-    const headers = [
-      'Membro',
-      'Email',
-      'Função',
-      'Mensagens enviadas',
-      'Mensagens recebidas',
-      'OS criadas',
-      'OS fechadas',
-      'Última atividade',
-    ];
-    const rows = data.perUser.map((u) => [
-      u.name,
-      u.email,
-      u.role,
-      u.messagesSent,
-      u.messagesReceived,
-      u.ticketsCreated,
-      u.ticketsArchived,
-      u.lastActivityAt ?? '',
-    ]);
-    const csv = buildCsv(headers, rows);
-    const fromIso = data.period.from?.slice(0, 10) || 'inicio';
-    const toIso = data.period.to?.slice(0, 10) || 'fim';
-    downloadCsv(`produtividade_${fromIso}_${toIso}.csv`, csv);
-  }, [data]);
+    try {
+      await downloadProdutividadeWorkbook(data, PERIOD_LABELS[period]);
+      setToast({ type: 'success', message: 'Planilha Excel gerada com sucesso.' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Erro ao gerar a planilha.';
+      setToast({ type: 'error', message: msg });
+    }
+  }, [data, period]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -137,7 +120,7 @@ export default function ProdutividadePage() {
           onPeriodChange={setPeriod}
           isRefreshing={isLoading}
           onRefresh={() => void fetchData()}
-          onExportCsv={handleExportCsv}
+          onExportSpreadsheet={() => void handleExportSpreadsheet()}
           canExport={data.perUser.length > 0}
         />
 
