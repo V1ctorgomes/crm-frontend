@@ -10,6 +10,10 @@ import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
 import { PendingUsersPanel } from '@/components/usuarios/PendingUsersPanel';
 import { PasswordResetRequestsPanel } from '@/components/usuarios/PasswordResetRequestsPanel';
+import {
+  UsuariosSectionTabs,
+  type UsuariosAdminSection,
+} from '@/components/usuarios/UsuariosSectionTabs';
 import { apiRequest } from '@/lib/api-client';
 
 const PAGE_SIZE = 8;
@@ -43,6 +47,7 @@ export default function UsuariosPage() {
   // Modal de Confirmação de Remoção
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [tablePage, setTablePage] = useState(0);
+  const [adminSection, setAdminSection] = useState<UsuariosAdminSection>('users');
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -91,6 +96,14 @@ export default function UsuariosPage() {
       })
       .catch(() => {});
   }, []);
+
+  const isAdmin = viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER';
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (adminSection === 'pending') void fetchPending();
+    if (adminSection === 'password') void fetchPasswordResetRequests();
+  }, [adminSection, isAdmin]);
 
   const openModal = (user?: User) => {
     if (user) {
@@ -233,46 +246,60 @@ export default function UsuariosPage() {
 
         <UsuariosHeader 
           totalUsers={users.length}
-          pendingCount={viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER' ? pendingUsers.length : 0}
-          passwordResetCount={
-            viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER' ? passwordResetRequests.length : 0
-          }
+          pendingCount={isAdmin ? pendingUsers.length : 0}
+          passwordResetCount={isAdmin ? passwordResetRequests.length : 0}
+          showToolbar={!isAdmin || adminSection === 'users'}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onNewUser={() => openModal()}
         />
 
-        {(viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') && (
-          <PendingUsersPanel
-            users={pendingUsers}
-            approvingId={approvingId}
-            onApprove={handleApprovePending}
+        {isAdmin && (
+          <UsuariosSectionTabs
+            value={adminSection}
+            onChange={setAdminSection}
+            pendingCount={pendingUsers.length}
+            passwordResetCount={passwordResetRequests.length}
           />
         )}
 
-        {(viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') && (
-          <PasswordResetRequestsPanel
-            requests={passwordResetRequests}
-            onCompleted={() => {
-              void fetchPasswordResetRequests();
-              void fetchUsers();
+        {isAdmin && adminSection === 'pending' && (
+          <div className="mx-6 md:mx-8">
+            <PendingUsersPanel
+              users={pendingUsers}
+              approvingId={approvingId}
+              onApprove={handleApprovePending}
+            />
+          </div>
+        )}
+
+        {isAdmin && adminSection === 'password' && (
+          <div className="mx-6 md:mx-8">
+            <PasswordResetRequestsPanel
+              requests={passwordResetRequests}
+              onCompleted={() => {
+                void fetchPasswordResetRequests();
+                void fetchUsers();
+              }}
+              showFeedback={showFeedback}
+            />
+          </div>
+        )}
+
+        {(!isAdmin || adminSection === 'users') && (
+          <UsuariosTable 
+            isLoading={isLoading}
+            users={paginatedUsers}
+            onEdit={openModal}
+            onDelete={setUserToDelete}
+            pagination={{
+              page: tablePage,
+              pageSize: PAGE_SIZE,
+              total: filteredUsers.length,
+              onPageChange: setTablePage,
             }}
-            showFeedback={showFeedback}
           />
         )}
-
-        <UsuariosTable 
-          isLoading={isLoading}
-          users={paginatedUsers}
-          onEdit={openModal}
-          onDelete={setUserToDelete}
-          pagination={{
-            page: tablePage,
-            pageSize: PAGE_SIZE,
-            total: filteredUsers.length,
-            onPageChange: setTablePage,
-          }}
-        />
 
       </main>
 

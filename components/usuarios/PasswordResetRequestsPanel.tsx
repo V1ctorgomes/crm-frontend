@@ -53,7 +53,7 @@ export function PasswordResetRequestsPanel({
 
   if (requests.length === 0) {
     return (
-      <div className="mx-6 md:mx-8 mb-4 rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-5 text-center text-sm text-slate-500">
+      <div className="mb-4 rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-5 text-center text-sm text-slate-500">
         Nenhum pedido de nova palavra-passe em aberto.
       </div>
     );
@@ -61,7 +61,7 @@ export function PasswordResetRequestsPanel({
 
   return (
     <>
-      <div className="mx-6 md:mx-8 mb-6 rounded-xl border border-sky-200 bg-sky-50/90 shadow-sm">
+      <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50/90 shadow-sm">
         <div className="flex items-start gap-3 border-b border-sky-200/80 bg-sky-100/60 px-4 py-3 sm:px-5">
           <KeyRound className="h-5 w-5 text-sky-800 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">

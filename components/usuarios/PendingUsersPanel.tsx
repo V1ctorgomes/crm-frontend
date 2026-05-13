@@ -11,14 +11,14 @@ interface PendingUsersPanelProps {
 export function PendingUsersPanel({ users, approvingId, onApprove }: PendingUsersPanelProps) {
   if (users.length === 0) {
     return (
-      <div className="mx-6 md:mx-8 mb-4 rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-6 text-center text-sm text-slate-500">
+      <div className="mb-4 rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-6 text-center text-sm text-slate-500">
         Nenhum pedido de acesso aguarda aprovação.
       </div>
     );
   }
 
   return (
-    <div className="mx-6 md:mx-8 mb-6 rounded-xl border border-amber-200 bg-amber-50/80 shadow-sm">
+    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/80 shadow-sm">
       <div className="flex items-start gap-3 border-b border-amber-200/80 bg-amber-100/50 px-4 py-3 sm:px-5">
         <UserCheck className="h-5 w-5 text-amber-800 shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
