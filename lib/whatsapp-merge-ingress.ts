@@ -70,6 +70,7 @@ export function mergeWhatsappIngressDetail(
                     mediaData: newMessage.mediaData || m.mediaData,
                     mimeType: newMessage.mimeType || m.mimeType,
                     fileName: newMessage.fileName || m.fileName,
+                    sendStatus: 'delivered' as const,
                   }
                 : m,
             ),

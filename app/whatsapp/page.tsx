@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, type Dispatch, type SetStateAction } from 'react';
 import Sidebar from '@/components/Sidebar'; 
 import { Toast } from '@/components/ui/toast';
 import { Message, Contact, Stage } from '@/components/whatsapp/types';
@@ -62,6 +62,24 @@ function audioFileExtensionFromMime(blobType: string): string {
   return 'webm';
 }
 
+/** Segundo visto na UI pouco depois do servidor aceitar (não há ACK de leitura do destinatário na API). */
+const WHATSAPP_DELIVERED_TICK_DELAY_MS = 480;
+
+function scheduleMessageDeliveredUi(
+  setChatHistory: Dispatch<SetStateAction<Record<string, Message[]>>>,
+  contactNumber: string,
+  id: string | number,
+) {
+  window.setTimeout(() => {
+    setChatHistory((prev) => ({
+      ...prev,
+      [contactNumber]: (prev[contactNumber] || []).map((m) =>
+        String(m.id) === String(id) ? { ...m, sendStatus: 'delivered' as const } : m,
+      ),
+    }));
+  }, WHATSAPP_DELIVERED_TICK_DELAY_MS);
+}
+
 export default function WhatsAppPage() {
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
   const [instances, setInstances] = useState<any[]>([]);
@@ -80,7 +98,14 @@ export default function WhatsAppPage() {
   const loadingOlderRef = useRef(false);
   const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
 
-  const chatHistoryRef = useRef<Record<string, Message[]>>({});
+  const pendingMediaAbortRef = useRef<AbortController | null>(null);
+  const pendingMediaTempIdRef = useRef<number | null>(null);
+
+  const cancelMediaSend = useCallback((messageId: string | number) => {
+    if (pendingMediaTempIdRef.current !== null && pendingMediaTempIdRef.current === messageId) {
+      pendingMediaAbortRef.current?.abort();
+    }
+  }, []);
   useEffect(() => {
     chatHistoryRef.current = chatHistory;
   }, [chatHistory]);
@@ -452,6 +477,7 @@ export default function WhatsAppPage() {
       mediaData: tempUrl,
       mimeType: file.type,
       fileName: file.name,
+      sendStatus: 'sending',
     };
 
     setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
@@ -473,25 +499,47 @@ export default function WhatsAppPage() {
       return updated;
     });
 
+    const ac = new AbortController();
+    pendingMediaAbortRef.current = ac;
+    pendingMediaTempIdRef.current = tempId;
+
     try {
-      const savedData = await apiRequest('/whatsapp/send-media', { method: 'POST', body: formData });
+      const savedData = await apiRequest<{
+        messageId?: string;
+        id?: string;
+        mediaData?: string;
+      }>('/whatsapp/send-media', { method: 'POST', body: formData, signal: ac.signal });
+      if (!savedData?.mediaData) {
+        throw new Error('Resposta inválida do servidor.');
+      }
+      const newId = savedData.messageId || savedData.id || tempId;
       setChatHistory((prev) => ({
         ...prev,
-        [targetNumber]: prev[targetNumber].map((msg) => {
+        [targetNumber]: (prev[targetNumber] || []).map((msg) => {
           if (msg.id !== tempId) return msg;
           if (typeof msg.mediaData === 'string' && msg.mediaData.startsWith('blob:')) {
             URL.revokeObjectURL(msg.mediaData);
           }
           return {
             ...msg,
-            id: (savedData as { messageId?: string; id?: string }).messageId || savedData.id,
+            id: newId,
             mediaData: savedData.mediaData,
+            sendStatus: 'sent',
           };
         }),
       }));
+      scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro ao enviar arquivo.';
-      showFeedback('error', msg);
+      const aborted =
+        (typeof error === 'object' &&
+          error !== null &&
+          ((error as { name?: string }).name === 'AbortError' ||
+            String((error as Error).message || '').includes('aborted'))) ||
+        (error instanceof DOMException && error.name === 'AbortError');
+      if (!aborted) {
+        const msg = error instanceof Error ? error.message : 'Erro ao enviar arquivo.';
+        showFeedback('error', msg);
+      }
       setChatHistory((prev) => {
         const list = prev[targetNumber] || [];
         const doomed = list.find((m) => m.id === tempId);
@@ -501,6 +549,12 @@ export default function WhatsAppPage() {
         return { ...prev, [targetNumber]: list.filter((m) => m.id !== tempId) };
       });
     } finally {
+      if (pendingMediaTempIdRef.current === tempId) {
+        pendingMediaTempIdRef.current = null;
+      }
+      if (pendingMediaAbortRef.current === ac) {
+        pendingMediaAbortRef.current = null;
+      }
       setIsSending(false);
     }
   };
@@ -532,6 +586,7 @@ export default function WhatsAppPage() {
         sentAt: sentAtIso,
         fromMe: true,
         senderNumber: targetNumber,
+        sendStatus: 'sending',
       };
       
       setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
@@ -556,15 +611,29 @@ export default function WhatsAppPage() {
           method: 'POST',
           body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }),
         });
-        if (res?.messageId) {
-          setChatHistory((prev) => ({
-            ...prev,
-            [targetNumber]: (prev[targetNumber] || []).map((m) =>
-              m.id === tempId ? { ...m, id: res.messageId! } : m,
-            ),
-          }));
-        }
-      } catch (error) { showFeedback('error', "Erro de conexão."); } finally { setIsSending(false); }
+        const newId = res?.messageId ?? tempId;
+        setChatHistory((prev) => ({
+          ...prev,
+          [targetNumber]: (prev[targetNumber] || []).map((m) =>
+            m.id === tempId
+              ? {
+                  ...m,
+                  ...(res?.messageId ? { id: res.messageId } : {}),
+                  sendStatus: 'sent' as const,
+                }
+              : m,
+          ),
+        }));
+        scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
+      } catch (error) {
+        showFeedback('error', 'Erro de conexão.');
+        setChatHistory((prev) => ({
+          ...prev,
+          [targetNumber]: (prev[targetNumber] || []).filter((m) => m.id !== tempId),
+        }));
+      } finally {
+        setIsSending(false);
+      }
     }
   };
 
@@ -760,6 +829,7 @@ export default function WhatsAppPage() {
                     hasMoreOlder={historyMeta[activeContact.number]?.hasMoreOlder ?? false}
                     isLoadingOlder={isLoadingOlder}
                     onLoadOlder={loadOlderMessages}
+                    onCancelMediaSend={cancelMediaSend}
                   />
 
                   <ChatInput 

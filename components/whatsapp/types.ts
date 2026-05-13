@@ -1,3 +1,6 @@
+/** Estados de envio (balões `fromMe`), estilo WhatsApp. */
+export type MessageSendStatus = 'sending' | 'sent' | 'delivered';
+
 export interface Message {
   id: string | number;
   text: string;
@@ -11,6 +14,11 @@ export interface Message {
   mediaData?: string; 
   mimeType?: string;
   fileName?: string;
+  /**
+   * Só mensagens enviadas por nós. `sending` = a aguardar API/upload; `sent` = servidor aceitou;
+   * `delivered` = confirmação final na UI (histórico remoto / eco SSE usa sempre `delivered`).
+   */
+  sendStatus?: MessageSendStatus;
 }
 
 export interface Contact {

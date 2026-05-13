@@ -73,6 +73,7 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
       mediaData: customMedia.mediaData as string | undefined,
       mimeType: customMedia.mimeType as string | undefined,
       fileName: customMedia.fileName as string | undefined,
+      sendStatus: isFromMe ? 'delivered' : undefined,
     };
 
     return {

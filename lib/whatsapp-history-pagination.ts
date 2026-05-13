@@ -19,17 +19,19 @@ export function normalizeWhatsappHistoryResponse(data: unknown): {
 
 export function mapApiRowToMessage(m: Record<string, unknown>): Message {
   const ts = m.timestamp ? new Date(String(m.timestamp)) : new Date();
+  const fromMe = m.type === 'sent';
   return {
     id: m.id as string,
     text: String(m.text ?? ''),
     type: m.type === 'sent' ? 'sent' : 'received',
     time: ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     sentAt: ts.toISOString(),
-    fromMe: m.type === 'sent',
+    fromMe,
     senderNumber: String(m.contactNumber ?? ''),
     isMedia: Boolean(m.isMedia),
     mediaData: m.mediaData ? String(m.mediaData) : undefined,
     mimeType: m.mimeType ? String(m.mimeType) : undefined,
     fileName: m.fileName ? String(m.fileName) : undefined,
+    sendStatus: fromMe ? ('delivered' as const) : undefined,
   };
 }
