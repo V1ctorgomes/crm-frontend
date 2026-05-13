@@ -11,6 +11,7 @@ import {
   MessageCircle, 
   FolderOpen,
   Code,
+  LineChart,
   LogOut,
   Menu,
   X
@@ -33,6 +34,7 @@ const mainMenuItems = [
   { name: 'Visão Geral', icon: LayoutDashboard, path: '/dashboard' },
   { name: 'Contactos', icon: Contact, path: '/contacts' },
   { name: 'Equipa', icon: Users, path: '/usuarios' },
+  { name: 'Produtividade', icon: LineChart, path: '/produtividade' },
   { name: 'Solicitações', icon: KanbanSquare, path: '/solicitacoes' },
   { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
   { name: 'Arquivos', icon: FolderOpen, path: '/arquivos' },
@@ -58,13 +60,17 @@ export default function Sidebar() {
   const menuItems = useMemo(() => {
     const role = currentUser?.role as string | undefined;
     if (!role || role === 'USER') {
-      return mainMenuItems.filter((i) => i.path !== '/usuarios' && i.path !== '/developer');
+      return mainMenuItems.filter(
+        (i) => i.path !== '/usuarios' && i.path !== '/developer' && i.path !== '/produtividade',
+      );
     }
     if (role === 'ADMIN') {
       return mainMenuItems.filter((i) => i.path !== '/developer');
     }
     if (role === 'DEVELOPER') {
-      return mainMenuItems.filter((i) => i.path === '/usuarios' || i.path === '/developer');
+      return mainMenuItems.filter(
+        (i) => i.path === '/usuarios' || i.path === '/developer' || i.path === '/produtividade',
+      );
     }
     return mainMenuItems;
   }, [currentUser?.role]);
