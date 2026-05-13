@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarRange, RefreshCw } from 'lucide-react';
+import { CalendarRange, Download, RefreshCw } from 'lucide-react';
 import type { PeriodPreset } from './types';
 
 interface ProdutividadeHeaderProps {
@@ -7,6 +7,8 @@ interface ProdutividadeHeaderProps {
   onPeriodChange: (p: PeriodPreset) => void;
   isRefreshing: boolean;
   onRefresh: () => void;
+  onExportCsv?: () => void;
+  canExport?: boolean;
 }
 
 const presets: { value: PeriodPreset; label: string }[] = [
@@ -15,7 +17,14 @@ const presets: { value: PeriodPreset; label: string }[] = [
   { value: 'mes', label: 'Este mês' },
 ];
 
-export function ProdutividadeHeader({ period, onPeriodChange, isRefreshing, onRefresh }: ProdutividadeHeaderProps) {
+export function ProdutividadeHeader({
+  period,
+  onPeriodChange,
+  isRefreshing,
+  onRefresh,
+  onExportCsv,
+  canExport = true,
+}: ProdutividadeHeaderProps) {
   return (
     <div className="px-6 md:px-8 pt-8 pb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-slate-200">
       <div className="flex flex-col gap-1">
@@ -54,6 +63,18 @@ export function ProdutividadeHeader({ period, onPeriodChange, isRefreshing, onRe
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Recarregar
         </button>
+        {onExportCsv && (
+          <button
+            type="button"
+            onClick={onExportCsv}
+            disabled={!canExport || isRefreshing}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 disabled:opacity-50 transition-colors shadow-sm"
+            title="Exportar CSV"
+          >
+            <Download className="h-4 w-4" />
+            CSV
+          </button>
+        )}
       </div>
     </div>
   );

@@ -8,8 +8,15 @@ import { ProdutividadeHeader } from '@/components/produtividade/ProdutividadeHea
 import { KpiCards } from '@/components/produtividade/KpiCards';
 import { UserStatsTable } from '@/components/produtividade/UserStatsTable';
 import { FunnelPanel } from '@/components/produtividade/FunnelPanel';
-import type { PeriodPreset, TeamOverviewResponse } from '@/components/produtividade/types';
+import { DailyChart } from '@/components/produtividade/DailyChart';
+import { UserDetailDrawer } from '@/components/produtividade/UserDetailDrawer';
+import type {
+  PeriodPreset,
+  PerUserStats,
+  TeamOverviewResponse,
+} from '@/components/produtividade/types';
 import { apiRequest } from '@/lib/api-client';
+import { buildCsv, downloadCsv } from '@/lib/csv-export';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +46,13 @@ const EMPTY: TeamOverviewResponse = {
   },
   perUser: [],
   funnel: [],
+  daily: [],
+};
+
+const PERIOD_LABELS: Record<PeriodPreset, string> = {
+  '7d': 'Últimos 7 dias',
+  '30d': 'Últimos 30 dias',
+  mes: 'Este mês',
 };
 
 export default function ProdutividadePage() {
@@ -47,6 +61,7 @@ export default function ProdutividadePage() {
   const [data, setData] = useState<TeamOverviewResponse>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<PerUserStats | null>(null);
 
   const range = useMemo(() => computePeriodRange(period), [period]);
 
@@ -73,6 +88,37 @@ export default function ProdutividadePage() {
     void fetchData();
   }, [fetchData]);
 
+  const handleExportCsv = useCallback(() => {
+    if (data.perUser.length === 0) {
+      setToast({ type: 'error', message: 'Nada para exportar no período seleccionado.' });
+      return;
+    }
+    const headers = [
+      'Membro',
+      'Email',
+      'Função',
+      'Mensagens enviadas',
+      'Mensagens recebidas',
+      'OS criadas',
+      'OS fechadas',
+      'Última atividade',
+    ];
+    const rows = data.perUser.map((u) => [
+      u.name,
+      u.email,
+      u.role,
+      u.messagesSent,
+      u.messagesReceived,
+      u.ticketsCreated,
+      u.ticketsArchived,
+      u.lastActivityAt ?? '',
+    ]);
+    const csv = buildCsv(headers, rows);
+    const fromIso = data.period.from?.slice(0, 10) || 'inicio';
+    const toIso = data.period.to?.slice(0, 10) || 'fim';
+    downloadCsv(`produtividade_${fromIso}_${toIso}.csv`, csv);
+  }, [data]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
@@ -91,14 +137,22 @@ export default function ProdutividadePage() {
           onPeriodChange={setPeriod}
           isRefreshing={isLoading}
           onRefresh={() => void fetchData()}
+          onExportCsv={handleExportCsv}
+          canExport={data.perUser.length > 0}
         />
 
         <div className="px-6 md:px-8 py-6 flex flex-col gap-6">
           <KpiCards totals={data.totals} isLoading={isLoading} />
 
+          <DailyChart data={data.daily} isLoading={isLoading} />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <UserStatsTable rows={data.perUser} isLoading={isLoading} />
+              <UserStatsTable
+                rows={data.perUser}
+                isLoading={isLoading}
+                onUserClick={setSelectedUser}
+              />
             </div>
             <div className="lg:col-span-1">
               <FunnelPanel funnel={data.funnel} isLoading={isLoading} />
@@ -106,6 +160,12 @@ export default function ProdutividadePage() {
           </div>
         </div>
       </main>
+
+      <UserDetailDrawer
+        user={selectedUser}
+        periodLabel={PERIOD_LABELS[period]}
+        onClose={() => setSelectedUser(null)}
+      />
     </div>
   );
 }

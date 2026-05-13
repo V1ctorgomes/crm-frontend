@@ -17,6 +17,13 @@ export interface FunnelStage {
   count: number;
 }
 
+export interface DailyPoint {
+  date: string;
+  messagesSent: number;
+  ticketsCreated: number;
+  ticketsArchived: number;
+}
+
 export interface TeamOverviewResponse {
   period: { from: string; to: string };
   totals: {
@@ -29,6 +36,7 @@ export interface TeamOverviewResponse {
   };
   perUser: PerUserStats[];
   funnel: FunnelStage[];
+  daily: DailyPoint[];
 }
 
 export type PeriodPreset = '7d' | '30d' | 'mes';

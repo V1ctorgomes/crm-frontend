@@ -13,6 +13,7 @@ type SortKey = keyof Pick<
 interface UserStatsTableProps {
   rows: PerUserStats[];
   isLoading: boolean;
+  onUserClick?: (user: PerUserStats) => void;
 }
 
 interface SortHeaderProps {
@@ -56,7 +57,7 @@ function formatRelative(iso: string | null): string {
   return d.toLocaleDateString('pt-PT');
 }
 
-export function UserStatsTable({ rows, isLoading }: UserStatsTableProps) {
+export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableProps) {
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>('messagesSent');
   const [sortAsc, setSortAsc] = useState(false);
@@ -128,7 +129,11 @@ export function UserStatsTable({ rows, isLoading }: UserStatsTableProps) {
               </tr>
             ) : (
               paged.map((u) => (
-                <tr key={u.userId} className="hover:bg-slate-50/50 transition-colors">
+                <tr
+                  key={u.userId}
+                  className={`hover:bg-slate-50/50 transition-colors ${onUserClick ? 'cursor-pointer' : ''}`}
+                  onClick={onUserClick ? () => onUserClick(u) : undefined}
+                >
                   <td className="p-4 align-middle">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-500 text-xs overflow-hidden shrink-0">
