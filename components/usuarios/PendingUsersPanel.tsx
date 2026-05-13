@@ -18,12 +18,12 @@ export function PendingUsersPanel({ users, approvingId, onApprove }: PendingUser
   }
 
   return (
-    <div className="mx-6 md:mx-8 mb-6 rounded-xl border border-amber-200 bg-amber-50/80 shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-amber-200/80 bg-amber-100/50 px-4 py-3">
-        <UserCheck className="h-5 w-5 text-amber-800 shrink-0" />
-        <div>
+    <div className="mx-6 md:mx-8 mb-6 rounded-xl border border-amber-200 bg-amber-50/80 shadow-sm">
+      <div className="flex items-start gap-3 border-b border-amber-200/80 bg-amber-100/50 px-4 py-3 sm:px-5">
+        <UserCheck className="h-5 w-5 text-amber-800 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-amber-950">Aguardam aprovação</h2>
-          <p className="text-xs text-amber-900/80">
+          <p className="text-xs text-amber-900/80 mt-0.5 leading-snug">
             Estes utilizadores criaram conta pelo ecrã de login. Aprove para poderem entrar no CRM.
           </p>
         </div>
@@ -32,11 +32,11 @@ export function PendingUsersPanel({ users, approvingId, onApprove }: PendingUser
         {users.map((u) => (
           <li
             key={u.id}
-            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 bg-white/90"
+            className="flex flex-col gap-3 px-4 py-4 sm:px-5 bg-white/90 min-w-0"
           >
-            <div className="min-w-0">
-              <p className="font-semibold text-brand-950 truncate">{u.name}</p>
-              <p className="text-xs text-slate-600 truncate">{u.email}</p>
+            <div className="min-w-0 w-full">
+              <p className="font-semibold text-brand-950 break-words">{u.name}</p>
+              <p className="text-xs text-slate-600 break-all">{u.email}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">
                 Pedido em{' '}
                 {u.createdAt
@@ -54,7 +54,7 @@ export function PendingUsersPanel({ users, approvingId, onApprove }: PendingUser
               type="button"
               disabled={approvingId === u.id}
               onClick={() => onApprove(u.id)}
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
+              className="inline-flex h-10 w-full max-w-md items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
             >
               {approvingId === u.id ? (
                 <>
