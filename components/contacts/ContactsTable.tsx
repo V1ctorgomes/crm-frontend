@@ -1,4 +1,5 @@
 import React from 'react';
+import { TablePagination, TablePaginationProps } from '@/components/ui/TablePagination';
 
 export interface Contact {
   number: string;
@@ -14,9 +15,10 @@ interface ContactsTableProps {
   contacts: Contact[];
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
+  pagination?: Pick<TablePaginationProps, 'page' | 'pageSize' | 'total' | 'onPageChange'>;
 }
 
-export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: ContactsTableProps) {
+export function ContactsTable({ isLoading, contacts, onEdit, onDelete, pagination }: ContactsTableProps) {
   return (
     <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
@@ -82,6 +84,14 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete }: Contact
             </tbody>
           </table>
         </div>
+        {pagination && (
+          <TablePagination
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            onPageChange={pagination.onPageChange}
+          />
+        )}
       </div>
     </div>
   );

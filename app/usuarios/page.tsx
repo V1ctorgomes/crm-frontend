@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast'; // Reutilizando do refatoramento anterior
 import { User } from '@/components/usuarios/types';
@@ -9,6 +9,8 @@ import { UsuariosTable } from '@/components/usuarios/UsuariosTable';
 import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
 import { apiRequest } from '@/lib/api-client';
+
+const PAGE_SIZE = 8;
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,7 @@ export default function UsuariosPage() {
 
   // Modal de Confirmação de Remoção
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [tablePage, setTablePage] = useState(0);
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -134,10 +137,31 @@ export default function UsuariosPage() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          u.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [users, searchTerm],
   );
+
+  useEffect(() => {
+    setTablePage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setTablePage((p) => {
+      const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+      return Math.min(p, totalPages - 1);
+    });
+  }, [filteredUsers.length]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = tablePage * PAGE_SIZE;
+    return filteredUsers.slice(start, start + PAGE_SIZE);
+  }, [filteredUsers, tablePage]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -162,9 +186,15 @@ export default function UsuariosPage() {
 
         <UsuariosTable 
           isLoading={isLoading}
-          users={filteredUsers}
+          users={paginatedUsers}
           onEdit={openModal}
           onDelete={setUserToDelete}
+          pagination={{
+            page: tablePage,
+            pageSize: PAGE_SIZE,
+            total: filteredUsers.length,
+            onPageChange: setTablePage,
+          }}
         />
 
       </main>

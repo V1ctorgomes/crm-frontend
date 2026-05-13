@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ContactsHeader } from '@/components/contacts/ContactsHeader';
@@ -8,6 +8,8 @@ import { ContactsTable, Contact } from '@/components/contacts/ContactsTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
 import { apiRequest } from '@/lib/api-client';
+
+const PAGE_SIZE = 8;
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +31,7 @@ export default function ContactsPage() {
 
   // Estados do Modal de Confirmação de Remoção
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+  const [tablePage, setTablePage] = useState(0);
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -97,11 +100,32 @@ export default function ContactsPage() {
     }
   };
 
-  const filteredContacts = contacts.filter(c => 
-    (c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    c.number.includes(searchTerm) ||
-    (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredContacts = useMemo(
+    () =>
+      contacts.filter(
+        (c) =>
+          (c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          c.number.includes(searchTerm) ||
+          (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())),
+      ),
+    [contacts, searchTerm],
   );
+
+  useEffect(() => {
+    setTablePage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setTablePage((p) => {
+      const totalPages = Math.max(1, Math.ceil(filteredContacts.length / PAGE_SIZE));
+      return Math.min(p, totalPages - 1);
+    });
+  }, [filteredContacts.length]);
+
+  const paginatedContacts = useMemo(() => {
+    const start = tablePage * PAGE_SIZE;
+    return filteredContacts.slice(start, start + PAGE_SIZE);
+  }, [filteredContacts, tablePage]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -125,9 +149,15 @@ export default function ContactsPage() {
 
         <ContactsTable 
           isLoading={isLoading} 
-          contacts={filteredContacts} 
+          contacts={paginatedContacts} 
           onEdit={openEditModal} 
-          onDelete={setContactToDelete} 
+          onDelete={setContactToDelete}
+          pagination={{
+            page: tablePage,
+            pageSize: PAGE_SIZE,
+            total: filteredContacts.length,
+            onPageChange: setTablePage,
+          }}
         />
       </main>
 

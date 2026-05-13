@@ -1,14 +1,16 @@
 import React from 'react';
 import { User } from './types';
+import { TablePagination, TablePaginationProps } from '@/components/ui/TablePagination';
 
 interface UsuariosTableProps {
   isLoading: boolean;
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  pagination?: Pick<TablePaginationProps, 'page' | 'pageSize' | 'total' | 'onPageChange'>;
 }
 
-export function UsuariosTable({ isLoading, users, onEdit, onDelete }: UsuariosTableProps) {
+export function UsuariosTable({ isLoading, users, onEdit, onDelete, pagination }: UsuariosTableProps) {
   
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -92,6 +94,14 @@ export function UsuariosTable({ isLoading, users, onEdit, onDelete }: UsuariosTa
             </tbody>
           </table>
         </div>
+        {pagination && (
+          <TablePagination
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            total={pagination.total}
+            onPageChange={pagination.onPageChange}
+          />
+        )}
       </div>
     </div>
   );
