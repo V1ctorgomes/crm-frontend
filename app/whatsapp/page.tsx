@@ -489,8 +489,18 @@ export default function WhatsAppPage() {
           };
         }),
       }));
-    } catch (error) { showFeedback('error', "Erro de conexão ao enviar arquivo."); } 
-    finally { setIsSending(false); }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro ao enviar arquivo.';
+      showFeedback('error', msg);
+      setChatHistory((prev) => {
+        const list = prev[targetNumber] || [];
+        const doomed = list.find((m) => m.id === tempId);
+        if (doomed && typeof doomed.mediaData === 'string' && doomed.mediaData.startsWith('blob:')) {
+          URL.revokeObjectURL(doomed.mediaData);
+        }
+        return { ...prev, [targetNumber]: list.filter((m) => m.id !== tempId) };
+      });
+    } finally {
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
