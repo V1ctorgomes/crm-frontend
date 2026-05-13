@@ -1,7 +1,9 @@
-import React from 'react';
-import { Clock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { Stage, Ticket } from './types';
 import { isTaskDueOnCalendarToday, isTaskOverdue } from '@/lib/solicitacoes-reminders';
+
+const PAGE_SIZE = 5;
 
 interface KanbanBoardProps {
   isLoading: boolean;
@@ -26,9 +28,37 @@ export function KanbanBoard({
   onDrop,
   onTicketClick,
 }: KanbanBoardProps) {
+  const [pageByStageId, setPageByStageId] = useState<Record<string, number>>({});
+
+  const stageTicketSignature = useMemo(
+    () => filteredStages.map((s) => `${s.id}:${s.tickets.length}`).join('|'),
+    [filteredStages],
+  );
+
+  useEffect(() => {
+    setPageByStageId({});
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPageByStageId((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const stage of filteredStages) {
+        const totalPages = Math.max(1, Math.ceil(stage.tickets.length / PAGE_SIZE));
+        const maxPage = totalPages - 1;
+        const cur = next[stage.id] ?? 0;
+        if (cur > maxPage) {
+          next[stage.id] = maxPage;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [stageTicketSignature, filteredStages]);
+
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 md:px-8">
-      <div className="flex h-full gap-5 items-start w-max pb-4 animate-in fade-in duration-700">
+    <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 md:px-8 min-h-0">
+      <div className="flex h-full min-h-0 gap-5 items-stretch w-max pb-4 animate-in fade-in duration-700">
         {isLoading ? (
           <div className="w-[calc(100vw-300px)] flex justify-center items-center h-full">
             <div className="flex flex-col items-center gap-3">
@@ -45,14 +75,26 @@ export function KanbanBoard({
             <p className="text-sm text-slate-500 mt-1">Configure as suas fases de atendimento para começar.</p>
           </div>
         ) : (
-          filteredStages.map((stage) => (
+          filteredStages.map((stage) => {
+            const total = stage.tickets.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const rawPage = pageByStageId[stage.id] ?? 0;
+            const page = Math.min(Math.max(0, rawPage), totalPages - 1);
+            const start = page * PAGE_SIZE;
+            const visibleTickets = stage.tickets.slice(start, start + PAGE_SIZE);
+            const rangeLabel =
+              total === 0
+                ? '0'
+                : `${start + 1}–${Math.min(start + PAGE_SIZE, total)}`;
+
+            return (
             <div 
               key={stage.id} 
-              className="w-[320px] bg-slate-100/50 rounded-xl flex flex-col max-h-full border border-slate-200 shadow-sm overflow-hidden shrink-0"
+              className="w-[320px] min-w-[320px] bg-slate-100/50 rounded-xl flex flex-col h-full min-h-0 max-h-full border border-slate-200 shadow-sm overflow-hidden shrink-0"
               onDragOver={onDragOver}
               onDrop={(e) => onDrop(e, stage.id)}
             >
-              <div className="h-1 w-full" style={{ backgroundColor: stage.color }}></div>
+              <div className="h-1 w-full shrink-0" style={{ backgroundColor: stage.color }}></div>
               
               <div className="px-4 py-3 flex justify-between items-center shrink-0 bg-white border-b border-slate-200">
                 <div className="flex items-center gap-2">
@@ -60,15 +102,15 @@ export function KanbanBoard({
                   <h3 className="font-semibold text-slate-800 text-sm">{stage.name}</h3>
                 </div>
                 <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-0.5 rounded-md border border-slate-200">
-                  {stage.tickets.length}
+                  {total}
                 </span>
               </div>
               
-              <div className="p-3 flex-1 overflow-y-auto overflow-x-hidden flex flex-col gap-3 no-scrollbar">
+              <div className="p-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-3 no-scrollbar">
                 {stage.tickets.length === 0 && searchTerm ? (
                   <p className="text-xs text-slate-400 text-center mt-4 font-medium">Nenhum resultado nesta fase.</p>
                 ) : (
-                  stage.tickets.map((ticket) => {
+                  visibleTickets.map((ticket) => {
                     const pendingTicketTasks = ticket.tasks?.filter((t) => !t.isCompleted) || [];
                     const greenR = reminderGreenByTicketId[ticket.id] || 0;
                     const redR = reminderRedByTicketId[ticket.id] || 0;
@@ -82,7 +124,7 @@ export function KanbanBoard({
                       draggable 
                       onDragStart={(e) => onDragStart(e, ticket.id, stage.id)} 
                       onClick={() => onTicketClick(ticket)}
-                      className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-brand-400 transition-colors w-full overflow-hidden group"
+                      className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:border-brand-400 transition-colors w-full shrink-0 overflow-hidden group"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded font-mono">OS-{ticket.id.split('-')[0].toUpperCase()}</span>
@@ -131,11 +173,49 @@ export function KanbanBoard({
                         </div>
                       )}
                     </div>
-                  )})
+                    );
+                  })
                 )}
               </div>
+
+              {total > PAGE_SIZE && (
+                <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 bg-white border-t border-slate-200">
+                  <button
+                    type="button"
+                    aria-label="Página anterior"
+                    disabled={page <= 0}
+                    onClick={() =>
+                      setPageByStageId((prev) => ({
+                        ...prev,
+                        [stage.id]: Math.max(0, (prev[stage.id] ?? 0) - 1),
+                      }))
+                    }
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-[11px] font-medium text-slate-600 tabular-nums">
+                    {rangeLabel} de {total} · {page + 1}/{totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Página seguinte"
+                    disabled={page >= totalPages - 1}
+                    onClick={() =>
+                      setPageByStageId((prev) => ({
+                        ...prev,
+                        [stage.id]: Math.min(totalPages - 1, (prev[stage.id] ?? 0) + 1),
+                      }))
+                    }
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
