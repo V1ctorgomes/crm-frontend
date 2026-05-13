@@ -47,7 +47,7 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
     const customMedia = (msgData.customMedia || {}) as Record<string, unknown>;
     const message = (msgData.message || {}) as Record<string, unknown>;
     const ext = message.extendedTextMessage as { text?: string } | undefined;
-    let incomingText =
+    const incomingText =
       customMedia.text !== undefined
         ? String(customMedia.text)
         : String(message.conversation || ext?.text || '');

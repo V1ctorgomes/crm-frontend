@@ -98,6 +98,7 @@ export default function WhatsAppPage() {
   const loadingOlderRef = useRef(false);
   const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
 
+  const chatHistoryRef = useRef<Record<string, Message[]>>({});
   const pendingMediaAbortRef = useRef<AbortController | null>(null);
   const pendingMediaTempIdRef = useRef<number | null>(null);
 
