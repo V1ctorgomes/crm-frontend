@@ -49,7 +49,7 @@ export function LoginBanner({ recentUsers = [] }: LoginBannerProps) {
         </div>
 
         <h2 className="text-4xl font-bold text-white leading-tight mb-6 drop-shadow-sm">
-          Otimizando a sua operação e unifique o atendimento ao cliente.
+          Otimizando a sua operação e unificando o atendimento ao cliente.
         </h2>
 
         <p className="text-lg text-brand-100/95 font-medium leading-relaxed max-w-lg">
