@@ -165,10 +165,10 @@ export function LoginForm() {
           </h1>
           <p className="text-sm text-brand-800/80 font-medium">
             {mode === 'login'
-              ? 'Insira as suas credenciais corporativas para aceder à plataforma.'
+              ? 'Insira as suas credenciais corporativas para acessar a plataforma.'
               : mode === 'register'
-                ? 'Crie a sua conta como utilizador de atendimento. Um administrador terá de aprovar antes de poder iniciar sessão.'
-                : 'Indique o e-mail da sua conta. Um administrador criará uma nova palavra-passe na área de utilizadores (sem e-mail automático).'}
+                ? 'Crie a sua conta como usuario de atendimento. Um administrador terá de aprovar antes de poder iniciar sessão.'
+                : 'Indique o e-mail da sua conta. Um administrador criará uma nova palavra-passe na área de usuarios (sem e-mail automático).'}
           </p>
         </div>
 
@@ -225,7 +225,7 @@ export function LoginForm() {
                   className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline transition-colors"
                   onClick={switchToForgot}
                 >
-                  Esqueceu-se?
+                  Esqueceu?
                 </button>
               </div>
               <input
@@ -263,7 +263,7 @@ export function LoginForm() {
               className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-white text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
-              Pedir acesso (novo utilizador)
+              Pedir acesso (novo usuario)
             </button>
           </form>
         ) : mode === 'register' ? (
