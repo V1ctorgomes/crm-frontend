@@ -35,7 +35,7 @@ export function UsuariosSectionTabs({
     icon: React.ReactNode;
     count: number;
   }[] = [
-    { id: 'users', label: 'Utilizadores', icon: <Users className="h-4 w-4 shrink-0" />, count: 0 },
+    { id: 'users', label: 'Usuarios', icon: <Users className="h-4 w-4 shrink-0" />, count: 0 },
     { id: 'pending', label: 'Novos acessos', icon: <UserPlus className="h-4 w-4 shrink-0" />, count: pendingCount },
     {
       id: 'password',
@@ -48,7 +48,7 @@ export function UsuariosSectionTabs({
   return (
     <nav
       className="mx-6 md:mx-8 mb-6 flex flex-wrap gap-1 rounded-xl border border-slate-200/90 bg-white/90 p-1 shadow-sm"
-      aria-label="Secções de utilizadores"
+      aria-label="Secções de usuarios"
     >
       {tabs.map((t) => {
         const active = value === t.id;

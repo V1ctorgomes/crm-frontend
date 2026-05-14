@@ -94,7 +94,7 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
   return (
     <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-brand-950">Por utilizador</h3>
+        <h3 className="text-sm font-semibold text-brand-950">Por usuario</h3>
         <span className="text-[11px] font-medium text-slate-500">
           {rows.length} {rows.length === 1 ? 'membro' : 'membros'}
         </span>
@@ -117,7 +117,7 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
                 <td colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <span className="text-slate-500 font-medium text-sm">A carregar equipa…</span>
+                    <span className="text-slate-500 font-medium text-sm">A carregar equipe…</span>
                   </div>
                 </td>
               </tr>
@@ -152,7 +152,7 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
                       <div className="flex flex-col max-w-[160px] sm:max-w-[260px]">
                         <span className="font-semibold text-brand-950 truncate">{u.name}</span>
                         <span className="text-[11px] text-slate-500 truncate">
-                          {u.role === 'ADMIN' ? 'Administrador' : 'Equipa'} · {u.email}
+                          {u.role === 'ADMIN' ? 'Administrador' : 'Equipe'} · {u.email}
                         </span>
                       </div>
                     </div>

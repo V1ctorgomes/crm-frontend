@@ -96,7 +96,7 @@ export function ContactsSidebar({
                           : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                       }`}
                     >
-                      {contact.contactKind === 'INTERNAL' ? 'Equipa' : 'Cliente'}
+                      {contact.contactKind === 'INTERNAL' ? 'Equipe' : 'Cliente'}
                     </span>
                   )}
                   {(unreadByContact[contact.number] || 0) > 0 && (

@@ -10,7 +10,7 @@ export function ContactsHeader({ totalContacts, searchTerm, onSearchChange }: Co
   return (
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-brand-950">Contactos</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand-950">Contatos</h1>
         <p className="text-slate-500 text-sm mt-1">Faça a gestão da sua base de clientes ({totalContacts} registados).</p>
       </div>
       

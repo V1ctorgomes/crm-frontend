@@ -4,7 +4,7 @@ interface UsuariosHeaderProps {
   totalUsers: number;
   pendingCount?: number;
   passwordResetCount?: number;
-  /** Quando falso, esconde pesquisa e «Novo utilizador» (ex.: secções de pedidos no mesmo ecrã). */
+  /** Quando falso, esconde pesquisa e «Novo usuario» (ex.: secções de pedidos no mesmo ecrã). */
   showToolbar?: boolean;
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -23,9 +23,9 @@ export function UsuariosHeader({
   return (
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-brand-950">Equipa do Sistema</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-brand-950">Equipe do Sistema</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Gira os utilizadores, permissões e contas de acesso ({totalUsers} activos
+          Gira os usuarios, permissões e contas de acesso ({totalUsers} activos
           {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}
           {passwordResetCount > 0 ? ` · ${passwordResetCount} pedido(s) de nova palavra-passe` : ''}).
         </p>
@@ -51,7 +51,7 @@ export function UsuariosHeader({
             className="bg-brand-600 text-white px-4 h-10 rounded-md font-medium shadow hover:bg-brand-700 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            Novo Utilizador
+            Novo Usuario
           </button>
         </div>
       )}

@@ -15,7 +15,7 @@ function idMatches(a: string | number, b: string | number) {
 }
 
 /**
- * Atualiza histórico e lista de contactos. Devolve true se entrou uma mensagem **recebida** nova no histórico.
+ * Atualiza histórico e lista de contatos. Devolve true se entrou uma mensagem **recebida** nova no histórico.
  */
 export function mergeWhatsappIngressDetail(
   detail: WhatsappIngressDetail,

@@ -88,7 +88,7 @@ export async function downloadProdutividadeWorkbook(
   wb.creator = 'CRM';
   wb.created = new Date();
   wb.modified = new Date();
-  wb.title = 'Produtividade da equipa';
+  wb.title = 'Produtividade da equipe';
 
   const fromIso = data.period.from?.slice(0, 10) || 'inicio';
   const toIso = data.period.to?.slice(0, 10) || 'fim';
@@ -111,7 +111,7 @@ export async function downloadProdutividadeWorkbook(
   let r = 1;
   resumo.mergeCells(`A${r}:F${r}`);
   const title = resumo.getCell(`A${r}`);
-  title.value = 'Relatório de produtividade da equipa';
+  title.value = 'Relatório de produtividade da equipe';
   title.font = { size: 18, bold: true, color: { argb: 'FF0F172A' } };
   title.alignment = { vertical: 'middle' };
   resumo.getRow(r).height = 28;
@@ -141,8 +141,8 @@ export async function downloadProdutividadeWorkbook(
 
   const kpiRows: [string, string | number][] = [
     ['Membros com atividade', data.totals.activeUsers],
-    ['Mensagens enviadas (equipa)', data.totals.messagesSent],
-    ['Mensagens recebidas (equipa)', data.totals.messagesReceived],
+    ['Mensagens enviadas (equipe)', data.totals.messagesSent],
+    ['Mensagens recebidas (equipe)', data.totals.messagesReceived],
     ['Ordens de serviço criadas', data.totals.ticketsCreated],
     ['Ordens de serviço fechadas', data.totals.ticketsArchived],
     ['OS em aberto (estado actual)', data.totals.openTickets],
@@ -226,12 +226,12 @@ export async function downloadProdutividadeWorkbook(
     }
   }
 
-  // ——— Folha Equipa ———
-  const equipa = wb.addWorksheet('Por membro', {
+  // ——— Folha por membro ———
+  const memberSheet = wb.addWorksheet('Por membro', {
     views: [{ state: 'frozen', ySplit: 1 }],
     properties: { defaultRowHeight: 19 },
   });
-  equipa.columns = [
+  memberSheet.columns = [
     { width: 26 },
     { width: 32 },
     { width: 18 },
@@ -241,7 +241,7 @@ export async function downloadProdutividadeWorkbook(
     { width: 14 },
     { width: 20 },
   ];
-  const teamHeader = equipa.getRow(1);
+  const teamHeader = memberSheet.getRow(1);
   teamHeader.values = [
     'Membro',
     'Email',
@@ -253,11 +253,11 @@ export async function downloadProdutividadeWorkbook(
     'Última atividade',
   ];
   styleHeaderRow(teamHeader, 8);
-  equipa.autoFilter = { from: 'A1', to: `H${Math.max(1, data.perUser.length + 1)}` };
+  memberSheet.autoFilter = { from: 'A1', to: `H${Math.max(1, data.perUser.length + 1)}` };
 
   let rowNum = 2;
   for (const u of data.perUser) {
-    const row = equipa.getRow(rowNum);
+    const row = memberSheet.getRow(rowNum);
     row.getCell(1).value = u.name;
     row.getCell(2).value = u.email;
     row.getCell(3).value = u.role;

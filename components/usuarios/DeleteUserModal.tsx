@@ -19,7 +19,7 @@ export function DeleteUserModal({ user, onClose, onConfirm }: DeleteUserModalPro
           </div>
           <h3 className="font-semibold tracking-tight text-lg text-brand-950">Remover Membro?</h3>
           <p className="text-sm text-slate-500">
-            Tem a certeza que pretende eliminar <b>{user.name}</b> da equipa? Esta ação revogará os seus acessos imediatamente.
+            Tem a certeza que pretende eliminar <b>{user.name}</b> da equipe? Esta ação revogará os seus acessos imediatamente.
           </p>
         </div>
         <div className="flex items-center justify-end gap-2 p-6 pt-0 bg-slate-50 border-t border-slate-100 mt-2">

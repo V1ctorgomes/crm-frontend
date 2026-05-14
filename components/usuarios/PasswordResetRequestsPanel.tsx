@@ -41,7 +41,7 @@ export function PasswordResetRequestsPanel({
         method: 'POST',
         body: JSON.stringify({ newPassword: pw1 }),
       });
-      showFeedback('success', 'Nova palavra-passe guardada. Informe o utilizador.');
+      showFeedback('success', 'Nova palavra-passe guardada. Informe o usuario.');
       closeModal();
       onCompleted();
     } catch (e: unknown) {
@@ -67,7 +67,7 @@ export function PasswordResetRequestsPanel({
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-bold text-sky-950">Palavra-passe esquecida</h2>
             <p className="text-xs text-sky-900/85 mt-0.5 leading-snug">
-              O utilizador pediu ajuda no ecrã de login. Defina uma nova palavra-passe e comunique-lha por um canal seguro.
+              O usuario pediu ajuda no ecrã de login. Defina uma nova palavra-passe e comunique-lha por um canal seguro.
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export function PasswordResetRequestsPanel({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-bold text-brand-950">Nova palavra-passe</h3>
-            <p className="text-sm text-slate-500 mt-1 mb-4">Mínimo 8 caracteres. O utilizador usará esta senha no próximo login.</p>
+            <p className="text-sm text-slate-500 mt-1 mb-4">Mínimo 8 caracteres. O usuario usará esta senha no próximo login.</p>
             <div className="space-y-3">
               <input
                 type="password"

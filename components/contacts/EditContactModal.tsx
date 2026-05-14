@@ -39,12 +39,12 @@ export function EditContactModal({
       >
         <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100">
           <h3 className="font-semibold leading-none tracking-tight text-lg">Editar Registo</h3>
-          <p className="text-sm text-slate-500">Atualize as informações do contacto.</p>
+          <p className="text-sm text-slate-500">Atualize as informações do contato.</p>
         </div>
 
         <div className="p-6 flex flex-col gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none text-slate-700">Nome do Contacto</label>
+            <label className="text-sm font-medium leading-none text-slate-700">Nome do Contato</label>
             <input
               type="text"
               className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -72,7 +72,7 @@ export function EditContactModal({
           </div>
           <div className="space-y-2">
             <label htmlFor="edit-contact-kind" className="text-sm font-medium leading-none text-slate-700">
-              Tipo de contacto
+              Tipo de contato
             </label>
             <select
               id="edit-contact-kind"

@@ -19,7 +19,7 @@ export function UsuariosTable({ isLoading, users, onEdit, onDelete, pagination }
       case 'DEVELOPER': 
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-brand-100 text-brand-800 border border-brand-300">Developer</span>;
       default: 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-highlight/25 text-brand-800 border border-highlight-warm/70">Utilizador</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-highlight/25 text-brand-800 border border-highlight-warm/70">Usuario</span>;
     }
   };
 
@@ -42,14 +42,14 @@ export function UsuariosTable({ isLoading, users, onEdit, onDelete, pagination }
                   <td colSpan={4} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                      <span className="text-slate-500 font-medium text-sm">A carregar a equipa...</span>
+                      <span className="text-slate-500 font-medium text-sm">A carregar a equipe...</span>
                     </div>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="h-32 text-center text-slate-500 text-sm">
-                    Nenhum utilizador encontrado.
+                    Nenhum usuario encontrado.
                   </td>
                 </tr>
               ) : (

@@ -66,7 +66,7 @@ export function ChatHeader({
           </span>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <label htmlFor="wa-contact-kind" className="sr-only">
-              Tipo de contacto
+              Tipo de contato
             </label>
             <select
               id="wa-contact-kind"

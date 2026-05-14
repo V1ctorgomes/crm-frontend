@@ -6,7 +6,7 @@ import { MessageContextMenu } from './MessageContextMenu';
 import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
 
 interface MessageListProps {
-  /** Identifica o contacto ativo; ao mudar, a lista deve ir ao fim. */
+  /** Identifica o contato ativo; ao mudar, a lista deve ir ao fim. */
   conversationKey: string;
   filteredMessages: Message[];
   chatSearchTerm: string;

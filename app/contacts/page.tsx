@@ -57,7 +57,7 @@ export default function ContactsPage() {
         })),
       );
     } catch (err) {
-      showFeedback('error', "Falha ao carregar a lista de contactos.");
+      showFeedback('error', "Falha ao carregar a lista de contatos.");
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +97,7 @@ export default function ContactsPage() {
         ),
       );
       setIsEditing(false);
-      showFeedback('success', "Contacto atualizado com sucesso!");
+      showFeedback('success', "Contato atualizado com sucesso!");
     } catch (err) {
       showFeedback('error', "Erro de conexão ao tentar guardar.");
     } finally {
@@ -115,7 +115,7 @@ export default function ContactsPage() {
 
       setContacts(prev => prev.filter(c => c.number !== contactToDelete.number));
       setContactToDelete(null);
-      showFeedback('success', "Contacto removido da base de dados.");
+      showFeedback('success', "Contato removido da base de dados.");
     } catch (err) {
       showFeedback('error', "Erro de ligação ao servidor.");
       setContactToDelete(null);

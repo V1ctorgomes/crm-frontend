@@ -94,7 +94,7 @@ export function validateCreateTicketForm(input: Partial<CreateTicketFormInput>):
   }
   const contactNumber = onlyDigits(String(input.contactNumber || ''));
   if (!contactNumber || contactNumber.length < 10) {
-    return { ok: false, message: 'Número de contacto inválido (mínimo 10 dígitos).' };
+    return { ok: false, message: 'Número de contato inválido (mínimo 10 dígitos).' };
   }
 
   const stageId = String(input.stageId || '').trim();

@@ -26,8 +26,8 @@ export function UserFormModal({
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
         <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100">
-          <h3 className="font-semibold leading-none tracking-tight text-lg">{editingUser ? 'Editar Utilizador' : 'Novo Utilizador'}</h3>
-          <p className="text-sm text-slate-500">{editingUser ? 'Atualize as permissões ou dados do membro.' : 'Adicione um novo membro à sua equipa.'}</p>
+          <h3 className="font-semibold leading-none tracking-tight text-lg">{editingUser ? 'Editar Usuario' : 'Novo Usuario'}</h3>
+          <p className="text-sm text-slate-500">{editingUser ? 'Atualize as permissões ou dados do membro.' : 'Adicione um novo membro à sua equipe.'}</p>
         </div>
         
         <div className="p-6 flex flex-col gap-4">
@@ -59,7 +59,7 @@ export function UserFormModal({
                 value={formRole} 
                 onChange={e => setFormRole(e.target.value)}
               >
-                <option value="USER">Utilizador (Atendimento)</option>
+                <option value="USER">Usuario (Atendimento)</option>
                 <option value="ADMIN">Administrador (Gestão Total)</option>
                 <option value="DEVELOPER">Developer (Acesso Técnico)</option>
               </select>
@@ -67,7 +67,7 @@ export function UserFormModal({
           )}
           {viewerRole === 'ADMIN' && (
             <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
-              Novos membros são criados como <strong>atendimento</strong> (Utilizador). Apenas developers podem atribuir o perfil técnico.
+              Novos membros são criados como <strong>atendimento</strong> (Usuario). Apenas developers podem atribuir o perfil técnico.
             </p>
           )}
           <div className="space-y-2 pt-2">
@@ -95,7 +95,7 @@ export function UserFormModal({
                 A guardar...
               </>
             ) : (
-              editingUser ? 'Guardar Alterações' : 'Criar Utilizador'
+              editingUser ? 'Guardar Alterações' : 'Criar Usuario'
             )}
           </button>
         </div>

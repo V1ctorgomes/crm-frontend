@@ -44,7 +44,7 @@ export function ProxyForm({ proxyForm, setProxyForm, loadingProxies, handleSaveP
         <div className="pt-4 border-t border-slate-100 mt-2">
           <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-widest">Autenticação (Opcional)</p>
           <div className="space-y-4">
-            <input value={proxyForm.username} onChange={e => setProxyForm({...proxyForm, username: e.target.value})} placeholder="Nome de Utilizador" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
+            <input value={proxyForm.username} onChange={e => setProxyForm({...proxyForm, username: e.target.value})} placeholder="Nome de usuario" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
             <input value={proxyForm.password} onChange={e => setProxyForm({...proxyForm, password: e.target.value})} type="password" placeholder="Palavra-passe" className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
           </div>
         </div>

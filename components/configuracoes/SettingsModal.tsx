@@ -56,7 +56,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         setEmail(currentUser.email || '');
         if (currentUser.profilePictureUrl) setPhotoPreview(currentUser.profilePictureUrl);
       } else {
-        showFeedback('error', 'Erro ao carregar utilizador.');
+        showFeedback('error', 'Erro ao carregar usuario.');
       }
       setIsProfileLoading(false);
 

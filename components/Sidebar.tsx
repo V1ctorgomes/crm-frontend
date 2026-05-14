@@ -32,8 +32,8 @@ let globalUserCache: any = null;
 // Lista completa de páginas restaurada com a ordem correta
 const mainMenuItems = [
   { name: 'Visão Geral', icon: LayoutDashboard, path: '/dashboard' },
-  { name: 'Contactos', icon: Contact, path: '/contacts' },
-  { name: 'Equipa', icon: Users, path: '/usuarios' },
+  { name: 'Contatos', icon: Contact, path: '/contacts' },
+  { name: 'Equipe', icon: Users, path: '/usuarios' },
   { name: 'Produtividade', icon: LineChart, path: '/produtividade' },
   { name: 'Solicitações', icon: KanbanSquare, path: '/solicitacoes' },
   { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
@@ -89,7 +89,7 @@ export default function Sidebar() {
     router.replace('/login');
   };
 
-  // Carregar os dados reais do Utilizador
+  // Carregar os dados reais do usuario
   useEffect(() => {
     if (!globalUserCache && typeof window !== 'undefined') {
       const stored = localStorage.getItem('crm_user_cache');
@@ -112,7 +112,7 @@ export default function Sidebar() {
           }
         }
       })
-      .catch(err => console.error("Erro ao carregar utilizador:", err));
+      .catch(err => console.error("Erro ao carregar usuario:", err));
   }, []);
 
   // Fechar o menu mobile ao trocar de rota
@@ -259,7 +259,7 @@ export default function Sidebar() {
           })}
         </div>
 
-        {/* Perfil de Utilizador Dinâmico (Botão de Configurações) */}
+        {/* Perfil de usuario dinâmico (botão de Configurações) */}
         <div className="p-4 border-t border-slate-100 shrink-0 mb-2 md:mb-0">
           <div 
             onClick={() => canOpenSettings && setIsSettingsOpen(true)} 
@@ -293,7 +293,7 @@ export default function Sidebar() {
                     ? 'Administrador'
                     : currentUser?.role === 'DEVELOPER'
                       ? 'Developer'
-                      : 'Equipa'}
+                      : 'Equipe'}
                 </span>
               </div>
             </div>

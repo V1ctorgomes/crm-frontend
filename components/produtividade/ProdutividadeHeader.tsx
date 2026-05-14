@@ -28,9 +28,9 @@ export function ProdutividadeHeader({
   return (
     <div className="px-6 md:px-8 pt-8 pb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-slate-200">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-brand-950 tracking-tight">Visão geral da equipa</h1>
+        <h1 className="text-2xl font-bold text-brand-950 tracking-tight">Visão geral da equipe</h1>
         <p className="text-sm text-slate-500">
-          Atividade e produtividade dos utilizadores no período escolhido.
+          Atividade e produtividade dos usuarios no período escolhido.
         </p>
       </div>
 

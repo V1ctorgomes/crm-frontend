@@ -107,14 +107,14 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
           )}
           {!catalogLoading && !catalogReady && (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              O catálogo de OS está incompleto ou vazio. Peça a um utilizador <strong>Developer</strong> para preencher as quatro
+              O catálogo de OS está incompleto ou vazio. Peça a um usuario <strong>Developer</strong> para preencher as quatro
               listas em <strong>Developer → Catálogo de OS</strong> antes de criar solicitações.
             </div>
           )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none text-slate-700">
-              Cliente / contacto <span className="text-red-600">*</span>
+              Cliente / contato <span className="text-red-600">*</span>
             </label>
             <select
               className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 text-brand-950"

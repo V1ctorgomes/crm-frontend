@@ -42,14 +42,14 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                   <td colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                      <span className="text-slate-500 font-medium text-sm">A carregar contactos...</span>
+                      <span className="text-slate-500 font-medium text-sm">A carregar contatos...</span>
                     </div>
                   </td>
                 </tr>
               ) : contacts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="h-32 text-center text-slate-500 text-sm">
-                    Nenhum contacto encontrado.
+                    Nenhum contato encontrado.
                   </td>
                 </tr>
               ) : contacts.map((contact) => (

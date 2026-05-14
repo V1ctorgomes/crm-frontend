@@ -12,9 +12,9 @@ export function DeleteContactModal({ contact, onClose, onConfirm }: DeleteContac
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
         <div className="flex flex-col space-y-2 p-6 pb-4">
-          <h3 className="font-semibold tracking-tight text-lg text-brand-950">Remover Contacto?</h3>
+          <h3 className="font-semibold tracking-tight text-lg text-brand-950">Remover Contato?</h3>
           <p className="text-sm text-slate-500">
-            Tem a certeza que pretende eliminar <b>{contact.name || contact.number}</b>? Esta ação removerá o contacto permanentemente.
+            Tem a certeza que pretende eliminar <b>{contact.name || contact.number}</b>? Esta ação removerá o contato permanentemente.
           </p>
         </div>
         <div className="flex items-center justify-end gap-2 p-6 pt-0">

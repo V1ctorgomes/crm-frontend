@@ -19,7 +19,7 @@ export function loadUnreadByContact(): Record<string, number> {
   }
 }
 
-/** Soma de mensagens não lidas (por contacto). */
+/** Soma de mensagens não lidas (por contato). */
 export function unreadMessagesTotal(map: Record<string, number>): number {
   return Object.values(map).reduce((a, b) => a + (Number(b) > 0 ? Number(b) : 0), 0);
 }
@@ -51,7 +51,7 @@ export function saveUnreadAndBroadcast(map: Record<string, number>) {
 
 let sharedAudioCtx: AudioContext | null = null;
 
-/** Chamar uma vez após gesto do utilizador (ex.: primeiro clique) para o som não ser bloqueado. */
+/** Chamar uma vez após gesto do usuario (ex.: primeiro clique) para o som não ser bloqueado. */
 export function primeWhatsappNotificationAudio() {
   try {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;

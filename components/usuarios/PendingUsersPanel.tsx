@@ -24,7 +24,7 @@ export function PendingUsersPanel({ users, approvingId, onApprove }: PendingUser
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-amber-950">Aguardam aprovação</h2>
           <p className="text-xs text-amber-900/80 mt-0.5 leading-snug">
-            Estes utilizadores criaram conta pelo ecrã de login. Aprove para poderem entrar no CRM.
+            Estes usuarios criaram conta pelo ecrã de login. Aprove para poderem entrar no CRM.
           </p>
         </div>
       </div>

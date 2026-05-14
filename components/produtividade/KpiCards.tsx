@@ -8,7 +8,7 @@ interface KpiCardsProps {
 }
 
 const cards = [
-  { key: 'activeUsers', label: 'Utilizadores activos', icon: Users, color: 'text-brand-600' },
+  { key: 'activeUsers', label: 'Usuarios activos', icon: Users, color: 'text-brand-600' },
   { key: 'messagesSent', label: 'Mensagens enviadas', icon: Send, color: 'text-emerald-600' },
   { key: 'messagesReceived', label: 'Mensagens recebidas', icon: Inbox, color: 'text-sky-600' },
   { key: 'ticketsCreated', label: 'OS criadas', icon: TicketIcon, color: 'text-amber-600' },

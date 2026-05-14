@@ -60,7 +60,7 @@ export function ContactsSectionTabs({
   return (
     <nav
       className="mx-6 md:mx-8 mb-6 flex flex-wrap gap-1 rounded-xl border border-slate-200/90 bg-white/90 p-1 shadow-sm"
-      aria-label="Secções de contactos"
+      aria-label="Secções de contatos"
     >
       {tabs.map((t) => {
         const active = value === t.id;

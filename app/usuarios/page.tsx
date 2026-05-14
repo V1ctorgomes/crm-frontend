@@ -77,7 +77,7 @@ export default function UsuariosPage() {
       const data = await apiRequest<User[]>('/users');
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) { 
-      showFeedback('error', "Erro ao carregar a lista de utilizadores.");
+      showFeedback('error', "Erro ao carregar a lista de usuarios.");
     } finally { 
       setIsLoading(false); 
     }
@@ -124,7 +124,7 @@ export default function UsuariosPage() {
 
   const handleSave = async () => {
     if (!formName || !formEmail) return showFeedback('error', "Nome e e-mail são obrigatórios.");
-    if (!editingUser && !formPassword) return showFeedback('error', "A palavra-passe é obrigatória para novos utilizadores.");
+    if (!editingUser && !formPassword) return showFeedback('error', "A palavra-passe é obrigatória para novos usuarios.");
 
     setIsSaving(true);
     const body: Record<string, string> = {
@@ -159,7 +159,7 @@ export default function UsuariosPage() {
         void fetchPending();
         void fetchPasswordResetRequests();
       }
-      showFeedback('success', editingUser ? "Utilizador atualizado com sucesso!" : "Novo utilizador adicionado à equipa!");
+      showFeedback('success', editingUser ? "Usuario atualizado com sucesso!" : "Novo usuario adicionado à equipe!");
     } catch (err: unknown) { 
       const msg = err instanceof Error ? err.message : "Erro de ligação ao servidor.";
       showFeedback('error', msg);
@@ -172,7 +172,7 @@ export default function UsuariosPage() {
     if (!userToDelete) return;
     try {
       await apiRequest(`/users/${userToDelete.id}`, { method: 'DELETE' });
-      showFeedback('success', "Utilizador removido da equipa.");
+      showFeedback('success', "Usuario removido da equipe.");
       setUserToDelete(null);
       fetchUsers();
       if (viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER') {
@@ -192,7 +192,7 @@ export default function UsuariosPage() {
         method: 'POST',
         body: JSON.stringify({}),
       });
-      showFeedback('success', 'Utilizador aprovado. Já pode iniciar sessão.');
+      showFeedback('success', 'Usuario aprovado. Já pode iniciar sessão.');
       void fetchPending();
       void fetchPasswordResetRequests();
       void fetchUsers();

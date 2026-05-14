@@ -61,7 +61,7 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
             <div className="min-w-0">
               <h2 className="text-base font-bold text-brand-950 truncate">{user.name}</h2>
               <p className="text-xs text-slate-500 truncate">
-                {user.role === 'ADMIN' ? 'Administrador' : 'Equipa'} · {user.email}
+                {user.role === 'ADMIN' ? 'Administrador' : 'Equipe'} · {user.email}
               </p>
             </div>
           </div>
