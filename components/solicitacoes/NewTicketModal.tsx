@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Contact, Stage } from './types';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
-import { CATALOG_CATEGORY_LABELS, type TicketCatalogOptions } from '@/lib/ticket-catalog-types';
+import { CATALOG_CATEGORY_LABELS } from '@/lib/ticket-catalog-types';
+import { useTicketCatalog } from '@/lib/use-ticket-catalog';
 
 interface NewTicketModalProps {
   contacts: Contact[];
@@ -23,26 +24,7 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
   const [formCustomerType, setFormCustomerType] = useState('');
   const [formTicketType, setFormTicketType] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [catalog, setCatalog] = useState<TicketCatalogOptions | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setCatalogLoading(true);
-      try {
-        const data = (await apiRequest('/ticket-catalog')) as TicketCatalogOptions;
-        if (!cancelled) setCatalog(data);
-      } catch {
-        if (!cancelled) setCatalog(null);
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { catalog, loading: catalogLoading, ready: catalogReady } = useTicketCatalog();
 
   useEffect(() => {
     const contact = contacts.find((c) => c.number === selectedContactNumber);
@@ -85,13 +67,6 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
       setIsSubmitting(false);
     }
   };
-
-  const catalogReady =
-    catalog &&
-    catalog.MARCA.length > 0 &&
-    catalog.MODELO.length > 0 &&
-    catalog.CUSTOMER_TYPE.length > 0 &&
-    catalog.TICKET_TYPE.length > 0;
 
   return (
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>

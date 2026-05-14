@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, type Dispatch, type SetStateAction } from 'react';
-import Sidebar from '@/components/Sidebar'; 
+import React, { useCallback, useRef, useState } from 'react';
+import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
-import { Message, Contact, Stage } from '@/components/whatsapp/types';
+import type { Contact, Message, Stage } from '@/components/whatsapp/types';
 import { NoInstancesView } from '@/components/whatsapp/NoInstancesView';
 import { ContactsSidebar } from '@/components/whatsapp/ContactsSidebar';
 import { ChatHeader } from '@/components/whatsapp/ChatHeader';
 import { FilePreview } from '@/components/whatsapp/FilePreview';
 import { MessageList } from '@/components/whatsapp/MessageList';
 import { ChatInput } from '@/components/whatsapp/ChatInput';
+import { WhatsAppEmptyChat } from '@/components/whatsapp/WhatsAppEmptyChat';
 import {
   InstanceModal,
   DeleteChatModal,
@@ -19,201 +20,110 @@ import {
   EditMessageModal,
 } from '@/components/whatsapp/WhatsAppModals';
 import { apiRequest } from '@/lib/api-client';
-import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
-import {
-  loadUnreadByContact,
-  saveUnreadAndBroadcast,
-  WHATSAPP_UNREAD_STORAGE_KEY,
-} from '@/lib/whatsapp-notifications';
-import { mergeWhatsappIngressDetail } from '@/lib/whatsapp-merge-ingress';
-import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
-import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
 import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
-import {
-  WHATSAPP_HISTORY_PAGE_SIZE,
-  normalizeWhatsappHistoryResponse,
-  mapApiRowToMessage,
-} from '@/lib/whatsapp-history-pagination';
-import { CRM_NETWORK_ONLINE } from '@/lib/crm-network-events';
+import { saveUnreadAndBroadcast } from '@/lib/whatsapp-notifications';
 import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
-
-/**
- * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
- * Depois WebM/Opus (Chrome, Firefox, Edge).
- */
-function pickAudioRecordingMimeType(): string | undefined {
-  if (typeof MediaRecorder === 'undefined') return undefined;
-  const candidates = [
-    'audio/mp4;codecs=mp4a.40.2',
-    'audio/mp4',
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/ogg;codecs=opus',
-  ];
-  for (const t of candidates) {
-    if (MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return undefined;
-}
-
-function mapWhatsappContactApiRow(c: Record<string, unknown>): Contact {
-  const lastMessageTime = c.lastMessageTime
-    ? new Date(String(c.lastMessageTime)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : '';
-  const base = c as unknown as Contact;
-  return {
-    ...base,
-    lastMessageTime,
-    contactKind: normalizeContactKind(c.contactKind),
-  };
-}
-
-function audioFileExtensionFromMime(blobType: string): string {
-  const t = blobType.toLowerCase();
-  if (t.includes('mp4')) return 'm4a';
-  if (t.includes('ogg')) return 'ogg';
-  return 'webm';
-}
-
-/** Segundo visto na UI pouco depois do servidor aceitar (não há ACK de leitura do destinatário na API). */
-const WHATSAPP_DELIVERED_TICK_DELAY_MS = 480;
-
-function scheduleMessageDeliveredUi(
-  setChatHistory: Dispatch<SetStateAction<Record<string, Message[]>>>,
-  contactNumber: string,
-  id: string | number,
-) {
-  window.setTimeout(() => {
-    setChatHistory((prev) => ({
-      ...prev,
-      [contactNumber]: (prev[contactNumber] || []).map((m) =>
-        String(m.id) === String(id) ? { ...m, sendStatus: 'delivered' as const } : m,
-      ),
-    }));
-  }, WHATSAPP_DELIVERED_TICK_DELAY_MS);
-}
+import { scheduleMessageDeliveredUi } from './utils';
+import { useUnreadSync } from './use-unread-sync';
+import { useInitialWhatsappData } from './use-initial-data';
+import { useNetworkResume } from './use-network-resume';
+import { useChatHistory } from './use-chat-history';
+import { useStreamIntegration } from './use-stream-integration';
+import { useAudioRecorder } from './use-audio-recorder';
+import { useCreateTicketForm } from './use-create-ticket-form';
 
 export default function WhatsAppPage() {
+  // ─────────────────────────── Estado de UI ───────────────────────────
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const showFeedback = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+  }, []);
+
+  // ─────────────────────────── Dados base ─────────────────────────────
   const [hasInstances, setHasInstances] = useState<boolean | null>(null);
   const [instances, setInstances] = useState<any[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('ALL');
-  
-  const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [ticketCatalog, setTicketCatalog] = useState<TicketCatalogOptions | null>(null);
+  const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
-  const [historyMeta, setHistoryMeta] = useState<Record<string, { hasMoreOlder: boolean }>>({});
-  const historyMetaRef = useRef<Record<string, { hasMoreOlder: boolean }>>({});
-  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
-  const loadingOlderRef = useRef(false);
-  const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>(() => loadUnreadByContact());
 
-  const chatHistoryRef = useRef<Record<string, Message[]>>({});
+  // ─────────────────────────── Composição/envio ───────────────────────
+  const [inputText, setInputText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageListScrollRef = useRef<HTMLDivElement>(null);
   const pendingMediaAbortRef = useRef<AbortController | null>(null);
   const pendingMediaTempIdRef = useRef<number | null>(null);
+
+  // ─────────────────────────── Filtros/menus ──────────────────────────
+  const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
+  const [chatSearchTerm, setChatSearchTerm] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [contactKindFilter, setContactKindFilter] = useState<'ALL' | ContactKind>('ALL');
+  const [contactKindSaving, setContactKindSaving] = useState(false);
+  const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
+
+  // ─────────────────────────── Modais de mensagem ─────────────────────
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState<Message | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [messagePendingDelete, setMessagePendingDelete] = useState<Message | null>(null);
+
+  // ─────────────────────────── Hooks de domínio ───────────────────────
+  const { unreadByContact, setUnreadByContact } = useUnreadSync(activeContact?.number ?? null);
+
+  useInitialWhatsappData({
+    setContacts,
+    setActiveContact,
+    setStages,
+    setTicketCatalog,
+    setCrmCustomers,
+    setInstances,
+    setHasInstances,
+  });
+
+  const { historyMeta, setHistoryMeta, chatHistoryRef, isLoadingOlder, loadOlderMessages } = useChatHistory({
+    activeNumber: activeContact?.number ?? null,
+    chatHistory,
+    setChatHistory,
+    messageListScrollRef,
+    onError: (msg) => showFeedback('error', msg),
+  });
+
+  useNetworkResume({ setContacts, setActiveContact, setChatHistory, setHistoryMeta });
+
+  useStreamIntegration({
+    activeNumber: activeContact?.number ?? null,
+    chatHistoryRef,
+    setChatHistory,
+    setContacts,
+  });
+
+  const osForm = useCreateTicketForm({ showFeedback });
 
   const cancelMediaSend = useCallback((messageId: string | number) => {
     if (pendingMediaTempIdRef.current !== null && pendingMediaTempIdRef.current === messageId) {
       pendingMediaAbortRef.current?.abort();
     }
   }, []);
-  useEffect(() => {
-    chatHistoryRef.current = chatHistory;
-  }, [chatHistory]);
 
-  useEffect(() => {
-    historyMetaRef.current = historyMeta;
-  }, [historyMeta]);
-
-  useEffect(() => {
-    whatsappActiveContactRef.current = activeContact?.number ?? null;
-    return () => {
-      whatsappActiveContactRef.current = null;
-    };
-  }, [activeContact]);
-
-  /** Inclui conversa restaurada de `lastActiveContact` sem passar por `handleSelectContact`. */
-  useEffect(() => {
-    const n = activeContact?.number;
-    if (!n) return;
-    setUnreadByContact((prev) => {
-      if (!(prev[n] > 0)) return prev;
-      const next = { ...prev, [n]: 0 };
-      saveUnreadAndBroadcast(next);
-      return next;
-    });
-  }, [activeContact?.number]);
-
-  useEffect(() => {
-    whatsappIngressMergerRef.current = (detail) =>
-      mergeWhatsappIngressDetail(detail, setChatHistory, setContacts, chatHistoryRef);
-    return () => {
-      whatsappIngressMergerRef.current = null;
-    };
-  }, [setChatHistory, setContacts]);
-
-  useEffect(() => {
-    const sync = () => setUnreadByContact(loadUnreadByContact());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === WHATSAPP_UNREAD_STORAGE_KEY) sync();
-    };
-    window.addEventListener('crm-whatsapp-unread', sync as EventListener);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('crm-whatsapp-unread', sync as EventListener);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
-
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageListScrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // States: Pesquisas e Modais
-  const [isSearchChatOpen, setIsSearchChatOpen] = useState(false);
-  const [chatSearchTerm, setChatSearchTerm] = useState('');
-  const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [contactKindFilter, setContactKindFilter] = useState<'ALL' | ContactKind>('ALL');
-  const [contactKindSaving, setContactKindSaving] = useState(false);
-  const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
-  const [editMessage, setEditMessage] = useState<Message | null>(null);
-  const [editDraft, setEditDraft] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
-  const [messagePendingDelete, setMessagePendingDelete] = useState<Message | null>(null);
-
-  // States: Formulário de OS
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [formNome, setFormNome] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formCpf, setFormCpf] = useState('');
-  const [formMarca, setFormMarca] = useState('');
-  const [formModelo, setFormModelo] = useState('');
-  const [formCustomerType, setFormCustomerType] = useState(''); 
-  const [formTicketType, setFormTicketType] = useState('');
-  const [ticketCatalog, setTicketCatalog] = useState<TicketCatalogOptions | null>(null);
-
-  // States: Gravação de Áudio
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingMimeRef = useRef<string>('audio/webm');
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isCancelledRef = useRef<boolean>(false);
-
-  const showFeedback = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
+  // ─────────────────────────── Handlers ───────────────────────────────
+  const handleSelectContact = (contact: Contact | null) => {
+    setActiveContact(contact);
+    setIsSearchChatOpen(false);
+    setChatSearchTerm('');
+    setCustomerSearch('');
+    if (contact) localStorage.setItem('lastActiveContact', contact.number);
+    else localStorage.removeItem('lastActiveContact');
   };
 
   const updateActiveContactKind = async (kind: ContactKind) => {
@@ -235,148 +145,6 @@ export default function WhatsAppPage() {
       setContactKindSaving(false);
     }
   };
-
-  const handleSelectContact = (contact: Contact | null) => {
-    setActiveContact(contact);
-    setIsSearchChatOpen(false);
-    setChatSearchTerm('');
-    setCustomerSearch('');
-    if (contact) localStorage.setItem('lastActiveContact', contact.number);
-    else localStorage.removeItem('lastActiveContact');
-  };
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const [me, contactsData, stagesData, catData, customersData] = await Promise.all([
-          apiRequest('/users/me').catch(() => null),
-          apiRequest('/whatsapp/contacts').catch(() => []),
-          apiRequest('/tickets/stages').catch(() => []),
-          apiRequest('/ticket-catalog').catch(() => null),
-          apiRequest('/customers').catch(() => []),
-        ]);
-
-        const rawList = Array.isArray(contactsData) ? contactsData : [];
-        const formattedContacts = rawList.map((c) => mapWhatsappContactApiRow(c as Record<string, unknown>));
-        setContacts(formattedContacts);
-
-        const savedNumber = localStorage.getItem('lastActiveContact');
-        if (savedNumber) {
-          const foundContact = formattedContacts.find((c: Contact) => c.number === savedNumber);
-          if (foundContact) setActiveContact(foundContact);
-        }
-
-        setStages(stagesData);
-        setTicketCatalog(catData as TicketCatalogOptions | null);
-        setCrmCustomers(customersData);
-
-        if (me?.id) {
-          const fetchedInstances = await apiRequest(`/instances/user/${me.id}`).catch(() => []);
-          const connected = fetchedInstances.filter((i: any) => i.status === 'connected');
-          setInstances(connected);
-          setHasInstances(connected.length > 0);
-        } else {
-          setHasInstances(false);
-        }
-      } catch (err) { setHasInstances(false); }
-    };
-    fetchInitialData();
-  }, []);
-
-  /** Após queda de rede: sincronizar contatos e conversa aberta sem recarregar a página. */
-  useEffect(() => {
-    const onNetworkResume = () => {
-      if (typeof window === 'undefined' || !window.location.pathname.includes('/whatsapp')) return;
-      void (async () => {
-        const contactsData = await apiRequest<any[]>('/whatsapp/contacts').catch(() => []);
-        const rawList = Array.isArray(contactsData) ? contactsData : [];
-        const formattedContacts = rawList.map((c) => mapWhatsappContactApiRow(c as Record<string, unknown>));
-        setContacts(formattedContacts);
-        setActiveContact((prev) => {
-          if (!prev) return prev;
-          const match = formattedContacts.find((c) => c.number === prev.number);
-          return match ? { ...prev, ...match } : prev;
-        });
-        const num = whatsappActiveContactRef.current;
-        if (!num) return;
-        const raw = await apiRequest(
-          `/whatsapp/history/${encodeURIComponent(num)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}`,
-        ).catch(() => ({ messages: [], hasMoreOlder: false }));
-        const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
-        const formattedMessages = rows.map(mapApiRowToMessage);
-        setChatHistory((prev) => ({ ...prev, [num]: formattedMessages }));
-        setHistoryMeta((prev) => ({ ...prev, [num]: { hasMoreOlder } }));
-      })();
-    };
-    window.addEventListener(CRM_NETWORK_ONLINE, onNetworkResume);
-    return () => window.removeEventListener(CRM_NETWORK_ONLINE, onNetworkResume);
-  }, []);
-
-  useEffect(() => {
-    if (activeContact && !chatHistory[activeContact.number]) {
-      const n = activeContact.number;
-      const fetchHistory = async () => {
-        try {
-          const raw = await apiRequest(
-            `/whatsapp/history/${encodeURIComponent(n)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}`,
-          ).catch(() => ({ messages: [], hasMoreOlder: false }));
-          const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
-          const formattedMessages = rows.map(mapApiRowToMessage);
-          setChatHistory((prev) => ({ ...prev, [n]: formattedMessages }));
-          setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder } }));
-        } catch {
-          setChatHistory((prev) => ({ ...prev, [n]: [] }));
-          setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder: false } }));
-        }
-      };
-      void fetchHistory();
-    }
-  }, [activeContact, chatHistory]);
-
-  const loadOlderMessages = useCallback(async () => {
-    const n = activeContact?.number;
-    if (!n || loadingOlderRef.current) return;
-    const meta = historyMetaRef.current[n];
-    if (!meta?.hasMoreOlder) return;
-    const fullList = chatHistoryRef.current[n] || [];
-    const cursorMsg = fullList.find((m) => typeof m.id === 'string');
-    if (!cursorMsg) return;
-
-    loadingOlderRef.current = true;
-    setIsLoadingOlder(true);
-    const el = messageListScrollRef.current;
-    const prevScrollHeight = el?.scrollHeight ?? 0;
-    const prevScrollTop = el?.scrollTop ?? 0;
-
-    try {
-      const raw = await apiRequest(
-        `/whatsapp/history/${encodeURIComponent(n)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}&before=${encodeURIComponent(String(cursorMsg.id))}`,
-      ).catch(() => ({ messages: [], hasMoreOlder: false }));
-      const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
-      const older = rows.map(mapApiRowToMessage);
-      const existingIds = new Set(fullList.map((m) => String(m.id)));
-      const mergedOlder = older.filter((m) => !existingIds.has(String(m.id)));
-
-      setChatHistory((prev) => {
-        const cur = prev[n] || [];
-        return { ...prev, [n]: [...mergedOlder, ...cur] };
-      });
-      setHistoryMeta((prev) => ({ ...prev, [n]: { hasMoreOlder } }));
-    } catch {
-      setToast({ type: 'error', message: 'Não foi possível carregar mensagens anteriores.' });
-    } finally {
-      loadingOlderRef.current = false;
-      setIsLoadingOlder(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const el2 = messageListScrollRef.current;
-          if (el2) {
-            el2.scrollTop = el2.scrollHeight - prevScrollHeight + prevScrollTop;
-          }
-        });
-      });
-    }
-  }, [activeContact?.number]);
 
   const instanceForActiveContact = () =>
     activeContact?.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
@@ -466,9 +234,7 @@ export default function WhatsAppPage() {
         [num]: (prev[num] || []).map((m) => (m.id === editMessage.id ? { ...m, text } : m)),
       }));
       if (isLast) {
-        setContacts((prev) =>
-          prev.map((c) => (c.number === num ? { ...c, lastMessage: text } : c)),
-        );
+        setContacts((prev) => prev.map((c) => (c.number === num ? { ...c, lastMessage: text } : c)));
       }
       setEditMessage(null);
       setEditDraft('');
@@ -482,10 +248,10 @@ export default function WhatsAppPage() {
 
   const confirmDeleteConversation = async () => {
     if (!activeContact) return;
-    setIsDeleteModalOpen(false); 
+    setIsDeleteModalOpen(false);
     try {
       await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
-      setChatHistory(prev => ({ ...prev, [activeContact.number]: [] }));
+      setChatHistory((prev) => ({ ...prev, [activeContact.number]: [] }));
       setHistoryMeta((prev) => ({ ...prev, [activeContact.number]: { hasMoreOlder: false } }));
       const deletedNumber = activeContact.number;
       setUnreadByContact((prev) => {
@@ -494,24 +260,33 @@ export default function WhatsAppPage() {
         saveUnreadAndBroadcast(next);
         return next;
       });
-      setContacts(prev => prev.map(c => c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c));
+      setContacts((prev) =>
+        prev.map((c) => (c.number === activeContact.number ? { ...c, lastMessage: '', lastMessageTime: '' } : c)),
+      );
       setActiveContact(null);
       localStorage.removeItem('lastActiveContact');
-      showFeedback('success', "Conversa excluída com sucesso.");
-    } catch (err) { showFeedback('error', "Falha de conexão ao apagar conversa."); }
+      showFeedback('success', 'Conversa excluída com sucesso.');
+    } catch {
+      showFeedback('error', 'Falha de conexão ao apagar conversa.');
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeContact) return;
-    if (file.size > 15 * 1024 * 1024) { showFeedback('error', "Arquivo muito grande (máx 15MB)."); return; }
+    if (file.size > 15 * 1024 * 1024) {
+      showFeedback('error', 'Arquivo muito grande (máx 15MB).');
+      return;
+    }
     setPreviewUrl(URL.createObjectURL(file));
     setPreviewFile(file);
   };
 
   const cancelPreview = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewFile(null); setPreviewUrl(null); setInputText('');
+    setPreviewFile(null);
+    setPreviewUrl(null);
+    setInputText('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -547,10 +322,10 @@ export default function WhatsAppPage() {
       sendStatus: 'sending',
     };
 
-    setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+    setChatHistory((prev) => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
 
-    setContacts(prev => {
-      const idx = prev.findIndex(c => c.number === targetNumber);
+    setContacts((prev) => {
+      const idx = prev.findIndex((c) => c.number === targetNumber);
       const updated = [...prev];
       if (idx !== -1) {
         let fallbackText = 'Documento';
@@ -576,9 +351,7 @@ export default function WhatsAppPage() {
         id?: string;
         mediaData?: string;
       }>('/whatsapp/send-media', { method: 'POST', body: formData, signal: ac.signal });
-      if (!savedData?.mediaData) {
-        throw new Error('Resposta inválida do servidor.');
-      }
+      if (!savedData?.mediaData) throw new Error('Resposta inválida do servidor.');
       const newId = savedData.messageId || savedData.id || tempId;
       setChatHistory((prev) => ({
         ...prev,
@@ -587,12 +360,7 @@ export default function WhatsAppPage() {
           if (typeof msg.mediaData === 'string' && msg.mediaData.startsWith('blob:')) {
             URL.revokeObjectURL(msg.mediaData);
           }
-          return {
-            ...msg,
-            id: newId,
-            mediaData: savedData.mediaData,
-            sendStatus: 'sent',
-          };
+          return { ...msg, id: newId, mediaData: savedData.mediaData, sendStatus: 'sent' };
         }),
       }));
       scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
@@ -604,8 +372,7 @@ export default function WhatsAppPage() {
             String((error as Error).message || '').includes('aborted'))) ||
         (error instanceof DOMException && error.name === 'AbortError');
       if (!aborted) {
-        const msg = error instanceof Error ? error.message : 'Erro ao enviar arquivo.';
-        showFeedback('error', msg);
+        showFeedback('error', error instanceof Error ? error.message : 'Erro ao enviar arquivo.');
       }
       setChatHistory((prev) => {
         const list = prev[targetNumber] || [];
@@ -616,201 +383,97 @@ export default function WhatsAppPage() {
         return { ...prev, [targetNumber]: list.filter((m) => m.id !== tempId) };
       });
     } finally {
-      if (pendingMediaTempIdRef.current === tempId) {
-        pendingMediaTempIdRef.current = null;
-      }
-      if (pendingMediaAbortRef.current === ac) {
-        pendingMediaAbortRef.current = null;
-      }
+      if (pendingMediaTempIdRef.current === tempId) pendingMediaTempIdRef.current = null;
+      if (pendingMediaAbortRef.current === ac) pendingMediaAbortRef.current = null;
       setIsSending(false);
     }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (isRecording || isSending || !activeContact) return;
+    if (recorder.isRecording || isSending || !activeContact) return;
     if (!inputText.trim() && !previewFile) return;
 
     const targetNumber = activeContact.number;
     const targetInstance = activeContact.instanceName || (selectedInstance !== 'ALL' ? selectedInstance : undefined);
     const textToSend = inputText;
-    
+
     if (previewFile) {
       const fileToSend = previewFile;
-      setInputText(''); setPreviewFile(null); if (fileInputRef.current) fileInputRef.current.value = '';
-      await sendDirectMedia(fileToSend, textToSend);
-    } else {
-      const now = new Date();
-      const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const sentAtIso = now.toISOString();
-      setIsSending(true);
-      const tempId = Date.now();
-      const optimisticMsg: Message = {
-        id: tempId,
-        text: textToSend,
-        type: 'sent',
-        time: timeNow,
-        sentAt: sentAtIso,
-        fromMe: true,
-        senderNumber: targetNumber,
-        sendStatus: 'sending',
-      };
-      
-      setChatHistory(prev => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
-      
-      setContacts(prev => {
-        const idx = prev.findIndex(c => c.number === targetNumber);
-        const updated = [...prev];
-        if (idx !== -1) {
-          updated[idx].lastMessage = textToSend;
-          updated[idx].lastMessageTime = timeNow;
-          if (targetInstance) updated[idx].instanceName = targetInstance;
-          const item = updated.splice(idx, 1)[0];
-          updated.unshift(item);
-        }
-        return updated;
-      });
-
       setInputText('');
+      setPreviewFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await sendDirectMedia(fileToSend, textToSend);
+      return;
+    }
 
-      try {
-        const res = await apiRequest<{ messageId?: string }>('/whatsapp/send', {
-          method: 'POST',
-          body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }),
-        });
-        const newId = res?.messageId ?? tempId;
-        setChatHistory((prev) => ({
-          ...prev,
-          [targetNumber]: (prev[targetNumber] || []).map((m) =>
-            m.id === tempId
-              ? {
-                  ...m,
-                  ...(res?.messageId ? { id: res.messageId } : {}),
-                  sendStatus: 'sent' as const,
-                }
-              : m,
-          ),
-        }));
-        scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
-      } catch (error) {
-        showFeedback('error', 'Erro de conexão.');
-        setChatHistory((prev) => ({
-          ...prev,
-          [targetNumber]: (prev[targetNumber] || []).filter((m) => m.id !== tempId),
-        }));
-      } finally {
-        setIsSending(false);
+    const now = new Date();
+    const timeNow = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const sentAtIso = now.toISOString();
+    setIsSending(true);
+    const tempId = Date.now();
+    const optimisticMsg: Message = {
+      id: tempId,
+      text: textToSend,
+      type: 'sent',
+      time: timeNow,
+      sentAt: sentAtIso,
+      fromMe: true,
+      senderNumber: targetNumber,
+      sendStatus: 'sending',
+    };
+
+    setChatHistory((prev) => ({ ...prev, [targetNumber]: [...(prev[targetNumber] || []), optimisticMsg] }));
+
+    setContacts((prev) => {
+      const idx = prev.findIndex((c) => c.number === targetNumber);
+      const updated = [...prev];
+      if (idx !== -1) {
+        updated[idx].lastMessage = textToSend;
+        updated[idx].lastMessageTime = timeNow;
+        if (targetInstance) updated[idx].instanceName = targetInstance;
+        const item = updated.splice(idx, 1)[0];
+        updated.unshift(item);
       }
-    }
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeChoice = pickAudioRecordingMimeType();
-      const mediaRecorder = mimeChoice
-        ? new MediaRecorder(stream, { mimeType: mimeChoice })
-        : new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      isCancelledRef.current = false;
-      recordingMimeRef.current = mediaRecorder.mimeType || 'audio/webm';
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        if (isCancelledRef.current) return;
-        const chunks = audioChunksRef.current;
-        const totalBytes = chunks.reduce((n, b) => n + b.size, 0);
-        if (totalBytes < 256) {
-          showFeedback('error', 'Gravação vazia ou demasiado curta. Tente falar mais perto do microfone.');
-          return;
-        }
-        const blobType = recordingMimeRef.current || 'audio/webm';
-        const audioBlob = new Blob(chunks, { type: blobType });
-        const ext = audioFileExtensionFromMime(blobType);
-        const audioFile = new File([audioBlob], `audio_${Date.now()}.${ext}`, { type: blobType });
-        await sendDirectMedia(audioFile, '');
-      };
-
-      // Timeslice garante chunks antes do stop (sem isto, alguns browsers gravam silêncio / ficheiro vazio).
-      mediaRecorder.start(250);
-      setIsRecording(true);
-      setRecordingTime(0);
-      timerIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-    } catch (err) { showFeedback('error', "Acesso ao microfone negado."); }
-  };
-
-  const stopRecordingAndSend = () => {
-    const mr = mediaRecorderRef.current;
-    if (!mr || !isRecording) return;
-    try {
-      if (mr.state === 'recording') mr.requestData();
-    } catch {
-      /* ignore */
-    }
-    mr.stop();
-    setIsRecording(false);
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-  };
-
-  const cancelRecording = () => {
-    const mr = mediaRecorderRef.current;
-    if (!mr || !isRecording) return;
-    isCancelledRef.current = true;
-    try {
-      if (mr.state === 'recording') mr.requestData();
-    } catch {
-      /* ignore */
-    }
-    mr.stop();
-    setIsRecording(false);
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-  };
-
-  const openNewTicketModal = () => {
-    if (!activeContact) return;
-    setFormNome(activeContact.name || '');
-    setFormEmail((activeContact.email || '').trim().toLowerCase());
-    setFormCpf(formatCpfCnpjInput(activeContact.cnpj || ''));
-    setFormMarca('');
-    setFormModelo('');
-    setFormCustomerType('');
-    setFormTicketType('');
-    setIsNewTicketModalOpen(true);
-  };
-
-  const handleCreateTicket = async () => {
-    if (!activeContact || stages.length === 0) {
-      return showFeedback('error', 'Nenhuma fase de Kanban configurada.');
-    }
-    const stageId = stages[0]?.id || '';
-    const validated = validateCreateTicketForm({
-      contactNumber: activeContact.number,
-      nome: formNome,
-      email: formEmail,
-      cpf: formCpf,
-      marca: formMarca,
-      modelo: formModelo,
-      customerType: formCustomerType,
-      ticketType: formTicketType,
-      stageId,
+      return updated;
     });
-    if (!validated.ok) return showFeedback('error', validated.message);
+
+    setInputText('');
+
     try {
-      await apiRequest('/tickets', { method: 'POST', body: JSON.stringify(validated.body) });
-      setIsNewTicketModalOpen(false);
-      showFeedback('success', 'OS criada no Kanban!');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro ao criar a solicitação.';
-      showFeedback('error', msg);
+      const res = await apiRequest<{ messageId?: string }>('/whatsapp/send', {
+        method: 'POST',
+        body: JSON.stringify({ number: targetNumber, text: textToSend, instanceName: targetInstance }),
+      });
+      const newId = res?.messageId ?? tempId;
+      setChatHistory((prev) => ({
+        ...prev,
+        [targetNumber]: (prev[targetNumber] || []).map((m) =>
+          m.id === tempId
+            ? { ...m, ...(res?.messageId ? { id: res.messageId } : {}), sendStatus: 'sent' as const }
+            : m,
+        ),
+      }));
+      scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
+    } catch {
+      showFeedback('error', 'Erro de conexão.');
+      setChatHistory((prev) => ({
+        ...prev,
+        [targetNumber]: (prev[targetNumber] || []).filter((m) => m.id !== tempId),
+      }));
+    } finally {
+      setIsSending(false);
     }
   };
+
+  const recorder = useAudioRecorder({
+    onRecorded: (file) => sendDirectMedia(file, ''),
+    onTooShort: () => showFeedback('error', 'Gravação vazia ou demasiado curta. Tente falar mais perto do microfone.'),
+    onPermissionDenied: () => showFeedback('error', 'Acesso ao microfone negado.'),
+  });
 
   const startChatWithContact = (contact: any) => {
-    const existing = contacts.find(c => c.number === contact.number);
+    const existing = contacts.find((c) => c.number === contact.number);
     const targetInstance = selectedInstance !== 'ALL' ? selectedInstance : undefined;
 
     if (existing) {
@@ -837,68 +500,86 @@ export default function WhatsAppPage() {
         instanceName: targetInstance,
         contactKind: 'UNKNOWN',
       };
-      setContacts(prev => [newContact, ...prev]);
+      setContacts((prev) => [newContact, ...prev]);
       setActiveContact(newContact);
     }
-    setCustomerSearch(''); 
+    setCustomerSearch('');
   };
 
-  // Filtros de contatos e mensagens
-  const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
-  const filteredMessages = chatSearchTerm ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase())) : activeMessages;
+  // ─────────────────────────── Filtros derivados ──────────────────────
+  const activeMessages = activeContact ? chatHistory[activeContact.number] || [] : [];
+  const filteredMessages = chatSearchTerm
+    ? activeMessages.filter(
+        (msg) =>
+          (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+          (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase()),
+      )
+    : activeMessages;
+
   const activeContactsList = contacts.filter(
-    (c) =>
-      c.lastMessage &&
-      c.lastMessage.trim() !== '' &&
-      (selectedInstance === 'ALL' || c.instanceName === selectedInstance),
+    (c) => c.lastMessage && c.lastMessage.trim() !== '' && (selectedInstance === 'ALL' || c.instanceName === selectedInstance),
   );
   const filteredActiveContacts = activeContactsList
     .filter(
-      (c) =>
-        (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) ||
-        (c.number || '').includes(customerSearch),
+      (c) => (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || (c.number || '').includes(customerSearch),
     )
-    .filter((c) => {
-      if (contactKindFilter === 'ALL') return true;
-      return normalizeContactKind(c.contactKind) === contactKindFilter;
-    });
-  const inactiveContactsList = contacts.filter(c => (!c.lastMessage || c.lastMessage.trim() === '') && (selectedInstance === 'ALL' || !c.instanceName || c.instanceName === selectedInstance));
-  
+    .filter((c) => (contactKindFilter === 'ALL' ? true : normalizeContactKind(c.contactKind) === contactKindFilter));
+  const inactiveContactsList = contacts.filter(
+    (c) =>
+      (!c.lastMessage || c.lastMessage.trim() === '') &&
+      (selectedInstance === 'ALL' || !c.instanceName || c.instanceName === selectedInstance),
+  );
+
   const availableToChat = [...inactiveContactsList];
-  crmCustomers.forEach(cust => {
+  crmCustomers.forEach((cust) => {
     let cleanPhone = cust.phone ? cust.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length === 10 || cleanPhone.length === 11) cleanPhone = `55${cleanPhone}`;
-    if (cleanPhone && !availableToChat.some(c => c.number === cleanPhone) && !activeContactsList.some(c => c.number === cleanPhone)) {
-      availableToChat.push({ number: cleanPhone, name: cust.name, lastMessage: '', lastMessageTime: '', email: cust.email, cnpj: cust.company, instanceName: undefined });
+    if (
+      cleanPhone &&
+      !availableToChat.some((c) => c.number === cleanPhone) &&
+      !activeContactsList.some((c) => c.number === cleanPhone)
+    ) {
+      availableToChat.push({
+        number: cleanPhone,
+        name: cust.name,
+        lastMessage: '',
+        lastMessageTime: '',
+        email: cust.email,
+        cnpj: cust.company,
+        instanceName: undefined,
+      });
     }
   });
 
-  const filteredNewContacts = availableToChat.filter(c => (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || (c.number || '').includes(customerSearch));
+  const filteredNewContacts = availableToChat.filter(
+    (c) => (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || (c.number || '').includes(customerSearch),
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
       <main className="flex-1 flex pt-[60px] md:pt-0 h-full relative overflow-hidden">
-        
-        {toast && (
-          <Toast
-            type={toast.type}
-            message={toast.message}
-            onDismiss={() => setToast(null)}
-          />
-        )}
+        {toast && <Toast type={toast.type} message={toast.message} onDismiss={() => setToast(null)} />}
 
         {hasInstances === null ? (
-          <div className="flex-1 flex items-center justify-center bg-brand-canvas"><div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div></div>
+          <div className="flex-1 flex items-center justify-center bg-brand-canvas">
+            <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : hasInstances === false ? (
           <NoInstancesView />
         ) : (
           <>
-            <ContactsSidebar 
-              activeContact={activeContact} customerSearch={customerSearch} setCustomerSearch={setCustomerSearch}
-              instances={instances} selectedInstance={selectedInstance} onOpenInstanceModal={() => setIsInstanceModalOpen(true)}
-              filteredActiveContacts={filteredActiveContacts} filteredNewContacts={filteredNewContacts}
-              handleSelectContact={handleSelectContact} startChatWithContact={startChatWithContact}
+            <ContactsSidebar
+              activeContact={activeContact}
+              customerSearch={customerSearch}
+              setCustomerSearch={setCustomerSearch}
+              instances={instances}
+              selectedInstance={selectedInstance}
+              onOpenInstanceModal={() => setIsInstanceModalOpen(true)}
+              filteredActiveContacts={filteredActiveContacts}
+              filteredNewContacts={filteredNewContacts}
+              handleSelectContact={handleSelectContact}
+              startChatWithContact={startChatWithContact}
               unreadByContact={unreadByContact}
               contactKindFilter={contactKindFilter}
               onContactKindFilterChange={setContactKindFilter}
@@ -908,17 +589,30 @@ export default function WhatsAppPage() {
             <div className={`flex-1 flex-col relative bg-brand-canvas overflow-hidden ${!activeContact ? 'hidden md:flex' : 'flex'}`}>
               {activeContact ? (
                 <>
-                  <ChatHeader 
-                    activeContact={activeContact} handleSelectContact={handleSelectContact} openNewTicketModal={openNewTicketModal}
-                    isSearchChatOpen={isSearchChatOpen} setIsSearchChatOpen={setIsSearchChatOpen} chatSearchTerm={chatSearchTerm} 
-                    setChatSearchTerm={setChatSearchTerm} onOpenDeleteModal={() => setIsDeleteModalOpen(true)}
+                  <ChatHeader
+                    activeContact={activeContact}
+                    handleSelectContact={handleSelectContact}
+                    openNewTicketModal={() => osForm.openFor(activeContact)}
+                    isSearchChatOpen={isSearchChatOpen}
+                    setIsSearchChatOpen={setIsSearchChatOpen}
+                    chatSearchTerm={chatSearchTerm}
+                    setChatSearchTerm={setChatSearchTerm}
+                    onOpenDeleteModal={() => setIsDeleteModalOpen(true)}
                     contactKind={normalizeContactKind(activeContact.contactKind)}
                     onContactKindChange={(k) => void updateActiveContactKind(k)}
                     kindSaving={contactKindSaving}
                   />
 
                   {previewFile && previewUrl && (
-                    <FilePreview previewFile={previewFile} previewUrl={previewUrl} cancelPreview={cancelPreview} inputText={inputText} setInputText={setInputText} handleSendMessage={handleSendMessage} isSending={isSending} />
+                    <FilePreview
+                      previewFile={previewFile}
+                      previewUrl={previewUrl}
+                      cancelPreview={cancelPreview}
+                      inputText={inputText}
+                      setInputText={setInputText}
+                      handleSendMessage={handleSendMessage}
+                      isSending={isSending}
+                    />
                   )}
 
                   <MessageList
@@ -937,18 +631,23 @@ export default function WhatsAppPage() {
                     onCancelMediaSend={cancelMediaSend}
                   />
 
-                  <ChatInput 
-                    fileInputRef={fileInputRef} handleFileUpload={handleFileUpload} isRecording={isRecording} recordingTime={recordingTime} 
-                    inputText={inputText} setInputText={setInputText} isSending={isSending} previewFile={previewFile} startRecording={startRecording} 
-                    cancelRecording={cancelRecording} stopRecordingAndSend={stopRecordingAndSend} handleSendMessage={handleSendMessage}
+                  <ChatInput
+                    fileInputRef={fileInputRef}
+                    handleFileUpload={handleFileUpload}
+                    isRecording={recorder.isRecording}
+                    recordingTime={recorder.recordingTime}
+                    inputText={inputText}
+                    setInputText={setInputText}
+                    isSending={isSending}
+                    previewFile={previewFile}
+                    startRecording={recorder.start}
+                    cancelRecording={recorder.cancel}
+                    stopRecordingAndSend={recorder.stopAndSend}
+                    handleSendMessage={handleSendMessage}
                   />
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center z-10 bg-slate-50/50 p-6 text-center">
-                   <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm text-brand-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg></div>
-                   <h2 className="text-xl font-bold text-slate-800 mb-2">Central de Mensagens</h2>
-                   <p className="text-sm text-slate-500 max-w-sm">Selecione um contato na barra lateral ou inicie uma nova conversa para enviar mensagens, ficheiros e áudios.</p>
-                </div>
+                <WhatsAppEmptyChat />
               )}
             </div>
           </>
@@ -962,26 +661,36 @@ export default function WhatsAppPage() {
           onConfirm={confirmDeleteSingleMessage}
         />
       )}
-      {isInstanceModalOpen && <InstanceModal onClose={() => setIsInstanceModalOpen(false)} instances={instances} selectedInstance={selectedInstance} setSelectedInstance={setSelectedInstance} handleSelectContact={handleSelectContact} />}
-      {isDeleteModalOpen && <DeleteChatModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDeleteConversation} />}
-      {isNewTicketModalOpen && (
+      {isInstanceModalOpen && (
+        <InstanceModal
+          onClose={() => setIsInstanceModalOpen(false)}
+          instances={instances}
+          selectedInstance={selectedInstance}
+          setSelectedInstance={setSelectedInstance}
+          handleSelectContact={handleSelectContact}
+        />
+      )}
+      {isDeleteModalOpen && (
+        <DeleteChatModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDeleteConversation} />
+      )}
+      {osForm.isOpen && activeContact && (
         <CreateTicketModal
-          onClose={() => setIsNewTicketModalOpen(false)}
-          formNome={formNome}
-          setFormNome={setFormNome}
-          formEmail={formEmail}
-          setFormEmail={setFormEmail}
-          formCpf={formCpf}
-          setFormCpf={setFormCpf}
-          formMarca={formMarca}
-          setFormMarca={setFormMarca}
-          formModelo={formModelo}
-          setFormModelo={setFormModelo}
-          formCustomerType={formCustomerType}
-          setFormCustomerType={setFormCustomerType}
-          formTicketType={formTicketType}
-          setFormTicketType={setFormTicketType}
-          handleCreateTicket={handleCreateTicket}
+          onClose={osForm.close}
+          formNome={osForm.formNome}
+          setFormNome={osForm.setFormNome}
+          formEmail={osForm.formEmail}
+          setFormEmail={osForm.setFormEmail}
+          formCpf={osForm.formCpf}
+          setFormCpf={osForm.setFormCpf}
+          formMarca={osForm.formMarca}
+          setFormMarca={osForm.setFormMarca}
+          formModelo={osForm.formModelo}
+          setFormModelo={osForm.setFormModelo}
+          formCustomerType={osForm.formCustomerType}
+          setFormCustomerType={osForm.setFormCustomerType}
+          formTicketType={osForm.formTicketType}
+          setFormTicketType={osForm.setFormTicketType}
+          handleCreateTicket={() => void osForm.submit(activeContact, stages)}
           ticketCatalog={ticketCatalog}
         />
       )}
@@ -999,7 +708,9 @@ export default function WhatsAppPage() {
           onSave={() => void handleSaveEditedMessage()}
         />
       )}
-      {viewerMessage && viewerMessage.mediaData && <MediaViewerModal viewerMessage={viewerMessage} onClose={() => setViewerMessage(null)} />}
+      {viewerMessage && viewerMessage.mediaData && (
+        <MediaViewerModal viewerMessage={viewerMessage} onClose={() => setViewerMessage(null)} />
+      )}
     </div>
   );
 }
