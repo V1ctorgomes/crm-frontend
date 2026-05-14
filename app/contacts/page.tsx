@@ -4,6 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ContactsHeader } from '@/components/contacts/ContactsHeader';
+import {
+  ContactsSectionTabs,
+  type ContactsListSection,
+} from '@/components/contacts/ContactsSectionTabs';
 import { ContactsTable, Contact } from '@/components/contacts/ContactsTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
@@ -34,6 +38,8 @@ export default function ContactsPage() {
   // Estados do Modal de Confirmação de Remoção
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   const [tablePage, setTablePage] = useState(0);
+  /** Por omissão mostra ainda não classificados (evita lista vazia em bases antigas). */
+  const [listSection, setListSection] = useState<ContactsListSection>('unknown');
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -116,20 +122,39 @@ export default function ContactsPage() {
     }
   };
 
+  const kindCounts = useMemo(() => {
+    let customer = 0;
+    let internal = 0;
+    let unknown = 0;
+    for (const c of contacts) {
+      const k = normalizeContactKind(c.contactKind);
+      if (k === 'CUSTOMER') customer += 1;
+      else if (k === 'INTERNAL') internal += 1;
+      else unknown += 1;
+    }
+    return { customer, internal, unknown };
+  }, [contacts]);
+
+  const contactsInSection = useMemo(() => {
+    const want: ContactKind =
+      listSection === 'customer' ? 'CUSTOMER' : listSection === 'internal' ? 'INTERNAL' : 'UNKNOWN';
+    return contacts.filter((c) => normalizeContactKind(c.contactKind) === want);
+  }, [contacts, listSection]);
+
   const filteredContacts = useMemo(
     () =>
-      contacts.filter(
+      contactsInSection.filter(
         (c) =>
           (c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
           c.number.includes(searchTerm) ||
           (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())),
       ),
-    [contacts, searchTerm],
+    [contactsInSection, searchTerm],
   );
 
   useEffect(() => {
     setTablePage(0);
-  }, [searchTerm]);
+  }, [searchTerm, listSection]);
 
   useEffect(() => {
     setTablePage((p) => {
@@ -161,6 +186,14 @@ export default function ContactsPage() {
           totalContacts={contacts.length} 
           searchTerm={searchTerm} 
           onSearchChange={setSearchTerm} 
+        />
+
+        <ContactsSectionTabs
+          value={listSection}
+          onChange={setListSection}
+          customerCount={kindCounts.customer}
+          internalCount={kindCounts.internal}
+          unknownCount={kindCounts.unknown}
         />
 
         <ContactsTable 
