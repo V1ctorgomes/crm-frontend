@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { tryParseWhatsappSseMessage } from '@/lib/whatsapp-sse-parse';
 import { whatsappIngressMergerRef } from '@/lib/whatsapp-stream-merge';
 import { whatsappActiveContactRef } from '@/lib/whatsapp-presence';
@@ -29,7 +30,11 @@ function tryMarkSseIncomingNew(contactNumber: string, waId: string | number): bo
 }
 
 export function WhatsappStreamProvider({ children }: { children: React.ReactNode }) {
-  /** SSE do WhatsApp é público no backend; mantém-se ligado mesmo sem sessão para contar não lidas ao vivo. */
+  const pathname = usePathname();
+  /** SSE exige JWT; sem sessão o servidor devolve 401 e o browser re-dispara onerror em loop de reconexão. */
+  const skipStream = pathname === '/login' || pathname?.startsWith('/login/');
+
+  /** SSE do WhatsApp: só ligar quando há contexto de sessão (evita 401 em ciclo na página de login). */
   const [clientReady, setClientReady] = useState(false);
 
   useEffect(() => {
@@ -55,7 +60,7 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
-    if (!clientReady) return;
+    if (!clientReady || skipStream) return;
     const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/whatsapp/stream`;
 
@@ -166,7 +171,7 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
       if (reconnectTimer) clearTimeout(reconnectTimer);
       eventSource?.close();
     };
-  }, [clientReady]);
+  }, [clientReady, skipStream]);
 
   return <>{children}</>;
 }
