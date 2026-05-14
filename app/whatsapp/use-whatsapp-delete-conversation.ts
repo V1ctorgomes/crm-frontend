@@ -1,21 +1,20 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import type { Contact, Message } from '@/components/whatsapp/types';
 import { apiRequest } from '@/lib/api-client';
 import { saveUnreadAndBroadcast } from '@/lib/whatsapp-notifications';
 
-interface Args {
+interface UseWhatsappDeleteConversationArgs {
   activeContact: Contact | null;
-  setActiveContact: React.Dispatch<React.SetStateAction<Contact | null>>;
-  setChatHistory: React.Dispatch<React.SetStateAction<Record<string, Message[]>>>;
-  setHistoryMeta: React.Dispatch<React.SetStateAction<Record<string, { hasMoreOlder: boolean }>>>;
-  setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
-  setUnreadByContact: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-  showFeedback: (type: 'success' | 'error', msg: string) => void;
+  setActiveContact: Dispatch<SetStateAction<Contact | null>>;
+  setChatHistory: Dispatch<SetStateAction<Record<string, Message[]>>>;
+  setHistoryMeta: Dispatch<SetStateAction<Record<string, { hasMoreOlder: boolean }>>>;
+  setContacts: Dispatch<SetStateAction<Contact[]>>;
+  setUnreadByContact: Dispatch<SetStateAction<Record<string, number>>>;
+  showFeedback: (type: 'success' | 'error', message: string) => void;
 }
 
-/** Apaga todo o histórico local + API e limpa estado associado. */
 export function useWhatsappDeleteConversation({
   activeContact,
   setActiveContact,
@@ -24,26 +23,36 @@ export function useWhatsappDeleteConversation({
   setContacts,
   setUnreadByContact,
   showFeedback,
-}: Args) {
+}: UseWhatsappDeleteConversationArgs) {
   const confirmDeleteConversation = useCallback(async () => {
     if (!activeContact) return;
+    const num = activeContact.number;
     try {
-      await apiRequest(`/whatsapp/history/${encodeURIComponent(activeContact.number)}`, { method: 'DELETE' });
-      const num = activeContact.number;
-      setChatHistory((prev) => ({ ...prev, [num]: [] }));
-      setHistoryMeta((prev) => ({ ...prev, [num]: { hasMoreOlder: false } }));
+      await apiRequest(`/whatsapp/history/${encodeURIComponent(num)}`, { method: 'DELETE' });
+      setChatHistory((prev) => {
+        const next = { ...prev };
+        delete next[num];
+        return next;
+      });
+      setHistoryMeta((prev) => {
+        const next = { ...prev };
+        delete next[num];
+        return next;
+      });
       setUnreadByContact((prev) => {
         const next = { ...prev };
         delete next[num];
         saveUnreadAndBroadcast(next);
         return next;
       });
-      setContacts((prev) => prev.map((c) => (c.number === num ? { ...c, lastMessage: '', lastMessageTime: '' } : c)));
+      setContacts((prev) =>
+        prev.map((c) => (c.number === num ? { ...c, lastMessage: '', lastMessageTime: '' } : c)),
+      );
       setActiveContact(null);
       localStorage.removeItem('lastActiveContact');
-      showFeedback('success', 'Conversa excluída com sucesso.');
+      showFeedback('success', 'Conversa apagada.');
     } catch {
-      showFeedback('error', 'Falha de conexão ao apagar conversa.');
+      showFeedback('error', 'Erro ao apagar conversa.');
     }
   }, [
     activeContact,
@@ -55,5 +64,5 @@ export function useWhatsappDeleteConversation({
     showFeedback,
   ]);
 
-  return { confirmDeleteConversation } as const;
+  return { confirmDeleteConversation };
 }

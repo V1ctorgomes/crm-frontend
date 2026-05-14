@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -11,270 +10,112 @@ import { TicketDetailsModal } from '@/components/solicitacoes/TicketDetailsModal
 import { CloseTicketModal } from '@/components/solicitacoes/CloseTicketModal';
 import { StageManagerModal } from '@/components/solicitacoes/StageManagerModal';
 import { ArchivedTicketsModal } from '@/components/solicitacoes/ArchivedTicketsModal';
-import { Contact, Stage, Ticket } from '@/components/solicitacoes/types';
-import { apiRequest, getApiBaseUrl } from '@/lib/api-client';
-import {
-  broadcastReminderBadgeFromStages,
-  computeReminderGreenRedByTicketId,
-  extractTasksDueCalendarToday,
-  SOLICITACOES_BOARD_SYNC_EVENT,
-} from '@/lib/solicitacoes-reminders';
+import { useSolicitacoesBoard } from './use-solicitacoes-board';
 
 export default function SolicitacoesPage() {
-  const baseUrl = useMemo(() => getApiBaseUrl(), []);
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
-  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
-  const [initialTab, setInitialTab] = useState<'tasks' | 'notes' | 'files'>('tasks');
-  const [isStageManagerOpen, setIsStageManagerOpen] = useState(false);
-  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
-  const [isArchivedModalOpen, setIsArchivedModalOpen] = useState(false);
-
-  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void; onClose: () => void; } | null>(null);
-
-  const showFeedback = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-  };
-
-  const fetchBoardData = async () => {
-    try {
-      const data = await apiRequest('/tickets/board');
-      setStages(data);
-      return data;
-    } catch (err) {
-      console.error(err);
-    }
-    return null;
-  };
-
-  const fetchContactsData = async () => {
-    try {
-      const data = await apiRequest('/whatsapp/contacts');
-      setContacts(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    await Promise.all([
-      fetchContactsData(),
-      fetchBoardData(),
-    ]);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    const onBoardSync = (e: Event) => {
-      const d = (e as CustomEvent<Stage[]>).detail;
-      if (Array.isArray(d)) setStages(d);
-    };
-    window.addEventListener(SOLICITACOES_BOARD_SYNC_EVENT, onBoardSync as EventListener);
-    return () => window.removeEventListener(SOLICITACOES_BOARD_SYNC_EVENT, onBoardSync as EventListener);
-  }, []);
-
-  useEffect(() => {
-    if (isLoading) return;
-    broadcastReminderBadgeFromStages(stages);
-  }, [stages, isLoading]);
-
-  const tasksDueToday = useMemo(() => extractTasksDueCalendarToday(stages), [stages]);
-
-  const { greenByTicketId, redByTicketId } = useMemo(
-    () => computeReminderGreenRedByTicketId(stages),
-    [stages],
-  );
-
-  const handleTicketUpdated = async () => {
-    const boardData = await fetchBoardData();
-    if (activeTicket && boardData) {
-      for (const stage of boardData) {
-        const found = stage.tickets.find((t: Ticket) => t.id === activeTicket.id);
-        if (found) {
-          setActiveTicket(found);
-          return;
-        }
-      }
-    }
-  };
-
-  const handleDragStart = (e: React.DragEvent, ticketId: string, sourceStageId: string) => {
-    e.dataTransfer.setData('ticketId', ticketId);
-    e.dataTransfer.setData('sourceStageId', sourceStageId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-
-  const handleDrop = async (e: React.DragEvent, targetStageId: string) => {
-    e.preventDefault();
-    const ticketId = e.dataTransfer.getData('ticketId');
-    const sourceStageId = e.dataTransfer.getData('sourceStageId');
-    if (sourceStageId === targetStageId) return;
-
-    setStages((prev) => {
-      const newStages = [...prev];
-      const sourceStage = newStages.find((s) => s.id === sourceStageId);
-      const targetStage = newStages.find((s) => s.id === targetStageId);
-      if (sourceStage && targetStage) {
-        const ticketIndex = sourceStage.tickets.findIndex((t) => t.id === ticketId);
-        if (ticketIndex !== -1) {
-          const [ticket] = sourceStage.tickets.splice(ticketIndex, 1);
-          targetStage.tickets.unshift(ticket);
-        }
-      }
-      return newStages;
-    });
-
-    try {
-      await apiRequest(`/tickets/${ticketId}/stage`, {
-        method: 'PUT',
-        body: JSON.stringify({ stageId: targetStageId }),
-      });
-    } catch (err) {
-      fetchBoardData();
-    }
-  };
-
-  const handleCloseTicketConfirm = async (resolution: 'SUCCESS' | 'CANCELLED', reason: string) => {
-    if (!activeTicket) return;
-    try {
-      await apiRequest(`/tickets/${activeTicket.id}/archive`, {
-        method: 'PUT',
-        body: JSON.stringify({ isArchived: true, resolution, resolutionReason: reason }),
-      });
-      setActiveTicket(null);
-      setIsCloseModalOpen(false);
-      await fetchBoardData();
-      showFeedback('success', 'OS encerrada e enviada para o Histórico.');
-    } catch (err) {
-      showFeedback('error', 'Erro ao encerrar OS.');
-    }
-  };
-
-  const filteredStages = stages.map((stage) => ({
-    ...stage,
-    tickets: stage.tickets.filter((t) => {
-      if (!searchTerm) return true;
-      const lowerSearch = searchTerm.toLowerCase();
-      return (
-        t.contact?.name?.toLowerCase().includes(lowerSearch) ||
-        t.contactNumber.includes(lowerSearch) ||
-        t.marca?.toLowerCase().includes(lowerSearch) ||
-        t.modelo?.toLowerCase().includes(lowerSearch) ||
-        t.customerType?.toLowerCase().includes(lowerSearch) ||
-        t.ticketType?.toLowerCase().includes(lowerSearch)
-      );
-    }),
-  }));
+  const b = useSolicitacoesBoard();
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden">
-        {toast && (
+        {b.toast && (
           <Toast
-            type={toast.type}
-            message={toast.message}
-            onDismiss={() => setToast(null)}
+            type={b.toast.type}
+            message={b.toast.message}
+            onDismiss={() => b.setToast(null)}
           />
         )}
 
         <KanbanHeader
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          pendingTasks={tasksDueToday}
+          searchTerm={b.searchTerm}
+          setSearchTerm={b.setSearchTerm}
+          pendingTasks={b.tasksDueToday}
           onTaskClick={(ticket) => {
-            setActiveTicket(ticket);
-            setInitialTab('tasks');
+            b.setActiveTicket(ticket);
+            b.setInitialTab('tasks');
           }}
-          onOpenArchive={() => setIsArchivedModalOpen(true)}
-          onOpenStageManager={() => setIsStageManagerOpen(true)}
-          onOpenNewTicket={() => setIsNewTicketModalOpen(true)}
+          onOpenArchive={() => b.setIsArchivedModalOpen(true)}
+          onOpenStageManager={() => b.setIsStageManagerOpen(true)}
+          onOpenNewTicket={() => b.setIsNewTicketModalOpen(true)}
         />
 
         <KanbanBoard
-          isLoading={isLoading}
-          filteredStages={filteredStages}
-          searchTerm={searchTerm}
-          reminderGreenByTicketId={greenByTicketId}
-          reminderRedByTicketId={redByTicketId}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
+          isLoading={b.isLoading}
+          filteredStages={b.filteredStages}
+          searchTerm={b.searchTerm}
+          reminderGreenByTicketId={b.greenByTicketId}
+          reminderRedByTicketId={b.redByTicketId}
+          onDragStart={b.handleDragStart}
+          onDragOver={b.handleDragOver}
+          onDrop={b.handleDrop}
           onTicketClick={(ticket) => {
-            setActiveTicket(ticket);
-            setInitialTab('tasks');
+            b.setActiveTicket(ticket);
+            b.setInitialTab('tasks');
           }}
         />
       </main>
 
-      {isNewTicketModalOpen && (
+      {b.isNewTicketModalOpen && (
         <NewTicketModal
-          contacts={contacts}
-          stages={stages}
-          baseUrl={baseUrl}
-          onClose={() => setIsNewTicketModalOpen(false)}
+          contacts={b.contacts}
+          stages={b.stages}
+          baseUrl={b.baseUrl}
+          onClose={() => b.setIsNewTicketModalOpen(false)}
           onSuccess={() => {
-            setIsNewTicketModalOpen(false);
-            fetchBoardData();
+            b.setIsNewTicketModalOpen(false);
+            void b.fetchBoardData();
           }}
-          showFeedback={showFeedback}
+          showFeedback={b.showFeedback}
         />
       )}
 
-      {activeTicket && (
+      {b.activeTicket && (
         <TicketDetailsModal
-          ticket={activeTicket}
-          baseUrl={baseUrl}
-          initialTab={initialTab}
-          onClose={() => setActiveTicket(null)}
-          onTicketUpdated={handleTicketUpdated}
-          onCloseTicketRequest={() => setIsCloseModalOpen(true)}
-          showFeedback={showFeedback}
-          setConfirmModal={setConfirmModal}
+          ticket={b.activeTicket}
+          baseUrl={b.baseUrl}
+          initialTab={b.initialTab}
+          onClose={() => b.setActiveTicket(null)}
+          onTicketUpdated={b.handleTicketUpdated}
+          onCloseTicketRequest={() => b.setIsCloseModalOpen(true)}
+          showFeedback={b.showFeedback}
+          setConfirmModal={b.setConfirmModal}
         />
       )}
 
-      {isCloseModalOpen && (
-        <CloseTicketModal onClose={() => setIsCloseModalOpen(false)} onConfirm={handleCloseTicketConfirm} />
+      {b.isCloseModalOpen && (
+        <CloseTicketModal
+          onClose={() => b.setIsCloseModalOpen(false)}
+          onConfirm={b.handleCloseTicketConfirm}
+        />
       )}
 
-      {isStageManagerOpen && (
+      {b.isStageManagerOpen && (
         <StageManagerModal
-          baseUrl={baseUrl}
-          onClose={() => setIsStageManagerOpen(false)}
-          onStagesChanged={fetchBoardData}
-          showFeedback={showFeedback}
-          setConfirmModal={setConfirmModal}
+          baseUrl={b.baseUrl}
+          onClose={() => b.setIsStageManagerOpen(false)}
+          onStagesChanged={b.fetchBoardData}
+          showFeedback={b.showFeedback}
+          setConfirmModal={b.setConfirmModal}
         />
       )}
 
-      {isArchivedModalOpen && (
+      {b.isArchivedModalOpen && (
         <ArchivedTicketsModal
-          baseUrl={baseUrl}
-          onClose={() => setIsArchivedModalOpen(false)}
-          onRestoreSuccess={fetchBoardData}
-          showFeedback={showFeedback}
+          baseUrl={b.baseUrl}
+          onClose={() => b.setIsArchivedModalOpen(false)}
+          onRestoreSuccess={b.fetchBoardData}
+          showFeedback={b.showFeedback}
         />
       )}
 
-      {confirmModal && (
+      {b.confirmModal && (
         <ConfirmModal
-          title={confirmModal.title}
-          message={confirmModal.message}
-          onConfirm={confirmModal.onConfirm}
-          onClose={confirmModal.onClose}
+          title={b.confirmModal.title}
+          message={b.confirmModal.message}
+          onConfirm={b.confirmModal.onConfirm}
+          onClose={b.confirmModal.onClose}
         />
       )}
     </div>
