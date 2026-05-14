@@ -32,9 +32,11 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
 
   const loadStages = async () => {
     try {
-      const data = await apiRequest('/tickets/stages');
-      setAllStages(data);
-    } catch {}
+      const data = await apiRequest<Stage[]>('/tickets/stages');
+      setAllStages(Array.isArray(data) ? data : []);
+    } catch {
+      setAllStages([]);
+    }
   };
 
   useEffect(() => { loadStages(); }, []);
@@ -48,14 +50,18 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
       loadStages();
       onStagesChanged();
       showFeedback('success', 'Fase criada com sucesso!');
-    } catch (err) { showFeedback('error', 'Erro ao criar fase.'); }
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao criar fase.');
+    }
   };
 
   const handleToggleStageActive = async (id: string, currentStatus: boolean) => {
     try {
       await apiRequest(`/tickets/stages/${id}`, { method: 'PUT', body: JSON.stringify({ isActive: !currentStatus }) });
       loadStages(); onStagesChanged();
-    } catch (err) { showFeedback('error', 'Erro ao atualizar fase.'); }
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao atualizar fase.');
+    }
   };
 
   const handleDeleteStage = (id: string) => {
@@ -67,7 +73,9 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
           loadStages();
           onStagesChanged();
           showFeedback('success', 'Fase removida permanentemente.');
-        } catch (err) { showFeedback('error', 'Erro de conexão.'); }
+        } catch (err) {
+          showFeedback('error', err instanceof Error ? err.message : 'Erro ao apagar a fase.');
+        }
         setConfirmModal(null);
       },
       onClose: () => setConfirmModal(null)
@@ -85,7 +93,9 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
     try {
       await apiRequest('/tickets/stages/reorder', { method: 'PUT', body: JSON.stringify({ stages: payload }) });
       onStagesChanged();
-    } catch (err) { showFeedback('error', 'Erro ao reordenar fases.'); }
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao reordenar fases.');
+    }
   };
 
   return (
