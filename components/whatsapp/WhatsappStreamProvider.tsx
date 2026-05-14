@@ -12,6 +12,7 @@ import {
 } from '@/lib/whatsapp-notifications';
 import { applyTabFaviconBadgeIfHidden, resetTabFaviconToDefault } from '@/lib/tab-favicon-badge';
 import { getApiBaseUrl } from '@/lib/api-client';
+import { emitCrmNetworkOnline } from '@/lib/crm-network-events';
 
 const sseIncomingSeenKeys = new Set<string>();
 
@@ -61,6 +62,9 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let eventSource: EventSource | null = null;
+    let reconnectAttempt = 0;
+    const MAX_BACKOFF_MS = 30_000;
+    const BASE_BACKOFF_MS = 1_500;
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -103,13 +107,18 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
       }
     };
 
+    const nextBackoffMs = () =>
+      Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * Math.pow(2, reconnectAttempt));
+
     const scheduleReconnect = () => {
       if (stopped) return;
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      const delay = nextBackoffMs();
+      reconnectAttempt += 1;
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         if (!stopped) connect();
-      }, 4000);
+      }, delay);
     };
 
     const connect = () => {
@@ -117,6 +126,14 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
       eventSource?.close();
       eventSource = new EventSource(url, { withCredentials: true });
       eventSource.onmessage = handleMessage;
+      eventSource.onopen = () => {
+        reconnectAttempt = 0;
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        emitCrmNetworkOnline();
+      };
       eventSource.onerror = () => {
         eventSource?.close();
         eventSource = null;
@@ -124,10 +141,28 @@ export function WhatsappStreamProvider({ children }: { children: React.ReactNode
       };
     };
 
+    const flushTimerAndConnect = () => {
+      if (stopped) return;
+      reconnectAttempt = 0;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      connect();
+    };
+
+    const onBrowserOnline = () => {
+      flushTimerAndConnect();
+      emitCrmNetworkOnline();
+    };
+
+    window.addEventListener('online', onBrowserOnline);
+
     connect();
 
     return () => {
       stopped = true;
+      window.removeEventListener('online', onBrowserOnline);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       eventSource?.close();
     };

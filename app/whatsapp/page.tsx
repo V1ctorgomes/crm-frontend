@@ -35,6 +35,7 @@ import {
   normalizeWhatsappHistoryResponse,
   mapApiRowToMessage,
 } from '@/lib/whatsapp-history-pagination';
+import { CRM_NETWORK_ONLINE } from '@/lib/crm-network-events';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -244,6 +245,39 @@ export default function WhatsAppPage() {
       } catch (err) { setHasInstances(false); }
     };
     fetchInitialData();
+  }, []);
+
+  /** Após queda de rede: sincronizar contactos e conversa aberta sem recarregar a página. */
+  useEffect(() => {
+    const onNetworkResume = () => {
+      if (typeof window === 'undefined' || !window.location.pathname.includes('/whatsapp')) return;
+      void (async () => {
+        const contactsData = await apiRequest<any[]>('/whatsapp/contacts').catch(() => []);
+        const formattedContacts = contactsData.map((c: any) => ({
+          ...c,
+          lastMessageTime: c.lastMessageTime
+            ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '',
+        }));
+        setContacts(formattedContacts);
+        setActiveContact((prev) => {
+          if (!prev) return prev;
+          const match = formattedContacts.find((c: Contact) => c.number === prev.number);
+          return match ? { ...prev, ...match } : prev;
+        });
+        const num = whatsappActiveContactRef.current;
+        if (!num) return;
+        const raw = await apiRequest(
+          `/whatsapp/history/${encodeURIComponent(num)}?limit=${WHATSAPP_HISTORY_PAGE_SIZE}`,
+        ).catch(() => ({ messages: [], hasMoreOlder: false }));
+        const { rows, hasMoreOlder } = normalizeWhatsappHistoryResponse(raw);
+        const formattedMessages = rows.map(mapApiRowToMessage);
+        setChatHistory((prev) => ({ ...prev, [num]: formattedMessages }));
+        setHistoryMeta((prev) => ({ ...prev, [num]: { hasMoreOlder } }));
+      })();
+    };
+    window.addEventListener(CRM_NETWORK_ONLINE, onNetworkResume);
+    return () => window.removeEventListener(CRM_NETWORK_ONLINE, onNetworkResume);
   }, []);
 
   useEffect(() => {

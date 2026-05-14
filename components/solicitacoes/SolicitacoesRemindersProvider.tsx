@@ -52,11 +52,14 @@ export function SolicitacoesRemindersProvider({ children }: { children: React.Re
     const onVis = () => {
       if (document.visibilityState === 'visible') void pollBoard();
     };
+    const onOnline = () => void pollBoard();
     window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onOnline);
     document.addEventListener('visibilitychange', onVis);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [allowed, pathname]);
