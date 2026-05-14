@@ -17,7 +17,11 @@ export const MediaViewerModal = ({ viewerMessage, onClose }: { viewerMessage: Me
           <video src={viewerMessage.mediaData} controls autoPlay className="max-w-full max-h-full rounded outline-none" />
         ) : viewerMessage.mimeType?.startsWith('audio/') ? (
           <div className="w-full max-w-md px-2">
-            <VoiceNotePlayer src={viewerMessage.mediaData} mimeType={viewerMessage.mimeType} className="h-12" />
+            <VoiceNotePlayer
+              src={viewerMessage.mediaData!}
+              mimeType={viewerMessage.mimeType ?? 'audio/webm'}
+              className="h-12"
+            />
           </div>
         ) : viewerMessage.mimeType?.includes('pdf') ? (
           <iframe src={`${viewerMessage.mediaData}#toolbar=0`} className="h-full w-full rounded border border-slate-200 bg-white" title={viewerMessage.fileName || 'PDF'} />
