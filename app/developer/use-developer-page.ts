@@ -35,8 +35,8 @@ export function useDeveloperPage() {
 
   const fetchProxies = useCallback(async () => {
     try {
-      const data = await apiRequest('/proxies');
-      setProxies(data);
+      const data = await apiRequest<ProxyNode[]>('/proxies');
+      setProxies(Array.isArray(data) ? data : []);
     } catch {
       showFeedback('error', 'Erro ao carregar proxies.');
     }
@@ -45,17 +45,17 @@ export function useDeveloperPage() {
   const fetchProviders = useCallback(async () => {
     try {
       const [evo, cf] = await Promise.all([
-        apiRequest('/providers/evolution').catch(() => ({})),
-        apiRequest('/providers/cloudflare').catch(() => ({})),
+        apiRequest<Record<string, unknown>>('/providers/evolution').catch(() => ({})),
+        apiRequest<Record<string, unknown>>('/providers/cloudflare').catch(() => ({})),
       ]);
-      if (evo.baseUrl) setEvoBaseUrl(evo.baseUrl);
-      if (evo.apiKey) setEvoApiKey(evo.apiKey);
+      if (typeof evo.baseUrl === 'string') setEvoBaseUrl(evo.baseUrl);
+      if (typeof evo.apiKey === 'string') setEvoApiKey(evo.apiKey);
 
-      if (cf.accountId) setCfAccountId(cf.accountId);
-      if (cf.bucket) setCfBucket(cf.bucket);
-      if (cf.apiKey) setCfAccessKey(cf.apiKey);
-      if (cf.apiToken) setCfSecretKey(cf.apiToken);
-      if (cf.baseUrl) setCfPublicUrl(cf.baseUrl);
+      if (typeof cf.accountId === 'string') setCfAccountId(cf.accountId);
+      if (typeof cf.bucket === 'string') setCfBucket(cf.bucket);
+      if (typeof cf.apiKey === 'string') setCfAccessKey(cf.apiKey);
+      if (typeof cf.apiToken === 'string') setCfSecretKey(cf.apiToken);
+      if (typeof cf.baseUrl === 'string') setCfPublicUrl(cf.baseUrl);
     } catch {
       showFeedback('error', 'Erro ao carregar configurações dos provedores.');
     }

@@ -217,3 +217,5 @@ export function useSolicitacoesBoard() {
     filteredStages,
   };
 }
+
+export type SolicitacoesBoardViewModel = ReturnType<typeof useSolicitacoesBoard>;

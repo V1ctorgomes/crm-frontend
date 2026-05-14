@@ -53,3 +53,5 @@ export function useWhatsappListsAndOs(layout: WhatsappLayoutState, messaging: Wh
     filteredMessages,
   };
 }
+
+export type WhatsappListsAndOsResult = ReturnType<typeof useWhatsappListsAndOs>;

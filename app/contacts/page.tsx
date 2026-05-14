@@ -1,239 +1,83 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { ContactsHeader } from '@/components/contacts/ContactsHeader';
-import {
-  ContactsSectionTabs,
-  type ContactsListSection,
-} from '@/components/contacts/ContactsSectionTabs';
-import { ContactsTable, Contact } from '@/components/contacts/ContactsTable';
+import { ContactsSectionTabs } from '@/components/contacts/ContactsSectionTabs';
+import { ContactsTable } from '@/components/contacts/ContactsTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
-import { apiRequest } from '@/lib/api-client';
-import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
-
-const PAGE_SIZE = 8;
+import { useContactsPage } from './use-contacts-page';
 
 export const dynamic = 'force-dynamic';
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Estados de Feedback (Notificações)
-  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  
-  // Estados do Modal de Edição
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editCnpj, setEditCnpj] = useState('');
-  const [editContactKind, setEditContactKind] = useState<ContactKind>('UNKNOWN');
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Estados do Modal de Confirmação de Remoção
-  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
-  const [tablePage, setTablePage] = useState(0);
-  /** Por omissão mostra ainda não classificados (evita lista vazia em bases antigas). */
-  const [listSection, setListSection] = useState<ContactsListSection>('unknown');
-
-  const showFeedback = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-  };
-
-  const fetchContacts = async () => {
-    setIsLoading(true);
-    try {
-      const data = await apiRequest('/whatsapp/contacts');
-      const rows = Array.isArray(data) ? data : [];
-      setContacts(
-        rows.map((c: Record<string, unknown>) => ({
-          ...(c as unknown as Contact),
-          contactKind: normalizeContactKind(c.contactKind),
-        })),
-      );
-    } catch (err) {
-      showFeedback('error', "Falha ao carregar a lista de contatos.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchContacts(); }, []);
-
-  const openEditModal = (contact: Contact) => {
-    setEditingContact(contact);
-    setEditName(contact.name || '');
-    setEditEmail(contact.email || '');
-    setEditCnpj(contact.cnpj || '');
-    setEditContactKind(normalizeContactKind(contact.contactKind));
-    setIsEditing(true);
-  };
-
-  const handleSaveContact = async () => {
-    if (!editingContact) return;
-    setIsSaving(true);
-
-    try {
-      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(editingContact.number)}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: editName,
-          email: editEmail,
-          cnpj: editCnpj,
-          contactKind: editContactKind,
-        }),
-      });
-
-      setContacts((prev) =>
-        prev.map((c) =>
-          c.number === editingContact.number
-            ? { ...c, name: editName, email: editEmail, cnpj: editCnpj, contactKind: editContactKind }
-            : c,
-        ),
-      );
-      setIsEditing(false);
-      showFeedback('success', "Contato atualizado com sucesso!");
-    } catch (err) {
-      showFeedback('error', "Erro de conexão ao tentar guardar.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteContact = async () => {
-    if (!contactToDelete) return;
-
-    try {
-      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, {
-        method: 'DELETE',
-      });
-
-      setContacts(prev => prev.filter(c => c.number !== contactToDelete.number));
-      setContactToDelete(null);
-      showFeedback('success', "Contato removido da base de dados.");
-    } catch (err) {
-      showFeedback('error', "Erro de ligação ao servidor.");
-      setContactToDelete(null);
-    }
-  };
-
-  const kindCounts = useMemo(() => {
-    let customer = 0;
-    let internal = 0;
-    let unknown = 0;
-    for (const c of contacts) {
-      const k = normalizeContactKind(c.contactKind);
-      if (k === 'CUSTOMER') customer += 1;
-      else if (k === 'INTERNAL') internal += 1;
-      else unknown += 1;
-    }
-    return { customer, internal, unknown };
-  }, [contacts]);
-
-  const contactsInSection = useMemo(() => {
-    const want: ContactKind =
-      listSection === 'customer' ? 'CUSTOMER' : listSection === 'internal' ? 'INTERNAL' : 'UNKNOWN';
-    return contacts.filter((c) => normalizeContactKind(c.contactKind) === want);
-  }, [contacts, listSection]);
-
-  const filteredContacts = useMemo(
-    () =>
-      contactsInSection.filter(
-        (c) =>
-          (c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          c.number.includes(searchTerm) ||
-          (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())),
-      ),
-    [contactsInSection, searchTerm],
-  );
-
-  useEffect(() => {
-    setTablePage(0);
-  }, [searchTerm, listSection]);
-
-  useEffect(() => {
-    setTablePage((p) => {
-      const totalPages = Math.max(1, Math.ceil(filteredContacts.length / PAGE_SIZE));
-      return Math.min(p, totalPages - 1);
-    });
-  }, [filteredContacts.length]);
-
-  const paginatedContacts = useMemo(() => {
-    const start = tablePage * PAGE_SIZE;
-    return filteredContacts.slice(start, start + PAGE_SIZE);
-  }, [filteredContacts, tablePage]);
+  const c = useContactsPage();
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
       <Sidebar />
 
       <main className="flex-1 flex flex-col pt-[60px] md:pt-0 h-full relative overflow-hidden overflow-y-auto no-scrollbar selection:bg-brand-100 selection:text-brand-900">
-        
-        {toast && (
+        {c.toast && (
           <Toast
-            type={toast.type}
-            message={toast.message}
-            onDismiss={() => setToast(null)}
+            type={c.toast.type}
+            message={c.toast.message}
+            onDismiss={() => c.setToast(null)}
           />
         )}
 
-        <ContactsHeader 
-          totalContacts={contacts.length} 
-          searchTerm={searchTerm} 
-          onSearchChange={setSearchTerm} 
+        <ContactsHeader
+          totalContacts={c.contacts.length}
+          searchTerm={c.searchTerm}
+          onSearchChange={c.setSearchTerm}
         />
 
         <ContactsSectionTabs
-          value={listSection}
-          onChange={setListSection}
-          customerCount={kindCounts.customer}
-          internalCount={kindCounts.internal}
-          unknownCount={kindCounts.unknown}
+          value={c.listSection}
+          onChange={c.setListSection}
+          customerCount={c.kindCounts.customer}
+          internalCount={c.kindCounts.internal}
+          unknownCount={c.kindCounts.unknown}
         />
 
-        <ContactsTable 
-          isLoading={isLoading} 
-          contacts={paginatedContacts} 
-          onEdit={openEditModal} 
-          onDelete={setContactToDelete}
+        <ContactsTable
+          isLoading={c.isLoading}
+          contacts={c.paginatedContacts}
+          onEdit={c.openEditModal}
+          onDelete={c.setContactToDelete}
           pagination={{
-            page: tablePage,
-            pageSize: PAGE_SIZE,
-            total: filteredContacts.length,
-            onPageChange: setTablePage,
+            page: c.tablePage,
+            pageSize: c.PAGE_SIZE,
+            total: c.filteredContacts.length,
+            onPageChange: c.setTablePage,
           }}
         />
       </main>
 
-      {isEditing && (
-        <EditContactModal 
-          editName={editName}
-          setEditName={setEditName}
-          editEmail={editEmail}
-          setEditEmail={setEditEmail}
-          editCnpj={editCnpj}
-          setEditCnpj={setEditCnpj}
-          editContactKind={editContactKind}
-          setEditContactKind={setEditContactKind}
-          isSaving={isSaving}
-          onClose={() => setIsEditing(false)}
-          onSave={handleSaveContact}
+      {c.isEditing && (
+        <EditContactModal
+          editName={c.editName}
+          setEditName={c.setEditName}
+          editEmail={c.editEmail}
+          setEditEmail={c.setEditEmail}
+          editCnpj={c.editCnpj}
+          setEditCnpj={c.setEditCnpj}
+          editContactKind={c.editContactKind}
+          setEditContactKind={c.setEditContactKind}
+          isSaving={c.isSaving}
+          onClose={() => c.setIsEditing(false)}
+          onSave={c.handleSaveContact}
         />
       )}
 
-      {contactToDelete && (
-        <DeleteContactModal 
-          contact={contactToDelete}
-          onClose={() => setContactToDelete(null)}
-          onConfirm={handleDeleteContact}
+      {c.contactToDelete && (
+        <DeleteContactModal
+          contact={c.contactToDelete}
+          onClose={() => c.setContactToDelete(null)}
+          onConfirm={c.handleDeleteContact}
         />
       )}
-
     </div>
   );
 }

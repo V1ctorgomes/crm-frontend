@@ -4,14 +4,15 @@ import { useWhatsappLayoutState } from './use-whatsapp-layout-state';
 import { useWhatsappRealtimeThread } from './use-whatsapp-realtime-thread';
 import { useWhatsappMessagingStack } from './use-whatsapp-messaging-stack';
 import { useWhatsappListsAndOs } from './use-whatsapp-lists-and-os';
+import type { WhatsappPageViewModel } from './whatsapp-page-view-model';
 
-export function useWhatsappPage() {
+export function useWhatsappPage(): WhatsappPageViewModel {
   const layout = useWhatsappLayoutState();
   const realtime = useWhatsappRealtimeThread(layout);
   const messaging = useWhatsappMessagingStack(layout, realtime);
   const lists = useWhatsappListsAndOs(layout, messaging);
 
-  return {
+  const model = {
     ...layout,
     historyMeta: realtime.historyMeta,
     isLoadingOlder: realtime.isLoadingOlder,
@@ -36,5 +37,7 @@ export function useWhatsappPage() {
     startChatWithContact: lists.startChatWithContact,
     osForm: lists.osForm,
     filteredMessages: lists.filteredMessages,
-  };
+  } satisfies WhatsappPageViewModel;
+
+  return model;
 }
