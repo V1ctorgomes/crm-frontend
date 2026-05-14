@@ -76,6 +76,17 @@ export type CreateTicketFormInput = {
   stageId: string;
 };
 
+/** Corpo para PUT /tickets/:id (sem contacto nem fase). */
+export type UpdateTicketFormInput = {
+  nome: string;
+  email: string;
+  cpf: string;
+  marca: string;
+  modelo: string;
+  customerType: string;
+  ticketType: string;
+};
+
 /** Texto genérico: não vazio e com pelo menos 2 caracteres úteis após trim. */
 function minText(v: string, label: string): string | null {
   const t = v.trim();
@@ -140,6 +151,52 @@ export function validateCreateTicketForm(input: Partial<CreateTicketFormInput>):
       customerType: String(input.customerType).trim(),
       ticketType: String(input.ticketType).trim(),
       stageId,
+    },
+  };
+}
+
+/** Valida edição de OS (mesmos campos que a criação, excepto número e fase). */
+export function validateUpdateTicketForm(
+  input: Partial<Omit<CreateTicketFormInput, 'contactNumber' | 'stageId'>>,
+): { ok: true; body: UpdateTicketFormInput } | { ok: false; message: string } {
+  let err = minText(String(input.nome || ''), 'Nome completo');
+  if (err) return { ok: false, message: err };
+
+  const email = String(input.email || '').trim().toLowerCase();
+  if (!email) return { ok: false, message: 'O e-mail é obrigatório.' };
+  if (!isValidEmail(email)) return { ok: false, message: 'Indique um e-mail válido (ex.: nome@empresa.pt).' };
+
+  const taxDigits = onlyDigits(String(input.cpf || ''));
+  if (!taxDigits) return { ok: false, message: 'O CPF ou CNPJ é obrigatório.' };
+  if (taxDigits.length !== 11 && taxDigits.length !== 14) {
+    return { ok: false, message: 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos (use apenas números ou a máscara).' };
+  }
+  if (!isValidCpfOrCnpj(taxDigits)) {
+    return { ok: false, message: 'CPF ou CNPJ inválido (dígitos verificadores incorretos).' };
+  }
+
+  err = minText(String(input.marca || ''), 'Marca');
+  if (err) return { ok: false, message: err };
+
+  err = minText(String(input.modelo || ''), 'Modelo');
+  if (err) return { ok: false, message: err };
+
+  err = minText(String(input.customerType || ''), 'Tipo de cliente');
+  if (err) return { ok: false, message: err };
+
+  err = minText(String(input.ticketType || ''), 'Tipo de solicitação');
+  if (err) return { ok: false, message: err };
+
+  return {
+    ok: true,
+    body: {
+      nome: String(input.nome).trim(),
+      email,
+      cpf: taxDigits,
+      marca: String(input.marca).trim(),
+      modelo: String(input.modelo).trim(),
+      customerType: String(input.customerType).trim(),
+      ticketType: String(input.ticketType).trim(),
     },
   };
 }

@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { Clock, Trash2, Calendar, CheckCircle2, Circle, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Clock, Trash2, Calendar, CheckCircle2, Circle, X, Pencil, Loader2 } from 'lucide-react';
 import { Ticket } from './types';
 import { apiRequest } from '@/lib/api-client';
+import { formatCpfCnpjInput, validateUpdateTicketForm } from '@/lib/ticket-form-validation';
+import { CATALOG_CATEGORY_LABELS, type TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 
 interface TicketDetailsModalProps {
   ticket: Ticket;
@@ -18,7 +20,19 @@ export function TicketDetailsModal({
   ticket, baseUrl, initialTab = 'tasks', onClose, onTicketUpdated, onCloseTicketRequest, showFeedback, setConfirmModal 
 }: TicketDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<'notes' | 'files' | 'tasks'>(initialTab);
-  
+
+  const [editingOs, setEditingOs] = useState(false);
+  const [catalog, setCatalog] = useState<TicketCatalogOptions | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [formNome, setFormNome] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formCpf, setFormCpf] = useState('');
+  const [formMarca, setFormMarca] = useState('');
+  const [formModelo, setFormModelo] = useState('');
+  const [formCustomerType, setFormCustomerType] = useState('');
+  const [formTicketType, setFormTicketType] = useState('');
+  const [savingOs, setSavingOs] = useState(false);
+
   // Estados Locais de Formulários
   const [newNoteText, setNewNoteText] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -29,6 +43,80 @@ export function TicketDetailsModal({
   const [fileDescription, setFileDescription] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const syncFormFromTicket = useCallback(() => {
+    setFormNome(ticket.contact?.name || '');
+    setFormEmail((ticket.contact?.email || '').trim().toLowerCase());
+    setFormCpf(formatCpfCnpjInput(ticket.contact?.cnpj || ''));
+    setFormMarca(ticket.marca || '');
+    setFormModelo(ticket.modelo || '');
+    setFormCustomerType(ticket.customerType || '');
+    setFormTicketType(ticket.ticketType || '');
+  }, [ticket]);
+
+  useEffect(() => {
+    if (!editingOs) syncFormFromTicket();
+  }, [editingOs, syncFormFromTicket]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCatalogLoading(true);
+      try {
+        const data = (await apiRequest('/ticket-catalog')) as TicketCatalogOptions;
+        if (!cancelled) setCatalog(data);
+      } catch {
+        if (!cancelled) setCatalog(null);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const catalogReady =
+    catalog &&
+    catalog.MARCA.length > 0 &&
+    catalog.MODELO.length > 0 &&
+    catalog.CUSTOMER_TYPE.length > 0 &&
+    catalog.TICKET_TYPE.length > 0;
+
+  const handleCancelEditOs = () => {
+    syncFormFromTicket();
+    setEditingOs(false);
+  };
+
+  const handleSaveEditOs = async () => {
+    const validated = validateUpdateTicketForm({
+      nome: formNome,
+      email: formEmail,
+      cpf: formCpf,
+      marca: formMarca,
+      modelo: formModelo,
+      customerType: formCustomerType,
+      ticketType: formTicketType,
+    });
+    if (!validated.ok) {
+      showFeedback('error', validated.message);
+      return;
+    }
+    setSavingOs(true);
+    try {
+      await apiRequest(`/tickets/${ticket.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(validated.body),
+      });
+      setEditingOs(false);
+      onTicketUpdated();
+      showFeedback('success', 'Solicitação actualizada.');
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Erro ao guardar alterações.');
+    } finally {
+      setSavingOs(false);
+    }
+  };
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
@@ -142,13 +230,20 @@ export function TicketDetailsModal({
 
   return (
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[85vh] flex overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
-        
-        {/* Lateral Esquerda */}
-        <div className="w-[300px] bg-slate-50 border-r border-slate-200 flex flex-col shrink-0 hidden md:flex">
-          <div className="p-6 flex flex-col items-center text-center border-b border-slate-200">
+      <div
+        className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[85vh] flex flex-col md:flex-row overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Lateral: dados do cliente e da OS */}
+        <div className="w-full md:w-[300px] bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0 min-h-0 max-h-[min(44vh,380px)] md:max-h-none">
+          <div className="p-6 flex flex-col items-center text-center border-b border-slate-200 shrink-0">
             {ticket.contact?.profilePictureUrl ? (
-              <img src={ticket.contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-20 h-20 rounded-full object-cover shadow-sm border border-slate-200 mb-3" alt="Perfil" />
+              <img
+                src={ticket.contact.profilePictureUrl}
+                referrerPolicy="no-referrer"
+                className="w-20 h-20 rounded-full object-cover shadow-sm border border-slate-200 mb-3"
+                alt="Perfil"
+              />
             ) : (
               <div className="w-20 h-20 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-xl text-slate-400 shadow-sm mb-3">
                 {(ticket.contact?.name || '?').substring(0, 2).toUpperCase()}
@@ -159,41 +254,213 @@ export function TicketDetailsModal({
               {ticket.contactNumber}
             </span>
           </div>
-          
-          <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-5">
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">E-mail</label>
-                <p className="text-sm text-slate-800 break-all">{ticket.contact?.email || '--'}</p>
-              </div>
-              <div>
-                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">CPF / CNPJ</label>
-                <p className="text-sm text-slate-800 font-mono break-all">{ticket.contact?.cnpj || '--'}</p>
-              </div>
-            </div>
 
-            {(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType) && (
-              <div className="pt-4 border-t border-slate-200 flex flex-col gap-4">
-                {ticket.ticketType && (
-                  <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Solicitação</label><p className="text-sm text-slate-800 font-medium">{ticket.ticketType}</p></div>
+          <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-5 min-h-0">
+            {!editingOs ? (
+              <>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                      E-mail
+                    </label>
+                    <p className="text-sm text-slate-800 break-all">{ticket.contact?.email || '--'}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                      CPF / CNPJ
+                    </label>
+                    <p className="text-sm text-slate-800 font-mono break-all">{ticket.contact?.cnpj || '--'}</p>
+                  </div>
+                </div>
+
+                {(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType) && (
+                  <div className="pt-4 border-t border-slate-200 flex flex-col gap-4">
+                    {ticket.ticketType && (
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                          Tipo de Solicitação
+                        </label>
+                        <p className="text-sm text-slate-800 font-medium">{ticket.ticketType}</p>
+                      </div>
+                    )}
+                    {ticket.customerType && (
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                          Tipo de Cliente
+                        </label>
+                        <p className="text-sm text-slate-800">{ticket.customerType}</p>
+                      </div>
+                    )}
+                    {ticket.marca && (
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                          Marca
+                        </label>
+                        <p className="text-sm text-slate-800">{ticket.marca}</p>
+                      </div>
+                    )}
+                    {ticket.modelo && (
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+                          Modelo
+                        </label>
+                        <p className="text-sm text-slate-800">{ticket.modelo}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
-                {ticket.customerType && (
-                  <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Cliente</label><p className="text-sm text-slate-800">{ticket.customerType}</p></div>
+
+                {!ticket.isArchived && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      syncFormFromTicket();
+                      setEditingOs(true);
+                    }}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md text-sm font-medium border border-slate-200 bg-white text-brand-800 hover:bg-brand-50 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Editar solicitação
+                  </button>
                 )}
-                {ticket.marca && (
-                  <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Marca</label><p className="text-sm text-slate-800">{ticket.marca}</p></div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {catalogLoading && <p className="text-xs text-slate-500">A carregar catálogo…</p>}
+                {!catalogLoading && !catalogReady && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    O catálogo de OS está incompleto. Peça a um developer para configurar as listas antes de guardar.
+                  </div>
                 )}
-                {ticket.modelo && (
-                  <div><label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">Modelo</label><p className="text-sm text-slate-800">{ticket.modelo}</p></div>
-                )}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">Nome completo *</label>
+                  <input
+                    type="text"
+                    className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+                    value={formNome}
+                    onChange={(e) => setFormNome(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">E-mail *</label>
+                  <input
+                    type="email"
+                    className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    onBlur={(e) => setFormEmail(e.target.value.trim().toLowerCase())}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-600">CPF ou CNPJ *</label>
+                  <input
+                    type="text"
+                    className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+                    value={formCpf}
+                    onChange={(e) => setFormCpf(formatCpfCnpjInput(e.target.value))}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">{CATALOG_CATEGORY_LABELS.MARCA} *</label>
+                    <select
+                      disabled={!catalogReady}
+                      className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600 disabled:bg-slate-100"
+                      value={formMarca}
+                      onChange={(e) => setFormMarca(e.target.value)}
+                    >
+                      <option value="">— Selecione —</option>
+                      {(catalog?.MARCA || []).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">{CATALOG_CATEGORY_LABELS.MODELO} *</label>
+                    <select
+                      disabled={!catalogReady}
+                      className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600 disabled:bg-slate-100"
+                      value={formModelo}
+                      onChange={(e) => setFormModelo(e.target.value)}
+                    >
+                      <option value="">— Selecione —</option>
+                      {(catalog?.MODELO || []).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">{CATALOG_CATEGORY_LABELS.CUSTOMER_TYPE} *</label>
+                    <select
+                      disabled={!catalogReady}
+                      className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600 disabled:bg-slate-100"
+                      value={formCustomerType}
+                      onChange={(e) => setFormCustomerType(e.target.value)}
+                    >
+                      <option value="">— Selecione —</option>
+                      {(catalog?.CUSTOMER_TYPE || []).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">{CATALOG_CATEGORY_LABELS.TICKET_TYPE} *</label>
+                    <select
+                      disabled={!catalogReady}
+                      className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-600 disabled:bg-slate-100"
+                      value={formTicketType}
+                      onChange={(e) => setFormTicketType(e.target.value)}
+                    >
+                      <option value="">— Selecione —</option>
+                      {(catalog?.TICKET_TYPE || []).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEditOs}
+                    disabled={savingOs}
+                    className="flex-1 py-2 rounded-md text-sm font-medium border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveEditOs()}
+                    disabled={savingOs || !catalogReady}
+                    className="flex-1 py-2 rounded-md text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                  >
+                    {savingOs ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Guardar
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="p-4 border-t border-slate-200 bg-white">
-             <button onClick={onCloseTicketRequest} className="w-full flex items-center justify-center gap-2 text-white bg-brand-600 hover:bg-brand-700 py-2.5 rounded-md text-sm font-medium transition-colors">
+          <div className="p-4 border-t border-slate-200 bg-white shrink-0">
+            {!ticket.isArchived ? (
+              <button
+                type="button"
+                onClick={onCloseTicketRequest}
+                className="w-full flex items-center justify-center gap-2 text-white bg-brand-600 hover:bg-brand-700 py-2.5 rounded-md text-sm font-medium transition-colors"
+              >
                 Encerrar Solicitação
-             </button>
+              </button>
+            ) : (
+              <p className="text-center text-xs text-slate-500">Solicitação encerrada — edição não disponível.</p>
+            )}
           </div>
         </div>
 
