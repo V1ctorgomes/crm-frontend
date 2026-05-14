@@ -208,7 +208,7 @@ export function LoginForm() {
                 id="email"
                 type="email"
                 className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink transition-colors placeholder:text-brand-800/40 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="exemplo@suempresa.com"
+                placeholder="exemplo@suporteimagem.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -291,7 +291,7 @@ export function LoginForm() {
                 id="reg-email"
                 type="email"
                 className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink transition-colors placeholder:text-brand-800/40 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-                placeholder="exemplo@suempresa.com"
+                placeholder="exemplo@suporteimagem.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -364,7 +364,7 @@ export function LoginForm() {
                 id="forgot-email"
                 type="email"
                 className="flex h-11 w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-ink transition-colors placeholder:text-brand-800/40 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
-                placeholder="exemplo@suempresa.com"
+                placeholder="exemplo@suporteimagem.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
