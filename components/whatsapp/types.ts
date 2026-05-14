@@ -1,8 +1,9 @@
+import type { ContactKind } from '@/lib/contact-kind';
+
 /** Estados de envio (balões `fromMe`), estilo WhatsApp. */
 export type MessageSendStatus = 'sending' | 'sent' | 'delivered';
 
-export interface Message {
-  id: string | number;
+export interface Message {  id: string | number;
   text: string;
   type: 'sent' | 'received';
   time: string;
@@ -30,6 +31,8 @@ export interface Contact {
   email?: string;
   cnpj?: string;
   instanceName?: string;
+  /** Cliente comercial vs colaborador (classificação manual). */
+  contactKind?: ContactKind;
 }
 
 export interface Stage {

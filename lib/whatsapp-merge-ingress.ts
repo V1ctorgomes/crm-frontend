@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction, MutableRefObject } from 'react';
 import type { Contact, Message } from '@/components/whatsapp/types';
 import type { WhatsappIngressDetail } from '@/lib/whatsapp-sse-parse';
 import { apiRequest } from '@/lib/api-client';
+import { normalizeContactKind } from '@/lib/contact-kind';
 
 function idMatches(a: string | number, b: string | number) {
   const sa = String(a);
@@ -104,12 +105,14 @@ export function mergeWhatsappIngressDetail(
     } else {
       apiRequest('/whatsapp/contacts')
         .then((data) => {
+          const rows = Array.isArray(data) ? data : [];
           setContacts(
-            (data as any[]).map((c: any) => ({
-              ...c,
+            rows.map((c: Record<string, unknown>) => ({
+              ...(c as unknown as Contact),
               lastMessageTime: c.lastMessageTime
-                ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                ? new Date(String(c.lastMessageTime)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '',
+              contactKind: normalizeContactKind(c.contactKind),
             })),
           );
         })

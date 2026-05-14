@@ -36,6 +36,7 @@ import {
   mapApiRowToMessage,
 } from '@/lib/whatsapp-history-pagination';
 import { CRM_NETWORK_ONLINE } from '@/lib/crm-network-events';
+import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
 
 /**
  * Preferir AAC em MP4 quando existir: reproduz no Safari/iOS e no CRM; WebM costuma ficar «mudo» no Safari.
@@ -54,6 +55,18 @@ function pickAudioRecordingMimeType(): string | undefined {
     if (MediaRecorder.isTypeSupported(t)) return t;
   }
   return undefined;
+}
+
+function mapWhatsappContactApiRow(c: Record<string, unknown>): Contact {
+  const lastMessageTime = c.lastMessageTime
+    ? new Date(String(c.lastMessageTime)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const base = c as unknown as Contact;
+  return {
+    ...base,
+    lastMessageTime,
+    contactKind: normalizeContactKind(c.contactKind),
+  };
 }
 
 function audioFileExtensionFromMime(blobType: string): string {
@@ -169,6 +182,8 @@ export default function WhatsAppPage() {
   const [chatSearchTerm, setChatSearchTerm] = useState('');
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [contactKindFilter, setContactKindFilter] = useState<'ALL' | ContactKind>('ALL');
+  const [contactKindSaving, setContactKindSaving] = useState(false);
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
@@ -201,6 +216,26 @@ export default function WhatsAppPage() {
     setToast({ type, message });
   };
 
+  const updateActiveContactKind = async (kind: ContactKind) => {
+    if (!activeContact) return;
+    setContactKindSaving(true);
+    try {
+      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(activeContact.number)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactKind: kind }),
+      });
+      const num = activeContact.number;
+      setActiveContact((prev) => (prev && prev.number === num ? { ...prev, contactKind: kind } : prev));
+      setContacts((prev) => prev.map((c) => (c.number === num ? { ...c, contactKind: kind } : c)));
+      showFeedback('success', 'Classificação guardada.');
+    } catch (e: unknown) {
+      showFeedback('error', e instanceof Error ? e.message : 'Erro ao guardar.');
+    } finally {
+      setContactKindSaving(false);
+    }
+  };
+
   const handleSelectContact = (contact: Contact | null) => {
     setActiveContact(contact);
     setIsSearchChatOpen(false);
@@ -221,7 +256,8 @@ export default function WhatsAppPage() {
           apiRequest('/customers').catch(() => []),
         ]);
 
-        const formattedContacts = contactsData.map((c: any) => ({ ...c, lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }));
+        const rawList = Array.isArray(contactsData) ? contactsData : [];
+        const formattedContacts = rawList.map((c) => mapWhatsappContactApiRow(c as Record<string, unknown>));
         setContacts(formattedContacts);
 
         const savedNumber = localStorage.getItem('lastActiveContact');
@@ -253,16 +289,12 @@ export default function WhatsAppPage() {
       if (typeof window === 'undefined' || !window.location.pathname.includes('/whatsapp')) return;
       void (async () => {
         const contactsData = await apiRequest<any[]>('/whatsapp/contacts').catch(() => []);
-        const formattedContacts = contactsData.map((c: any) => ({
-          ...c,
-          lastMessageTime: c.lastMessageTime
-            ? new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : '',
-        }));
+        const rawList = Array.isArray(contactsData) ? contactsData : [];
+        const formattedContacts = rawList.map((c) => mapWhatsappContactApiRow(c as Record<string, unknown>));
         setContacts(formattedContacts);
         setActiveContact((prev) => {
           if (!prev) return prev;
-          const match = formattedContacts.find((c: Contact) => c.number === prev.number);
+          const match = formattedContacts.find((c) => c.number === prev.number);
           return match ? { ...prev, ...match } : prev;
         });
         const num = whatsappActiveContactRef.current;
@@ -782,10 +814,29 @@ export default function WhatsAppPage() {
     const targetInstance = selectedInstance !== 'ALL' ? selectedInstance : undefined;
 
     if (existing) {
-      setContacts(prev => prev.map(c => c.number === contact.number ? { ...c, lastMessage: 'Nova Conversa', lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } : c));
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.number === contact.number
+            ? {
+                ...c,
+                lastMessage: 'Nova Conversa',
+                lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              }
+            : c,
+        ),
+      );
       setActiveContact({ ...existing, lastMessage: 'Nova Conversa' });
     } else {
-      const newContact: Contact = { number: contact.number, name: contact.name, lastMessage: 'Nova Conversa', lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), email: contact.email, cnpj: contact.cnpj, instanceName: targetInstance };
+      const newContact: Contact = {
+        number: contact.number,
+        name: contact.name,
+        lastMessage: 'Nova Conversa',
+        lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        email: contact.email,
+        cnpj: contact.cnpj,
+        instanceName: targetInstance,
+        contactKind: 'UNKNOWN',
+      };
       setContacts(prev => [newContact, ...prev]);
       setActiveContact(newContact);
     }
@@ -795,8 +846,22 @@ export default function WhatsAppPage() {
   // Filtros de contatos e mensagens
   const activeMessages = activeContact ? (chatHistory[activeContact.number] || []) : [];
   const filteredMessages = chatSearchTerm ? activeMessages.filter(msg => (msg.text || '').toLowerCase().includes(chatSearchTerm.toLowerCase()) || (msg.fileName || '').toLowerCase().includes(chatSearchTerm.toLowerCase())) : activeMessages;
-  const activeContactsList = contacts.filter(c => c.lastMessage && c.lastMessage.trim() !== '' && (selectedInstance === 'ALL' || c.instanceName === selectedInstance));
-  const filteredActiveContacts = activeContactsList.filter(c => (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) || (c.number || '').includes(customerSearch));
+  const activeContactsList = contacts.filter(
+    (c) =>
+      c.lastMessage &&
+      c.lastMessage.trim() !== '' &&
+      (selectedInstance === 'ALL' || c.instanceName === selectedInstance),
+  );
+  const filteredActiveContacts = activeContactsList
+    .filter(
+      (c) =>
+        (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) ||
+        (c.number || '').includes(customerSearch),
+    )
+    .filter((c) => {
+      if (contactKindFilter === 'ALL') return true;
+      return normalizeContactKind(c.contactKind) === contactKindFilter;
+    });
   const inactiveContactsList = contacts.filter(c => (!c.lastMessage || c.lastMessage.trim() === '') && (selectedInstance === 'ALL' || !c.instanceName || c.instanceName === selectedInstance));
   
   const availableToChat = [...inactiveContactsList];
@@ -835,6 +900,8 @@ export default function WhatsAppPage() {
               filteredActiveContacts={filteredActiveContacts} filteredNewContacts={filteredNewContacts}
               handleSelectContact={handleSelectContact} startChatWithContact={startChatWithContact}
               unreadByContact={unreadByContact}
+              contactKindFilter={contactKindFilter}
+              onContactKindFilterChange={setContactKindFilter}
               onPushToast={(message, type) => setToast({ type, message })}
             />
 
@@ -845,6 +912,9 @@ export default function WhatsAppPage() {
                     activeContact={activeContact} handleSelectContact={handleSelectContact} openNewTicketModal={openNewTicketModal}
                     isSearchChatOpen={isSearchChatOpen} setIsSearchChatOpen={setIsSearchChatOpen} chatSearchTerm={chatSearchTerm} 
                     setChatSearchTerm={setChatSearchTerm} onOpenDeleteModal={() => setIsDeleteModalOpen(true)}
+                    contactKind={normalizeContactKind(activeContact.contactKind)}
+                    onContactKindChange={(k) => void updateActiveContactKind(k)}
+                    kindSaving={contactKindSaving}
                   />
 
                   {previewFile && previewUrl && (

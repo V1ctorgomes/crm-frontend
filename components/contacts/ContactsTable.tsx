@@ -1,5 +1,6 @@
 import React from 'react';
 import { TablePagination, TablePaginationProps } from '@/components/ui/TablePagination';
+import type { ContactKind } from '@/lib/contact-kind';
 
 export interface Contact {
   number: string;
@@ -8,6 +9,7 @@ export interface Contact {
   lastMessageTime: string;
   email?: string;
   cnpj?: string;
+  contactKind?: ContactKind;
 }
 
 interface ContactsTableProps {
@@ -30,13 +32,14 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">WhatsApp</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">E-mail</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">CNPJ / CPF</th>
+                <th className="h-12 px-4 align-middle font-medium text-slate-500">Tipo</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center">
+                  <td colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                       <span className="text-slate-500 font-medium text-sm">A carregar contactos...</span>
@@ -45,7 +48,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                 </tr>
               ) : contacts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center text-slate-500 text-sm">
+                  <td colSpan={6} className="h-32 text-center text-slate-500 text-sm">
                     Nenhum contacto encontrado.
                   </td>
                 </tr>
@@ -69,6 +72,19 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                   <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.number}</td>
                   <td className="p-4 align-middle text-slate-600 truncate max-w-[150px]">{contact.email || '--'}</td>
                   <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.cnpj || '--'}</td>
+                  <td className="p-4 align-middle text-slate-600 text-xs">
+                    {contact.contactKind === 'INTERNAL' ? (
+                      <span className="inline-flex rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 font-semibold text-violet-800">
+                        Colaborador
+                      </span>
+                    ) : contact.contactKind === 'CUSTOMER' ? (
+                      <span className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-800">
+                        Cliente
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
                   <td className="p-4 align-middle text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => onEdit(contact)} className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-brand-950 hover:bg-slate-100 transition-colors" title="Editar">

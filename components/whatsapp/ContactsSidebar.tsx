@@ -1,6 +1,7 @@
 import React from 'react';
 import { Contact } from './types';
 import { WhatsappPushAlertRow } from '@/components/whatsapp/WhatsappPushAlertRow';
+import { type ContactKind, CONTACT_KIND_OPTIONS } from '@/lib/contact-kind';
 
 interface ContactsSidebarProps {
   activeContact: Contact | null;
@@ -14,12 +15,16 @@ interface ContactsSidebarProps {
   handleSelectContact: (contact: Contact | null) => void;
   startChatWithContact: (contact: any) => void;
   unreadByContact: Record<string, number>;
+  contactKindFilter: 'ALL' | ContactKind;
+  onContactKindFilterChange: (v: 'ALL' | ContactKind) => void;
   onPushToast?: (message: string, type: 'success' | 'error') => void;
 }
 
 export function ContactsSidebar({
   activeContact, customerSearch, setCustomerSearch, instances, selectedInstance, onOpenInstanceModal, 
   filteredActiveContacts, filteredNewContacts, handleSelectContact, startChatWithContact, unreadByContact,
+  contactKindFilter,
+  onContactKindFilterChange,
   onPushToast,
 }: ContactsSidebarProps) {
   return (
@@ -49,6 +54,24 @@ export function ContactsSidebar({
           )}
         </div>
         {onPushToast && <WhatsappPushAlertRow onToast={onPushToast} />}
+        <div className="flex items-center gap-2">
+          <label htmlFor="wa-sidebar-kind-filter" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0">
+            Tipo
+          </label>
+          <select
+            id="wa-sidebar-kind-filter"
+            value={contactKindFilter}
+            onChange={(e) => onContactKindFilterChange(e.target.value as 'ALL' | ContactKind)}
+            className="flex-1 min-w-0 h-9 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-brand-950 shadow-sm"
+          >
+            <option value="ALL">Todos</option>
+            {CONTACT_KIND_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className="crm-thin-scrollbar flex-1 min-h-0 overflow-y-auto bg-white">
@@ -64,7 +87,18 @@ export function ContactsSidebar({
             <div className="flex-1 overflow-hidden">
               <div className="flex justify-between items-center mb-0.5 gap-2 min-w-0">
                 <span className="font-semibold text-brand-950 text-sm truncate min-w-0">{contact.name}</span>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
+                  {contact.contactKind && contact.contactKind !== 'UNKNOWN' && (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                        contact.contactKind === 'INTERNAL'
+                          ? 'bg-violet-100 text-violet-800 border border-violet-200'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}
+                    >
+                      {contact.contactKind === 'INTERNAL' ? 'Equipa' : 'Cliente'}
+                    </span>
+                  )}
                   {(unreadByContact[contact.number] || 0) > 0 && (
                     <span className="min-w-[1.125rem] h-5 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center tabular-nums leading-none">
                       {(unreadByContact[contact.number] || 0) > 99 ? '99+' : unreadByContact[contact.number]}

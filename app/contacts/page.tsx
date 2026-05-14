@@ -8,6 +8,7 @@ import { ContactsTable, Contact } from '@/components/contacts/ContactsTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
 import { apiRequest } from '@/lib/api-client';
+import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
 
 const PAGE_SIZE = 8;
 
@@ -27,6 +28,7 @@ export default function ContactsPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCnpj, setEditCnpj] = useState('');
+  const [editContactKind, setEditContactKind] = useState<ContactKind>('UNKNOWN');
   const [isSaving, setIsSaving] = useState(false);
 
   // Estados do Modal de Confirmação de Remoção
@@ -41,7 +43,13 @@ export default function ContactsPage() {
     setIsLoading(true);
     try {
       const data = await apiRequest('/whatsapp/contacts');
-      setContacts(data);
+      const rows = Array.isArray(data) ? data : [];
+      setContacts(
+        rows.map((c: Record<string, unknown>) => ({
+          ...(c as unknown as Contact),
+          contactKind: normalizeContactKind(c.contactKind),
+        })),
+      );
     } catch (err) {
       showFeedback('error', "Falha ao carregar a lista de contactos.");
     } finally {
@@ -56,6 +64,7 @@ export default function ContactsPage() {
     setEditName(contact.name || '');
     setEditEmail(contact.email || '');
     setEditCnpj(contact.cnpj || '');
+    setEditContactKind(normalizeContactKind(contact.contactKind));
     setIsEditing(true);
   };
 
@@ -66,14 +75,21 @@ export default function ContactsPage() {
     try {
       await apiRequest(`/whatsapp/contacts/${encodeURIComponent(editingContact.number)}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: editName, email: editEmail, cnpj: editCnpj }),
+        body: JSON.stringify({
+          name: editName,
+          email: editEmail,
+          cnpj: editCnpj,
+          contactKind: editContactKind,
+        }),
       });
 
-      setContacts(prev => prev.map(c => 
-        c.number === editingContact.number 
-          ? { ...c, name: editName, email: editEmail, cnpj: editCnpj } 
-          : c
-      ));
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.number === editingContact.number
+            ? { ...c, name: editName, email: editEmail, cnpj: editCnpj, contactKind: editContactKind }
+            : c,
+        ),
+      );
       setIsEditing(false);
       showFeedback('success', "Contacto atualizado com sucesso!");
     } catch (err) {
@@ -169,6 +185,8 @@ export default function ContactsPage() {
           setEditEmail={setEditEmail}
           editCnpj={editCnpj}
           setEditCnpj={setEditCnpj}
+          editContactKind={editContactKind}
+          setEditContactKind={setEditContactKind}
           isSaving={isSaving}
           onClose={() => setIsEditing(false)}
           onSave={handleSaveContact}
