@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Building2, ChevronLeft, ChevronRight, Clock, UserRound } from 'lucide-react';
 import { Stage, Ticket } from './types';
 import { isTaskDueOnCalendarToday, isTaskOverdue } from '@/lib/solicitacoes-reminders';
+import { formatCnpjInput } from '@/lib/companies';
 
 const PAGE_SIZE = 5;
 
@@ -153,15 +154,43 @@ export function KanbanBoard({
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
-                           {ticket.contact?.profilePictureUrl ? (
-                              <img src={ticket.contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="" />
-                           ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-slate-400"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" /></svg>
-                           )}
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-md bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0 text-brand-700">
+                          <Building2 className="w-4 h-4" />
                         </div>
-                        <h4 className="font-semibold text-slate-800 text-sm truncate">{ticket.contact?.name || ticket.contactNumber}</h4>
+                        <div className="min-w-0 flex-1">
+                          {ticket.company ? (
+                            <>
+                              <h4 className="font-semibold text-brand-950 text-sm leading-tight truncate" title={ticket.company.legalName}>
+                                {ticket.company.tradeName?.trim() || ticket.company.legalName}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 font-mono truncate" title={formatCnpjInput(ticket.company.cnpj)}>
+                                {formatCnpjInput(ticket.company.cnpj)}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="font-semibold text-amber-700 text-sm leading-tight truncate">Sem empresa vinculada</h4>
+                              <p className="text-[11px] text-amber-600 truncate">Vincule em Contatos para futuras OS.</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-slate-50 border border-slate-100">
+                        <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
+                          {ticket.contact?.profilePictureUrl ? (
+                            <img src={ticket.contact.profilePictureUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <UserRound className="w-3 h-3 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1 flex items-baseline gap-1.5">
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide shrink-0">Solicitante</span>
+                          <span className="text-xs font-medium text-slate-700 truncate" title={ticket.contact?.name || ticket.contactNumber}>
+                            {ticket.contact?.name || ticket.contactNumber}
+                          </span>
+                        </div>
                       </div>
 
                       {(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType) && (
