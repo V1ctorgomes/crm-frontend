@@ -16,7 +16,7 @@ interface CompanyFormModalProps {
   defaultLegalName?: string;
 }
 
-type LookupPayload = { legalName: string; tradeName: string | null; cnpj: string };
+type LookupPayload = { legalName: string; tradeName: string; cnpj: string };
 
 export function CompanyFormModal({ initial, isSaving, onClose, onSubmit, defaultCnpj, defaultLegalName }: CompanyFormModalProps) {
   const [legalName, setLegalName] = useState('');
@@ -55,7 +55,7 @@ export function CompanyFormModal({ initial, isSaving, onClose, onSubmit, default
         throw new Error('Resposta vazia da consulta de CNPJ.');
       }
       setLegalName(data.legalName);
-      setTradeName(data.tradeName?.trim() ? data.tradeName : '');
+      setTradeName((data.tradeName || '').trim());
       setCnpj(formatCnpjInput(data.cnpj));
       lastFilledDigitsRef.current = onlyDigits(data.cnpj);
     } catch (e) {
