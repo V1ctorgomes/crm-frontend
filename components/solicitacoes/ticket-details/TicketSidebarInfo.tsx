@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, UserRound } from 'lucide-react';
 import type { Ticket } from '../types';
 
 interface TicketSidebarInfoProps {
@@ -16,15 +16,43 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   );
 }
 
-/** Modo leitura da coluna lateral: dados do contacto + campos da OS + botão «Editar». */
+/** Modo leitura da coluna lateral: empresa em destaque, contato como solicitante e campos da OS. */
 export function TicketSidebarInfo({ ticket, onEdit }: TicketSidebarInfoProps) {
   const hasOsFields = !!(ticket.marca || ticket.modelo || ticket.customerType || ticket.ticketType);
+  const solicitanteName = ticket.contact?.name || ticket.contactNumber;
+  const cpf = ticket.contact?.cnpj || '';
 
   return (
     <>
       <div className="flex flex-col gap-4">
+        <div>
+          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1 block">
+            Solicitante
+          </label>
+          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2">
+            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
+              {ticket.contact?.profilePictureUrl ? (
+                <img
+                  src={ticket.contact.profilePictureUrl}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
+              ) : (
+                <UserRound className="w-3.5 h-3.5 text-slate-400" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-brand-950 truncate">{solicitanteName}</p>
+              <p className="text-[11px] text-slate-500 font-mono truncate">{ticket.contactNumber}</p>
+            </div>
+          </div>
+        </div>
+
         <Field label="E-mail" value={ticket.contact?.email || '--'} />
-        <Field label="CPF / CNPJ" value={ticket.contact?.cnpj || '--'} mono />
+        {cpf && cpf.replace(/\D/g, '').length === 11 ? (
+          <Field label="CPF" value={cpf} mono />
+        ) : null}
       </div>
 
       {hasOsFields && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { formatCpfCnpjInput } from '@/lib/ticket-form-validation';
+import { formatCnpjInput } from '@/lib/companies';
 import { CATALOG_CATEGORY_LABELS } from '@/lib/ticket-catalog-types';
 import type { TicketEditFormBag } from './use-ticket-edit-form';
 
@@ -47,6 +48,29 @@ export function TicketSidebarEditForm({ bag }: { bag: TicketEditFormBag }) {
           value={bag.cpf}
           onChange={(e) => bag.setCpf(formatCpfCnpjInput(e.target.value))}
         />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-slate-600">Empresa solicitante *</label>
+        {bag.companiesLoading ? (
+          <p className="text-[11px] text-slate-500">A carregar empresas vinculadas…</p>
+        ) : bag.availableCompanies.length === 0 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Este contato ainda não tem empresas vinculadas. Vá a <strong>Contatos</strong>, edite o contato e vincule uma empresa antes de mudar a OS.
+          </div>
+        ) : (
+          <select className={SELECT} value={bag.companyId} onChange={(e) => bag.setCompanyId(e.target.value)}>
+            <option value="">— Selecione —</option>
+            {bag.availableCompanies.map((co) => (
+              <option key={co.id} value={co.id}>
+                {co.tradeName?.trim() || co.legalName} — {formatCnpjInput(co.cnpj)}
+              </option>
+            ))}
+          </select>
+        )}
+        <p className="text-[10px] text-slate-500">
+          Apenas empresas vinculadas a este contato aparecem aqui.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 pt-1">

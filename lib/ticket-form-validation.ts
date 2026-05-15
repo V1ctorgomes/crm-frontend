@@ -86,6 +86,8 @@ export type UpdateTicketFormInput = {
   modelo: string;
   customerType: string;
   ticketType: string;
+  /** `string`: nova empresa; `null`: desvincular; ausente: manter como está. */
+  companyId?: string | null;
 };
 
 /** Texto genérico: não vazio e com pelo menos 2 caracteres úteis após trim. */
@@ -186,7 +188,10 @@ export function validateCreateTicketForm(
 
 /** Valida edição de OS (mesmos campos que a criação, excepto número e fase). */
 export function validateUpdateTicketForm(
-  input: Partial<Omit<CreateTicketFormInput, 'contactNumber' | 'stageId'>>,
+  input: Partial<Omit<CreateTicketFormInput, 'contactNumber' | 'stageId'>> & {
+    availableCompanyIds?: string[];
+    initialCompanyId?: string | null;
+  },
 ): { ok: true; body: UpdateTicketFormInput } | { ok: false; message: string } {
   let err = minText(String(input.nome || ''), 'Nome completo');
   if (err) return { ok: false, message: err };
@@ -216,16 +221,45 @@ export function validateUpdateTicketForm(
   err = minText(String(input.ticketType || ''), 'Tipo de solicitação');
   if (err) return { ok: false, message: err };
 
-  return {
-    ok: true,
-    body: {
-      nome: String(input.nome).trim(),
-      email,
-      cpf: taxDigits,
-      marca: String(input.marca).trim(),
-      modelo: String(input.modelo).trim(),
-      customerType: String(input.customerType).trim(),
-      ticketType: String(input.ticketType).trim(),
-    },
+  const available = input.availableCompanyIds || [];
+  const requested =
+    input.companyId === undefined || input.companyId === null ? '' : String(input.companyId).trim();
+  let companyId: string | null | undefined = undefined;
+
+  if (available.length === 0) {
+    if (requested) {
+      return {
+        ok: false,
+        message: 'Este contato ainda não tem empresas vinculadas. Vincule uma em Contatos antes de mudar a empresa da OS.',
+      };
+    }
+    if (input.initialCompanyId) {
+      companyId = null;
+    }
+  } else {
+    if (!requested) {
+      return {
+        ok: false,
+        message: 'Seleccione a empresa solicitante desta OS (vinculada a este contato).',
+      };
+    }
+    if (!available.includes(requested)) {
+      return { ok: false, message: 'A empresa seleccionada não está vinculada a este contato.' };
+    }
+    if (requested !== (input.initialCompanyId || '')) {
+      companyId = requested;
+    }
+  }
+
+  const body: UpdateTicketFormInput = {
+    nome: String(input.nome).trim(),
+    email,
+    cpf: taxDigits,
+    marca: String(input.marca).trim(),
+    modelo: String(input.modelo).trim(),
+    customerType: String(input.customerType).trim(),
+    ticketType: String(input.ticketType).trim(),
   };
+  if (companyId !== undefined) body.companyId = companyId;
+  return { ok: true, body };
 }
