@@ -27,3 +27,16 @@ export interface CustomerFolder {
   };
   tickets: TicketFolder[];
 }
+
+export interface CompanyFolderInfo {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  cnpj: string;
+}
+
+export interface CompanyFolder {
+  /** `null` quando agrupa OS sem empresa vinculada (compatibilidade com histórico antigo). */
+  company: CompanyFolderInfo | null;
+  contacts: CustomerFolder[];
+}
