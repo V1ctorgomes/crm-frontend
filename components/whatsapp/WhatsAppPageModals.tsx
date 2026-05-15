@@ -11,6 +11,7 @@ import {
   EditMessageModal,
 } from '@/components/whatsapp/WhatsAppModals';
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
+import type { Company } from '@/lib/companies';
 
 export interface WhatsAppPageModalsProps {
   messagePendingDelete: Message | null;
@@ -44,7 +45,7 @@ export interface WhatsAppPageModalsProps {
   osFormTicketType: string;
   setOsFormTicketType: React.Dispatch<React.SetStateAction<string>>;
   osFormCompanyId: string;
-  onOsCompanyChange: (id: string) => void;
+  onOsCompanyChange: (id: string, companies: Company[]) => void;
   onSubmitOs: () => void;
   editMessage: Message | null;
   onCloseEditModal: () => void;
@@ -126,11 +127,9 @@ export function WhatsAppPageModals({
           onClose={osFormClose}
           activeContact={activeContact}
           formNome={osFormNome}
-          setFormNome={setOsFormNome}
           formEmail={osFormEmail}
           setFormEmail={setOsFormEmail}
           formCpf={osFormCpf}
-          setFormCpf={setOsFormCpf}
           formMarca={osFormMarca}
           setFormMarca={setOsFormMarca}
           formModelo={osFormModelo}
@@ -140,7 +139,7 @@ export function WhatsAppPageModals({
           formTicketType={osFormTicketType}
           setFormTicketType={setOsFormTicketType}
           formCompanyId={osFormCompanyId}
-          onSelectCompany={onOsCompanyChange}
+          onSelectCompany={(id) => onOsCompanyChange(id, activeContact.companies || [])}
           handleCreateTicket={onSubmitOs}
           ticketCatalog={ticketCatalog}
         />

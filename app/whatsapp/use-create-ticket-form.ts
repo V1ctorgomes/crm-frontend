@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import { apiRequest } from '@/lib/api-client';
-import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { ticketFormFieldsFromCompany, type Company } from '@/lib/companies';
 import type { Contact, Stage } from '@/components/whatsapp/types';
 
 interface UseCreateTicketFormArgs {
@@ -21,32 +22,44 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
   const [formTicketType, setFormTicketType] = useState('');
   const [formCompanyId, setFormCompanyId] = useState('');
 
-  const applyDefaults = useCallback((contact: Contact) => {
-    const list = contact.companies || [];
-    if (list.length === 1) {
-      setFormCompanyId(list[0].id);
-    } else {
-      setFormCompanyId('');
-    }
+  const applyCompanyFields = useCallback((company: Company) => {
+    const fields = ticketFormFieldsFromCompany(company);
+    setFormNome(fields.nome);
+    setFormCpf(fields.cpf);
   }, []);
 
   const openFor = (contact: Contact) => {
-    setFormNome(contact.name || '');
     setFormEmail((contact.email || '').trim().toLowerCase());
-    setFormCpf(formatCpfCnpjInput(contact.cnpj || ''));
     setFormMarca('');
     setFormModelo('');
     setFormCustomerType('');
     setFormTicketType('');
-    applyDefaults(contact);
+    const list = contact.companies || [];
+    if (list.length === 1) {
+      setFormCompanyId(list[0].id);
+      applyCompanyFields(list[0]);
+    } else {
+      setFormCompanyId('');
+      setFormNome('');
+      setFormCpf('');
+    }
     setIsOpen(true);
   };
 
   const close = () => setIsOpen(false);
 
-  const onSelectCompany = useCallback((companyId: string) => {
-    setFormCompanyId(companyId);
-  }, []);
+  const onSelectCompany = useCallback(
+    (companyId: string, companies: Company[]) => {
+      setFormCompanyId(companyId);
+      const co = companies.find((c) => c.id === companyId);
+      if (co) applyCompanyFields(co);
+      else {
+        setFormNome('');
+        setFormCpf('');
+      }
+    },
+    [applyCompanyFields],
+  );
 
   const submit = async (contact: Contact, stages: Stage[]) => {
     if (stages.length === 0) {

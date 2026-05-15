@@ -59,9 +59,7 @@ export default function SolicitacoesPage() {
 
       {b.isNewTicketModalOpen && (
         <NewTicketModal
-          contacts={b.contacts}
           stages={b.stages}
-          baseUrl={b.baseUrl}
           onClose={() => b.setIsNewTicketModalOpen(false)}
           onSuccess={() => {
             b.setIsNewTicketModalOpen(false);

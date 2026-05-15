@@ -43,3 +43,29 @@ export function describeCompany(c: Pick<Company, 'legalName' | 'tradeName' | 'cn
   const name = c.tradeName?.trim() || c.legalName;
   return `${name} — ${formatCnpjInput(c.cnpj)}`;
 }
+
+export function companyDisplayName(c: Pick<Company, 'legalName' | 'tradeName'>): string {
+  return c.tradeName?.trim() || c.legalName;
+}
+
+/** Preenche campos de «cliente» do formulário de OS com dados da empresa. */
+export function ticketFormFieldsFromCompany(c: Pick<Company, 'legalName' | 'tradeName' | 'cnpj'>): {
+  nome: string;
+  cpf: string;
+} {
+  return {
+    nome: companyDisplayName(c),
+    cpf: formatCnpjInput(c.cnpj),
+  };
+}
+
+export interface CompanyLinkedContact {
+  number: string;
+  name: string;
+  email: string | null;
+  profilePictureUrl?: string | null;
+}
+
+export interface CompanyDetail extends Company {
+  contacts: CompanyLinkedContact[];
+}

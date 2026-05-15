@@ -107,7 +107,7 @@ export function validateCreateTicketForm(
   input: Partial<CreateTicketFormInput> & { availableCompanyIds?: string[] },
 ): { ok: true; body: CreateTicketFormInput } | { ok: false; message: string } {
   if (!String(input.contactNumber || '').trim()) {
-    return { ok: false, message: 'Selecione um cliente na lista.' };
+    return { ok: false, message: 'Selecione o solicitante (contato vinculado à empresa).' };
   }
   const contactNumber = onlyDigits(String(input.contactNumber || ''));
   if (!contactNumber || contactNumber.length < 10) {
@@ -117,7 +117,12 @@ export function validateCreateTicketForm(
   const stageId = String(input.stageId || '').trim();
   if (!stageId) return { ok: false, message: 'Não existe fase no funil. Configure as fases antes de criar uma OS.' };
 
-  let err = minText(String(input.nome || ''), 'Nome completo');
+  const available = input.availableCompanyIds || [];
+  const requestedCompany =
+    input.companyId === undefined || input.companyId === null ? '' : String(input.companyId).trim();
+  const usesCompany = available.length > 0 || !!requestedCompany;
+
+  let err = minText(String(input.nome || ''), usesCompany ? 'Empresa (cliente)' : 'Nome completo');
   if (err) return { ok: false, message: err };
 
   const email = String(input.email || '').trim().toLowerCase();
@@ -125,7 +130,10 @@ export function validateCreateTicketForm(
   if (!isValidEmail(email)) return { ok: false, message: 'Indique um e-mail válido (ex.: nome@empresa.pt).' };
 
   const taxDigits = onlyDigits(String(input.cpf || ''));
-  if (!taxDigits) return { ok: false, message: 'O CPF ou CNPJ é obrigatório.' };
+  if (!taxDigits) return { ok: false, message: usesCompany ? 'O CNPJ da empresa é obrigatório.' : 'O CPF ou CNPJ é obrigatório.' };
+  if (usesCompany && taxDigits.length !== 14) {
+    return { ok: false, message: 'O CNPJ da empresa deve ter 14 dígitos.' };
+  }
   if (taxDigits.length !== 11 && taxDigits.length !== 14) {
     return { ok: false, message: 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos (use apenas números ou a máscara).' };
   }
@@ -145,9 +153,14 @@ export function validateCreateTicketForm(
   err = minText(String(input.ticketType || ''), 'Tipo de solicitação');
   if (err) return { ok: false, message: err };
 
-  const available = input.availableCompanyIds || [];
-  const requested = input.companyId === undefined || input.companyId === null ? '' : String(input.companyId).trim();
+  const requested = requestedCompany;
   let companyId: string | null = null;
+  if (available.length === 0 && !requested) {
+    return {
+      ok: false,
+      message: 'Seleccione a empresa (cliente) antes de criar a solicitação.',
+    };
+  }
   if (available.length > 1) {
     if (!requested) {
       return {
