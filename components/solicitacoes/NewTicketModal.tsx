@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Stage } from './types';
 import { apiRequest } from '@/lib/api-client';
-import { validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 import {
   type Company,
   type CompanyDetail,
   type CompanyLinkedContact,
   describeCompany,
   ticketFormFieldsFromCompany,
+  solicitanteCpfFromContact,
 } from '@/lib/companies';
 import { CATALOG_CATEGORY_LABELS } from '@/lib/ticket-catalog-types';
 import { useTicketCatalog } from '@/lib/use-ticket-catalog';
@@ -33,8 +34,9 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
   const [contactsLoading, setContactsLoading] = useState(false);
   const [selectedContactNumber, setSelectedContactNumber] = useState('');
   const [formNome, setFormNome] = useState('');
+  const [formCompanyCnpj, setFormCompanyCnpj] = useState('');
+  const [formSolicitanteCpf, setFormSolicitanteCpf] = useState('');
   const [formEmail, setFormEmail] = useState('');
-  const [formCpf, setFormCpf] = useState('');
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
@@ -65,7 +67,8 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
       setLinkedContacts([]);
       setSelectedContactNumber('');
       setFormNome('');
-      setFormCpf('');
+      setFormCompanyCnpj('');
+      setFormSolicitanteCpf('');
       setFormEmail('');
       return;
     }
@@ -74,7 +77,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
     if (summary) {
       const fields = ticketFormFieldsFromCompany(summary);
       setFormNome(fields.nome);
-      setFormCpf(fields.cpf);
+      setFormCompanyCnpj(fields.cpf);
     }
 
     let cancelled = false;
@@ -82,6 +85,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
       setContactsLoading(true);
       setSelectedContactNumber('');
       setFormEmail('');
+      setFormSolicitanteCpf('');
       try {
         const detail = await apiRequest<CompanyDetail>(`/companies/${formCompanyId}`);
         if (cancelled) return;
@@ -90,6 +94,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
         if (list.length === 1) {
           setSelectedContactNumber(list[0].number);
           setFormEmail((list[0].email || '').trim().toLowerCase());
+          setFormSolicitanteCpf(solicitanteCpfFromContact(list[0].cnpj));
         }
       } catch {
         if (!cancelled) setLinkedContacts([]);
@@ -107,6 +112,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
     setSelectedContactNumber(number);
     const contact = linkedContacts.find((c) => c.number === number);
     setFormEmail((contact?.email || '').trim().toLowerCase());
+    setFormSolicitanteCpf(solicitanteCpfFromContact(contact?.cnpj));
   };
 
   const handleCreateTicket = async () => {
@@ -117,7 +123,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
       contactNumber: selectedContactNumber,
       nome: formNome,
       email: formEmail,
-      cpf: formCpf,
+      cpf: formSolicitanteCpf,
       marca: formMarca,
       modelo: formModelo,
       customerType: formCustomerType,
@@ -197,7 +203,7 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-600">CNPJ da empresa</label>
-                <input type="text" readOnly className={`${INPUT} border-slate-200 font-mono text-slate-700`} value={formCpf} />
+                <input type="text" readOnly className={`${INPUT} border-slate-200 font-mono text-slate-700`} value={formCompanyCnpj} />
               </div>
 
               <div className="space-y-1 pt-1 border-t border-slate-200">
@@ -227,17 +233,31 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
               </div>
 
               {selectedContactNumber && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600">E-mail do solicitante *</label>
-                  <input
-                    type="email"
-                    className={INPUT}
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    onBlur={(e) => setFormEmail(e.target.value.trim().toLowerCase())}
-                    placeholder="nome@empresa.pt"
-                  />
-                </div>
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">CPF do solicitante *</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className={`${INPUT} font-mono`}
+                      value={formSolicitanteCpf}
+                      onChange={(e) => setFormSolicitanteCpf(formatCpfCnpjInput(e.target.value))}
+                      placeholder="000.000.000-00"
+                    />
+                    <p className="text-[10px] text-slate-500">Gravado no perfil do contato. Pode actualizar aqui se ainda não tiver.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">E-mail do solicitante *</label>
+                    <input
+                      type="email"
+                      className={INPUT}
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      onBlur={(e) => setFormEmail(e.target.value.trim().toLowerCase())}
+                      placeholder="nome@empresa.pt"
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}

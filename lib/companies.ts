@@ -63,7 +63,16 @@ export interface CompanyLinkedContact {
   number: string;
   name: string;
   email: string | null;
+  /** CPF do solicitante (campo `cnpj` no contacto quando tem 11 dígitos). */
+  cnpj?: string | null;
   profilePictureUrl?: string | null;
+}
+
+/** Preenche o campo CPF do solicitante a partir do contacto (só se já for CPF válido). */
+export function solicitanteCpfFromContact(doc?: string | null): string {
+  const d = onlyDigits(doc || '');
+  if (d.length === 11) return formatCpfCnpjInput(d);
+  return '';
 }
 
 export interface CompanyDetail extends Company {

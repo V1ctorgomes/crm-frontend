@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCnpjInput } from '@/lib/companies';
+import { formatCpfCnpjInput } from '@/lib/ticket-form-validation';
 import { CATALOG_CATEGORY_LABELS, type TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 import type { Contact } from '@/components/whatsapp/types';
 
@@ -7,9 +8,11 @@ type CreateTicketModalProps = {
   onClose: () => void;
   activeContact: Contact;
   formNome: string;
+  formCompanyCnpj: string;
+  formSolicitanteCpf: string;
+  setFormSolicitanteCpf: (v: string) => void;
   formEmail: string;
   setFormEmail: (v: string) => void;
-  formCpf: string;
   formMarca: string;
   setFormMarca: (v: string) => void;
   formModelo: string;
@@ -29,9 +32,11 @@ export function CreateTicketModal({
   onClose,
   activeContact,
   formNome,
+  formCompanyCnpj,
+  formSolicitanteCpf,
+  setFormSolicitanteCpf,
   formEmail,
   setFormEmail,
-  formCpf,
   formMarca,
   setFormMarca,
   formModelo,
@@ -127,10 +132,23 @@ export function CreateTicketModal({
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-600">CNPJ</label>
-                  <input type="text" readOnly className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-mono text-slate-700" value={formCpf} />
+                  <input type="text" readOnly className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-mono text-slate-700" value={formCompanyCnpj} />
                 </div>
               </div>
             )}
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700">CPF do solicitante *</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-mono focus:outline-none focus:border-brand-600"
+                value={formSolicitanteCpf}
+                onChange={(e) => setFormSolicitanteCpf(formatCpfCnpjInput(e.target.value))}
+                placeholder="000.000.000-00"
+              />
+              <p className="text-[10px] text-slate-500">Gravado no perfil do contato. Pode actualizar aqui se ainda não tiver.</p>
+            </div>
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700">E-mail do solicitante *</label>

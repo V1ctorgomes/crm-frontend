@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import { apiRequest } from '@/lib/api-client';
-import { validateCreateTicketForm } from '@/lib/ticket-form-validation';
-import { ticketFormFieldsFromCompany, type Company } from '@/lib/companies';
+import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { ticketFormFieldsFromCompany, solicitanteCpfFromContact, type Company } from '@/lib/companies';
 import type { Contact, Stage } from '@/components/whatsapp/types';
 
 interface UseCreateTicketFormArgs {
@@ -14,8 +14,9 @@ interface UseCreateTicketFormArgs {
 export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
   const [isOpen, setIsOpen] = useState(false);
   const [formNome, setFormNome] = useState('');
+  const [formCompanyCnpj, setFormCompanyCnpj] = useState('');
+  const [formSolicitanteCpf, setFormSolicitanteCpf] = useState('');
   const [formEmail, setFormEmail] = useState('');
-  const [formCpf, setFormCpf] = useState('');
   const [formMarca, setFormMarca] = useState('');
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
@@ -25,11 +26,12 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
   const applyCompanyFields = useCallback((company: Company) => {
     const fields = ticketFormFieldsFromCompany(company);
     setFormNome(fields.nome);
-    setFormCpf(fields.cpf);
+    setFormCompanyCnpj(fields.cpf);
   }, []);
 
   const openFor = (contact: Contact) => {
     setFormEmail((contact.email || '').trim().toLowerCase());
+    setFormSolicitanteCpf(solicitanteCpfFromContact(contact.cnpj));
     setFormMarca('');
     setFormModelo('');
     setFormCustomerType('');
@@ -41,7 +43,7 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
     } else {
       setFormCompanyId('');
       setFormNome('');
-      setFormCpf('');
+      setFormCompanyCnpj('');
     }
     setIsOpen(true);
   };
@@ -55,7 +57,7 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
       if (co) applyCompanyFields(co);
       else {
         setFormNome('');
-        setFormCpf('');
+        setFormCompanyCnpj('');
       }
     },
     [applyCompanyFields],
@@ -72,7 +74,7 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
       contactNumber: contact.number,
       nome: formNome,
       email: formEmail,
-      cpf: formCpf,
+      cpf: formSolicitanteCpf,
       marca: formMarca,
       modelo: formModelo,
       customerType: formCustomerType,
@@ -100,11 +102,11 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
     close,
     submit,
     formNome,
-    setFormNome,
+    formCompanyCnpj,
+    formSolicitanteCpf,
+    setFormSolicitanteCpf,
     formEmail,
     setFormEmail,
-    formCpf,
-    setFormCpf,
     formMarca,
     setFormMarca,
     formModelo,

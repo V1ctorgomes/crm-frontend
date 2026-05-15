@@ -116,11 +116,11 @@ export default function WhatsAppPage() {
         ticketCatalog={p.ticketCatalog}
         osFormClose={p.osForm.close}
         osFormNome={p.osForm.formNome}
-        setOsFormNome={p.osForm.setFormNome}
+        osFormCompanyCnpj={p.osForm.formCompanyCnpj}
+        osFormSolicitanteCpf={p.osForm.formSolicitanteCpf}
+        setOsFormSolicitanteCpf={p.osForm.setFormSolicitanteCpf}
         osFormEmail={p.osForm.formEmail}
         setOsFormEmail={p.osForm.setFormEmail}
-        osFormCpf={p.osForm.formCpf}
-        setOsFormCpf={p.osForm.setFormCpf}
         osFormMarca={p.osForm.formMarca}
         setOsFormMarca={p.osForm.setFormMarca}
         osFormModelo={p.osForm.formModelo}

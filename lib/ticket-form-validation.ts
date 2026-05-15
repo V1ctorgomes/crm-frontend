@@ -130,14 +130,19 @@ export function validateCreateTicketForm(
   if (!isValidEmail(email)) return { ok: false, message: 'Indique um e-mail válido (ex.: nome@empresa.pt).' };
 
   const taxDigits = onlyDigits(String(input.cpf || ''));
-  if (!taxDigits) return { ok: false, message: usesCompany ? 'O CNPJ da empresa é obrigatório.' : 'O CPF ou CNPJ é obrigatório.' };
-  if (usesCompany && taxDigits.length !== 14) {
-    return { ok: false, message: 'O CNPJ da empresa deve ter 14 dígitos.' };
+  if (!taxDigits) {
+    return { ok: false, message: usesCompany ? 'O CPF do solicitante é obrigatório.' : 'O CPF ou CNPJ é obrigatório.' };
   }
-  if (taxDigits.length !== 11 && taxDigits.length !== 14) {
+  if (usesCompany) {
+    if (taxDigits.length !== 11) {
+      return { ok: false, message: 'O CPF do solicitante deve ter 11 dígitos.' };
+    }
+    if (!isValidCpf(taxDigits)) {
+      return { ok: false, message: 'CPF do solicitante inválido (dígitos verificadores incorretos).' };
+    }
+  } else if (taxDigits.length !== 11 && taxDigits.length !== 14) {
     return { ok: false, message: 'CPF deve ter 11 dígitos ou CNPJ 14 dígitos (use apenas números ou a máscara).' };
-  }
-  if (!isValidCpfOrCnpj(taxDigits)) {
+  } else if (!isValidCpfOrCnpj(taxDigits)) {
     return { ok: false, message: 'CPF ou CNPJ inválido (dígitos verificadores incorretos).' };
   }
 

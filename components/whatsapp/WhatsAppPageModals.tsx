@@ -31,11 +31,11 @@ export interface WhatsAppPageModalsProps {
   ticketCatalog: TicketCatalogOptions | null;
   osFormClose: () => void;
   osFormNome: string;
-  setOsFormNome: React.Dispatch<React.SetStateAction<string>>;
+  osFormCompanyCnpj: string;
+  osFormSolicitanteCpf: string;
+  setOsFormSolicitanteCpf: React.Dispatch<React.SetStateAction<string>>;
   osFormEmail: string;
   setOsFormEmail: React.Dispatch<React.SetStateAction<string>>;
-  osFormCpf: string;
-  setOsFormCpf: React.Dispatch<React.SetStateAction<string>>;
   osFormMarca: string;
   setOsFormMarca: React.Dispatch<React.SetStateAction<string>>;
   osFormModelo: string;
@@ -76,11 +76,11 @@ export function WhatsAppPageModals({
   ticketCatalog,
   osFormClose,
   osFormNome,
-  setOsFormNome,
+  osFormCompanyCnpj,
+  osFormSolicitanteCpf,
+  setOsFormSolicitanteCpf,
   osFormEmail,
   setOsFormEmail,
-  osFormCpf,
-  setOsFormCpf,
   osFormMarca,
   setOsFormMarca,
   osFormModelo,
@@ -127,9 +127,11 @@ export function WhatsAppPageModals({
           onClose={osFormClose}
           activeContact={activeContact}
           formNome={osFormNome}
+          formCompanyCnpj={osFormCompanyCnpj}
+          formSolicitanteCpf={osFormSolicitanteCpf}
+          setFormSolicitanteCpf={setOsFormSolicitanteCpf}
           formEmail={osFormEmail}
           setFormEmail={setOsFormEmail}
-          formCpf={osFormCpf}
           formMarca={osFormMarca}
           setFormMarca={setOsFormMarca}
           formModelo={osFormModelo}
