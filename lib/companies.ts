@@ -1,3 +1,5 @@
+import { formatCpfCnpjInput } from '@/lib/ticket-form-validation';
+
 /** Tipo partilhado entre Contatos, WhatsApp e Solicitações. */
 export interface Company {
   id: string;
