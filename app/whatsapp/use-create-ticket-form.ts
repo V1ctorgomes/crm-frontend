@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
 import type { Contact, Stage } from '@/components/whatsapp/types';
@@ -19,6 +19,16 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
   const [formTicketType, setFormTicketType] = useState('');
+  const [formCompanyId, setFormCompanyId] = useState('');
+
+  const applyDefaults = useCallback((contact: Contact) => {
+    const list = contact.companies || [];
+    if (list.length === 1) {
+      setFormCompanyId(list[0].id);
+    } else {
+      setFormCompanyId('');
+    }
+  }, []);
 
   const openFor = (contact: Contact) => {
     setFormNome(contact.name || '');
@@ -28,10 +38,15 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
     setFormModelo('');
     setFormCustomerType('');
     setFormTicketType('');
+    applyDefaults(contact);
     setIsOpen(true);
   };
 
   const close = () => setIsOpen(false);
+
+  const onSelectCompany = useCallback((companyId: string) => {
+    setFormCompanyId(companyId);
+  }, []);
 
   const submit = async (contact: Contact, stages: Stage[]) => {
     if (stages.length === 0) {
@@ -39,6 +54,7 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
       return;
     }
     const stageId = stages[0]?.id || '';
+    const availableCompanyIds = (contact.companies || []).map((c) => c.id);
     const validated = validateCreateTicketForm({
       contactNumber: contact.number,
       nome: formNome,
@@ -49,6 +65,8 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
       customerType: formCustomerType,
       ticketType: formTicketType,
       stageId,
+      availableCompanyIds,
+      companyId: formCompanyId || undefined,
     });
     if (!validated.ok) {
       showFeedback('error', validated.message);
@@ -82,5 +100,7 @@ export function useCreateTicketForm({ showFeedback }: UseCreateTicketFormArgs) {
     setFormCustomerType,
     formTicketType,
     setFormTicketType,
+    formCompanyId,
+    onSelectCompany,
   } as const;
 }

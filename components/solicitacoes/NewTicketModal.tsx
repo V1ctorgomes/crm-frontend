@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Contact, Stage } from './types';
 import { apiRequest } from '@/lib/api-client';
 import { formatCpfCnpjInput, validateCreateTicketForm } from '@/lib/ticket-form-validation';
+import { formatCnpjInput } from '@/lib/companies';
 import { CATALOG_CATEGORY_LABELS } from '@/lib/ticket-catalog-types';
 import { useTicketCatalog } from '@/lib/use-ticket-catalog';
 
@@ -23,23 +24,34 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
   const [formModelo, setFormModelo] = useState('');
   const [formCustomerType, setFormCustomerType] = useState('');
   const [formTicketType, setFormTicketType] = useState('');
+  const [formCompanyId, setFormCompanyId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { catalog, loading: catalogLoading, ready: catalogReady } = useTicketCatalog();
 
+  const selectedContact = useMemo(
+    () => contacts.find((c) => c.number === selectedContactNumber) || null,
+    [contacts, selectedContactNumber],
+  );
+  const linkedCompanies = selectedContact?.companies || [];
+
   useEffect(() => {
-    const contact = contacts.find((c) => c.number === selectedContactNumber);
-    if (contact) {
-      setFormNome(contact.name || '');
-      setFormEmail((contact.email || '').trim().toLowerCase());
-      setFormCpf(formatCpfCnpjInput(contact.cnpj || ''));
+    if (!selectedContact) {
+      setFormCompanyId('');
+      return;
     }
-  }, [selectedContactNumber, contacts]);
+    setFormNome(selectedContact.name || '');
+    setFormEmail((selectedContact.email || '').trim().toLowerCase());
+    setFormCpf(formatCpfCnpjInput(selectedContact.cnpj || ''));
+    if (linkedCompanies.length === 1) setFormCompanyId(linkedCompanies[0].id);
+    else setFormCompanyId('');
+  }, [selectedContact]);
 
   const handleCreateTicket = async () => {
     if (stages.length === 0) {
       return showFeedback('error', 'Configure pelo menos uma fase no funil antes de criar uma OS.');
     }
     const stageId = stages[0]?.id || '';
+    const availableCompanyIds = linkedCompanies.map((c) => c.id);
     const validated = validateCreateTicketForm({
       contactNumber: selectedContactNumber,
       nome: formNome,
@@ -50,6 +62,8 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
       customerType: formCustomerType,
       ticketType: formTicketType,
       stageId,
+      availableCompanyIds,
+      companyId: formCompanyId || undefined,
     });
     if (!validated.ok) {
       return showFeedback('error', validated.message);
@@ -70,13 +84,13 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
 
   return (
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={e => e.stopPropagation()}>
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 border border-slate-200" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100">
           <h3 className="font-semibold leading-none tracking-tight text-lg">Nova Solicitação (OS)</h3>
           <p className="text-sm text-slate-500">Crie uma nova Ordem de Serviço e insira no funil.</p>
         </div>
-        
-        <div className="p-6 flex flex-col gap-4">
+
+        <div className="p-6 flex flex-col gap-4 overflow-y-auto">
           {catalogLoading && (
             <p className="text-xs text-slate-500">A carregar listas de marca, modelo e tipos…</p>
           )}
@@ -97,10 +111,14 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
               onChange={(e) => setSelectedContactNumber(e.target.value)}
             >
               <option value="">-- Selecione o cliente --</option>
-              {contacts.map(c => <option key={c.number} value={c.number}>{c.name || 'Sem nome'} ({c.number})</option>)}
+              {contacts.map((c) => (
+                <option key={c.number} value={c.number}>
+                  {c.name || 'Sem nome'} ({c.number})
+                </option>
+              ))}
             </select>
           </div>
-          
+
           {selectedContactNumber && (
             <div className="bg-slate-50 p-4 rounded-md border border-slate-200 flex flex-col gap-3">
               <div className="space-y-1">
@@ -127,7 +145,6 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
                   onChange={(e) => setFormEmail(e.target.value)}
                   onBlur={(e) => setFormEmail(e.target.value.trim().toLowerCase())}
                 />
-                <p className="text-[10px] text-slate-500">Formato: parte local @ domínio (ex.: suporte@imagem.pt).</p>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-600">CPF ou CNPJ *</label>
@@ -140,7 +157,37 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
                   value={formCpf}
                   onChange={(e) => setFormCpf(formatCpfCnpjInput(e.target.value))}
                 />
-                <p className="text-[10px] text-slate-500">11 dígitos (CPF) ou 14 dígitos (CNPJ); dígitos verificadores são validados.</p>
+                <p className="text-[10px] text-slate-500">11 dígitos (CPF) ou 14 dígitos (CNPJ).</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-600">
+                  Empresa solicitante {linkedCompanies.length > 1 ? <span className="text-red-600">*</span> : null}
+                </label>
+                {linkedCompanies.length === 0 ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    Este contato ainda não tem empresas vinculadas. Vincule em <strong>Contatos → editar</strong>.
+                  </div>
+                ) : linkedCompanies.length === 1 ? (
+                  <div className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 flex items-center text-sm text-slate-700">
+                    <span className="truncate">
+                      {linkedCompanies[0].tradeName?.trim() || linkedCompanies[0].legalName} · <span className="font-mono">{formatCnpjInput(linkedCompanies[0].cnpj)}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
+                    value={formCompanyId}
+                    onChange={(e) => setFormCompanyId(e.target.value)}
+                  >
+                    <option value="">— Selecione a empresa —</option>
+                    {linkedCompanies.map((co) => (
+                      <option key={co.id} value={co.id}>
+                        {co.tradeName?.trim() || co.legalName} — {formatCnpjInput(co.cnpj)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
           )}
@@ -223,9 +270,11 @@ export function NewTicketModal({ contacts, stages, baseUrl, onClose, onSuccess, 
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center justify-end gap-2 p-6 pt-0">
-          <button onClick={onClose} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-brand-950 h-10 px-4 py-2 border border-slate-200">Cancelar</button>
+
+        <div className="flex items-center justify-end gap-2 p-6 pt-0 border-t border-slate-100">
+          <button onClick={onClose} className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 hover:text-brand-950 h-10 px-4 py-2 border border-slate-200">
+            Cancelar
+          </button>
           <button
             onClick={handleCreateTicket}
             disabled={isSubmitting || catalogLoading || !catalogReady}

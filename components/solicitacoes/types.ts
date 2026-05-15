@@ -1,9 +1,12 @@
-export interface Contact { 
-  number: string; 
-  name: string; 
-  profilePictureUrl?: string; 
-  email?: string; 
-  cnpj?: string; 
+import type { Company } from '@/lib/companies';
+
+export interface Contact {
+  number: string;
+  name: string;
+  profilePictureUrl?: string;
+  email?: string;
+  cnpj?: string;
+  companies?: Company[];
 }
 
 export interface Note { id: string; text: string; createdAt: string; }
@@ -28,21 +31,23 @@ export interface Stage {
   tickets: Ticket[]; 
 }
 
-export interface Ticket { 
-  id: string; 
-  contactNumber: string; 
-  contact?: Contact; 
-  marca: string | null; 
-  modelo: string | null; 
+export interface Ticket {
+  id: string;
+  contactNumber: string;
+  contact?: Contact;
+  companyId?: string | null;
+  company?: Company | null;
+  marca: string | null;
+  modelo: string | null;
   customerType: string | null;
   ticketType: string | null;
-  createdAt: string; 
+  createdAt: string;
   updatedAt: string;
-  notes?: Note[]; 
+  notes?: Note[];
   tasks?: Task[];
   files?: TicketFile[];
-  isArchived: boolean; 
-  resolution?: string; 
-  resolutionReason?: string; 
-  stage?: Stage; 
+  isArchived: boolean;
+  resolution?: string;
+  resolutionReason?: string;
+  stage?: Stage;
 }

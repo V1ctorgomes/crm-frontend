@@ -1,6 +1,7 @@
 import React from 'react';
 import { TablePagination, TablePaginationProps } from '@/components/ui/TablePagination';
 import type { ContactKind } from '@/lib/contact-kind';
+import type { Company } from '@/lib/companies';
 
 export interface Contact {
   number: string;
@@ -10,6 +11,7 @@ export interface Contact {
   email?: string;
   cnpj?: string;
   contactKind?: ContactKind;
+  companies?: Company[];
 }
 
 interface ContactsTableProps {

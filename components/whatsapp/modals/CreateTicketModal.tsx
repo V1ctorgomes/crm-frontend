@@ -1,9 +1,12 @@
 import React from 'react';
 import { formatCpfCnpjInput } from '@/lib/ticket-form-validation';
+import { formatCnpjInput } from '@/lib/companies';
 import { CATALOG_CATEGORY_LABELS, type TicketCatalogOptions } from '@/lib/ticket-catalog-types';
+import type { Contact } from '@/components/whatsapp/types';
 
 type CreateTicketModalProps = {
   onClose: () => void;
+  activeContact: Contact;
   formNome: string;
   setFormNome: (v: string) => void;
   formEmail: string;
@@ -18,6 +21,8 @@ type CreateTicketModalProps = {
   setFormCustomerType: (v: string) => void;
   formTicketType: string;
   setFormTicketType: (v: string) => void;
+  formCompanyId: string;
+  onSelectCompany: (id: string) => void;
   handleCreateTicket: () => void;
   ticketCatalog: TicketCatalogOptions | null;
 };
@@ -25,6 +30,7 @@ type CreateTicketModalProps = {
 /** Atalho para criar OS a partir da página WhatsApp (cliente já vem do contacto activo). */
 export function CreateTicketModal({
   onClose,
+  activeContact,
   formNome,
   setFormNome,
   formEmail,
@@ -39,9 +45,12 @@ export function CreateTicketModal({
   setFormCustomerType,
   formTicketType,
   setFormTicketType,
+  formCompanyId,
+  onSelectCompany,
   handleCreateTicket,
   ticketCatalog,
 }: CreateTicketModalProps) {
+  const companies = activeContact.companies || [];
   const catalogReady =
     ticketCatalog &&
     ticketCatalog.MARCA.length > 0 &&
@@ -114,6 +123,40 @@ export function CreateTicketModal({
             />
             <p className="text-[10px] text-slate-500">11 dígitos (CPF) ou 14 (CNPJ); validação dos dígitos verificadores.</p>
           </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">
+              Empresa solicitante {companies.length > 1 ? <span className="text-red-600">*</span> : null}
+            </label>
+            {companies.length === 0 ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Este contato ainda não tem empresas vinculadas. Vá a <strong>Contatos</strong>, edite este contato e vincule uma empresa antes de criar a OS.
+              </div>
+            ) : companies.length === 1 ? (
+              <div className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 flex items-center text-sm text-slate-700">
+                <span className="truncate">
+                  {companies[0].tradeName?.trim() || companies[0].legalName} · <span className="font-mono">{formatCnpjInput(companies[0].cnpj)}</span>
+                </span>
+              </div>
+            ) : (
+              <select
+                className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-600"
+                value={formCompanyId}
+                onChange={(e) => onSelectCompany(e.target.value)}
+              >
+                <option value="">— Selecione a empresa —</option>
+                {companies.map((co) => (
+                  <option key={co.id} value={co.id}>
+                    {co.tradeName?.trim() || co.legalName} — {formatCnpjInput(co.cnpj)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="text-[10px] text-slate-500">
+              Apenas empresas vinculadas a este contato aparecem aqui.
+            </p>
+          </div>
+
           <div className="flex gap-4">
             <div className="flex-1 space-y-1">
               <label className="text-sm font-medium text-slate-700">{CATALOG_CATEGORY_LABELS.MARCA} *</label>

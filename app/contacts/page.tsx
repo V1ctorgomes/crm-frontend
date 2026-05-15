@@ -5,14 +5,19 @@ import { Toast } from '@/components/ui/toast';
 import { ContactsHeader } from '@/components/contacts/ContactsHeader';
 import { ContactsSectionTabs } from '@/components/contacts/ContactsSectionTabs';
 import { ContactsTable } from '@/components/contacts/ContactsTable';
+import { CompaniesTable } from '@/components/contacts/CompaniesTable';
 import { EditContactModal } from '@/components/contacts/EditContactModal';
 import { DeleteContactModal } from '@/components/contacts/DeleteContactModal';
+import { CompanyFormModal } from '@/components/contacts/CompanyFormModal';
+import { CompanyDetailsModal } from '@/components/contacts/CompanyDetailsModal';
+import { DeleteCompanyModal } from '@/components/contacts/DeleteCompanyModal';
 import { useContactsPage } from './use-contacts-page';
 
 export const dynamic = 'force-dynamic';
 
 export default function ContactsPage() {
   const c = useContactsPage();
+  const isCompaniesTab = c.listSection === 'companies';
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -29,8 +34,11 @@ export default function ContactsPage() {
 
         <ContactsHeader
           totalContacts={c.contacts.length}
+          totalCompanies={c.companies.length}
+          isCompaniesTab={isCompaniesTab}
           searchTerm={c.searchTerm}
           onSearchChange={c.setSearchTerm}
+          onCreateCompany={() => c.openCreateCompanyModal()}
         />
 
         <ContactsSectionTabs
@@ -39,24 +47,43 @@ export default function ContactsPage() {
           customerCount={c.kindCounts.customer}
           internalCount={c.kindCounts.internal}
           unknownCount={c.kindCounts.unknown}
+          companiesCount={c.companies.length}
         />
 
-        <ContactsTable
-          isLoading={c.isLoading}
-          contacts={c.paginatedContacts}
-          onEdit={c.openEditModal}
-          onDelete={c.setContactToDelete}
-          pagination={{
-            page: c.tablePage,
-            pageSize: c.PAGE_SIZE,
-            total: c.filteredContacts.length,
-            onPageChange: c.setTablePage,
-          }}
-        />
+        {isCompaniesTab ? (
+          <CompaniesTable
+            isLoading={c.companiesLoading}
+            companies={c.paginatedCompanies}
+            onOpen={(co) => c.setCompanyDetails(co)}
+            onEdit={(co) => c.openEditCompanyModal(co)}
+            onDelete={(co) => c.setCompanyToDelete(co)}
+            pagination={{
+              page: c.tablePage,
+              pageSize: c.PAGE_SIZE,
+              total: c.filteredCompanies.length,
+              onPageChange: c.setTablePage,
+            }}
+          />
+        ) : (
+          <ContactsTable
+            isLoading={c.isLoading}
+            contacts={c.paginatedContacts}
+            onEdit={c.openEditModal}
+            onDelete={c.setContactToDelete}
+            pagination={{
+              page: c.tablePage,
+              pageSize: c.PAGE_SIZE,
+              total: c.filteredContacts.length,
+              onPageChange: c.setTablePage,
+            }}
+          />
+        )}
       </main>
 
-      {c.isEditing && (
+      {c.isEditing && c.editingContact && (
         <EditContactModal
+          contactNumber={c.editingContact.number}
+          contactName={c.editingContact.name}
           editName={c.editName}
           setEditName={c.setEditName}
           editEmail={c.editEmail}
@@ -68,6 +95,12 @@ export default function ContactsPage() {
           isSaving={c.isSaving}
           onClose={() => c.setIsEditing(false)}
           onSave={c.handleSaveContact}
+          linkedCompanies={c.linkedCompaniesForEditing}
+          allCompanies={c.companies}
+          onLinkCompany={c.linkCompanyToContact}
+          onUnlinkCompany={c.unlinkCompanyFromContact}
+          onRequestCreateCompany={(initialLegalName) => c.openCreateCompanyModal(initialLegalName)}
+          linkBusy={c.linkBusy}
         />
       )}
 
@@ -76,6 +109,38 @@ export default function ContactsPage() {
           contact={c.contactToDelete}
           onClose={() => c.setContactToDelete(null)}
           onConfirm={c.handleDeleteContact}
+        />
+      )}
+
+      {c.isCompanyFormOpen && (
+        <CompanyFormModal
+          initial={c.editingCompany}
+          isSaving={c.companyFormSaving}
+          onClose={c.closeCompanyForm}
+          onSubmit={c.handleSubmitCompany}
+          defaultCnpj={c.companyFormDefaultCnpj}
+          defaultLegalName={c.companyFormDefaultLegalName}
+        />
+      )}
+
+      {c.companyDetails && (
+        <CompanyDetailsModal
+          company={c.companyDetails}
+          allContacts={c.contacts.map((co) => ({ number: co.number, name: co.name, profilePictureUrl: co.profilePictureUrl }))}
+          onClose={() => c.setCompanyDetails(null)}
+          onChanged={() => {
+            void c.fetchCompanies();
+            void c.fetchContacts();
+          }}
+          onShowFeedback={c.showFeedback}
+        />
+      )}
+
+      {c.companyToDelete && (
+        <DeleteCompanyModal
+          company={c.companyToDelete}
+          onClose={() => c.setCompanyToDelete(null)}
+          onConfirm={c.handleDeleteCompany}
         />
       )}
     </div>

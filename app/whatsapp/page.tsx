@@ -129,6 +129,8 @@ export default function WhatsAppPage() {
         setOsFormCustomerType={p.osForm.setFormCustomerType}
         osFormTicketType={p.osForm.formTicketType}
         setOsFormTicketType={p.osForm.setFormTicketType}
+        osFormCompanyId={p.osForm.formCompanyId}
+        onOsCompanyChange={p.osForm.onSelectCompany}
         onSubmitOs={() => {
           if (p.activeContact) void p.osForm.submit(p.activeContact, p.stages);
         }}

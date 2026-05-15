@@ -1,7 +1,7 @@
 import React from 'react';
-import { UserRound, Users, CircleHelp } from 'lucide-react';
+import { Building2, UserRound, Users, CircleHelp } from 'lucide-react';
 
-export type ContactsListSection = 'customer' | 'internal' | 'unknown';
+export type ContactsListSection = 'customer' | 'internal' | 'unknown' | 'companies';
 
 interface ContactsSectionTabsProps {
   value: ContactsListSection;
@@ -9,6 +9,7 @@ interface ContactsSectionTabsProps {
   customerCount: number;
   internalCount: number;
   unknownCount: number;
+  companiesCount: number;
 }
 
 function TabCount({ n, inverted }: { n: number; inverted?: boolean }) {
@@ -30,6 +31,7 @@ export function ContactsSectionTabs({
   customerCount,
   internalCount,
   unknownCount,
+  companiesCount,
 }: ContactsSectionTabsProps) {
   const tabs: {
     id: ContactsListSection;
@@ -54,6 +56,12 @@ export function ContactsSectionTabs({
       label: 'Sem classificar',
       icon: <CircleHelp className="h-4 w-4 shrink-0" />,
       count: unknownCount,
+    },
+    {
+      id: 'companies',
+      label: 'Empresas',
+      icon: <Building2 className="h-4 w-4 shrink-0" />,
+      count: companiesCount,
     },
   ];
 

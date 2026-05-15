@@ -43,6 +43,8 @@ export interface WhatsAppPageModalsProps {
   setOsFormCustomerType: React.Dispatch<React.SetStateAction<string>>;
   osFormTicketType: string;
   setOsFormTicketType: React.Dispatch<React.SetStateAction<string>>;
+  osFormCompanyId: string;
+  onOsCompanyChange: (id: string) => void;
   onSubmitOs: () => void;
   editMessage: Message | null;
   onCloseEditModal: () => void;
@@ -86,6 +88,8 @@ export function WhatsAppPageModals({
   setOsFormCustomerType,
   osFormTicketType,
   setOsFormTicketType,
+  osFormCompanyId,
+  onOsCompanyChange,
   onSubmitOs,
   editMessage,
   onCloseEditModal,
@@ -120,6 +124,7 @@ export function WhatsAppPageModals({
       {osModalOpen && activeContact && (
         <CreateTicketModal
           onClose={osFormClose}
+          activeContact={activeContact}
           formNome={osFormNome}
           setFormNome={setOsFormNome}
           formEmail={osFormEmail}
@@ -134,6 +139,8 @@ export function WhatsAppPageModals({
           setFormCustomerType={setOsFormCustomerType}
           formTicketType={osFormTicketType}
           setFormTicketType={setOsFormTicketType}
+          formCompanyId={osFormCompanyId}
+          onSelectCompany={onOsCompanyChange}
           handleCreateTicket={onSubmitOs}
           ticketCatalog={ticketCatalog}
         />

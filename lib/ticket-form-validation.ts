@@ -74,6 +74,7 @@ export type CreateTicketFormInput = {
   customerType: string;
   ticketType: string;
   stageId: string;
+  companyId?: string | null;
 };
 
 /** Corpo para PUT /tickets/:id (sem contacto nem fase). */
@@ -98,8 +99,11 @@ function minText(v: string, label: string): string | null {
 /**
  * Valida criação de OS (página Solicitações + WhatsApp).
  * Devolve corpo pronto para API (`cpf` só com dígitos, email em minúsculas).
+ * @param availableCompanyIds empresas (IDs) vinculadas ao contacto seleccionado — usado para validar `companyId`.
  */
-export function validateCreateTicketForm(input: Partial<CreateTicketFormInput>): { ok: true; body: CreateTicketFormInput } | { ok: false; message: string } {
+export function validateCreateTicketForm(
+  input: Partial<CreateTicketFormInput> & { availableCompanyIds?: string[] },
+): { ok: true; body: CreateTicketFormInput } | { ok: false; message: string } {
   if (!String(input.contactNumber || '').trim()) {
     return { ok: false, message: 'Selecione um cliente na lista.' };
   }
@@ -139,20 +143,45 @@ export function validateCreateTicketForm(input: Partial<CreateTicketFormInput>):
   err = minText(String(input.ticketType || ''), 'Tipo de solicitação');
   if (err) return { ok: false, message: err };
 
-  return {
-    ok: true,
-    body: {
-      contactNumber,
-      nome: String(input.nome).trim(),
-      email,
-      cpf: taxDigits,
-      marca: String(input.marca).trim(),
-      modelo: String(input.modelo).trim(),
-      customerType: String(input.customerType).trim(),
-      ticketType: String(input.ticketType).trim(),
-      stageId,
-    },
+  const available = input.availableCompanyIds || [];
+  const requested = input.companyId === undefined || input.companyId === null ? '' : String(input.companyId).trim();
+  let companyId: string | null = null;
+  if (available.length > 1) {
+    if (!requested) {
+      return {
+        ok: false,
+        message: 'Este contato tem várias empresas vinculadas. Seleccione qual está a solicitar esta OS.',
+      };
+    }
+    if (!available.includes(requested)) {
+      return { ok: false, message: 'A empresa seleccionada não está vinculada a este contato.' };
+    }
+    companyId = requested;
+  } else if (available.length === 1) {
+    if (requested && requested !== available[0]) {
+      return { ok: false, message: 'A empresa seleccionada não corresponde ao contato.' };
+    }
+    companyId = available[0];
+  } else if (requested) {
+    return {
+      ok: false,
+      message: 'Este contato ainda não tem empresas vinculadas. Vincule uma em Contatos antes de criar a OS.',
+    };
+  }
+
+  const body: CreateTicketFormInput = {
+    contactNumber,
+    nome: String(input.nome).trim(),
+    email,
+    cpf: taxDigits,
+    marca: String(input.marca).trim(),
+    modelo: String(input.modelo).trim(),
+    customerType: String(input.customerType).trim(),
+    ticketType: String(input.ticketType).trim(),
+    stageId,
   };
+  if (companyId) body.companyId = companyId;
+  return { ok: true, body };
 }
 
 /** Valida edição de OS (mesmos campos que a criação, excepto número e fase). */

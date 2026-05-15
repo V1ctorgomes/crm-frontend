@@ -1,4 +1,5 @@
 import type { ContactKind } from '@/lib/contact-kind';
+import type { Company } from '@/lib/companies';
 
 /** Estados de envio (balões `fromMe`), estilo WhatsApp. */
 export type MessageSendStatus = 'sending' | 'sent' | 'delivered';
@@ -33,6 +34,8 @@ export interface Contact {
   instanceName?: string;
   /** Cliente comercial vs colaborador (classificação manual). */
   contactKind?: ContactKind;
+  /** Empresas vinculadas a este número (preenchido pelo backend em /whatsapp/contacts). */
+  companies?: Company[];
 }
 
 export interface Stage {
