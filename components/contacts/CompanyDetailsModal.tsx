@@ -36,14 +36,17 @@ export function CompanyDetailsModal({
 }: CompanyDetailsModalProps) {
   const [loading, setLoading] = useState(true);
   const [linked, setLinked] = useState<LinkedContact[]>([]);
+  const [ticketCount, setTicketCount] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [linking, setLinking] = useState(false);
 
   const loadDetails = async () => {
     setLoading(true);
+    setTicketCount(null);
     try {
-      const data = await apiRequest<{ contacts?: LinkedContact[] }>(`/companies/${company.id}`);
+      const data = await apiRequest<{ contacts?: LinkedContact[]; ticketCount?: number }>(`/companies/${company.id}`);
       setLinked(data?.contacts || []);
+      setTicketCount(typeof data?.ticketCount === 'number' ? data.ticketCount : null);
     } catch {
       onShowFeedback('error', 'Não foi possível carregar os contatos vinculados.');
     } finally {
@@ -118,6 +121,13 @@ export function CompanyDetailsModal({
               {company.tradeName ? <span className="mr-2">{company.tradeName}</span> : null}
               <span className="font-mono text-[12px]">{formatCnpjInput(company.cnpj)}</span>
             </p>
+            {ticketCount != null && ticketCount > 0 ? (
+              <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200/80 rounded-md px-2.5 py-1.5 leading-snug">
+                {ticketCount === 1
+                  ? '1 ordem de serviço está vinculada a esta empresa — não é possível eliminá-la até remover ou alterar a empresa nessa OS.'
+                  : `${ticketCount} ordens de serviço estão vinculadas — eliminação bloqueada até não existir nenhuma OS com esta empresa.`}
+              </p>
+            ) : null}
           </div>
           <button
             onClick={onClose}

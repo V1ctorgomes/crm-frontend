@@ -24,13 +24,14 @@ export function CompaniesTable({ isLoading, companies, onOpen, onEdit, onDelete,
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Nome Fantasia</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">CNPJ</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">Contatos</th>
+                <th className="h-12 px-4 align-middle font-medium text-slate-500">OS</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center">
+                  <td colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                       <span className="text-slate-500 font-medium text-sm">A carregar empresas...</span>
@@ -39,12 +40,14 @@ export function CompaniesTable({ isLoading, companies, onOpen, onEdit, onDelete,
                 </tr>
               ) : companies.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="h-32 text-center text-slate-500 text-sm">
+                  <td colSpan={6} className="h-32 text-center text-slate-500 text-sm">
                     Nenhuma empresa cadastrada. Clique em «Adicionar Empresa» para começar.
                   </td>
                 </tr>
               ) : (
-                companies.map((c) => (
+                companies.map((c) => {
+                  const osCount = c.ticketCount ?? 0;
+                  return (
                   <tr key={c.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="p-4 align-middle">
                       <button
@@ -62,6 +65,18 @@ export function CompaniesTable({ isLoading, companies, onOpen, onEdit, onDelete,
                     <td className="p-4 align-middle text-slate-600">
                       <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
                         {c.contactCount ?? 0}
+                      </span>
+                    </td>
+                    <td className="p-4 align-middle text-slate-600">
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${
+                          osCount > 0
+                            ? 'border-amber-200 bg-amber-50 text-amber-900'
+                            : 'border-slate-200 bg-slate-50 text-slate-600'
+                        }`}
+                        title="Ordens de serviço com esta empresa como solicitante"
+                      >
+                        {osCount}
                       </span>
                     </td>
                     <td className="p-4 align-middle text-right">
@@ -83,14 +98,15 @@ export function CompaniesTable({ isLoading, companies, onOpen, onEdit, onDelete,
                         <button
                           onClick={() => onDelete(c)}
                           className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Remover"
+                          title={osCount > 0 ? 'Ver motivo — há OS vinculadas' : 'Remover empresa'}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -7,6 +7,8 @@ export interface Company {
   tradeName: string | null;
   cnpj: string;
   contactCount?: number;
+  /** Ordens de serviço com esta empresa solicitante; eliminação só permitida se for 0. */
+  ticketCount?: number;
 }
 
 export function onlyDigits(s: string): string {
