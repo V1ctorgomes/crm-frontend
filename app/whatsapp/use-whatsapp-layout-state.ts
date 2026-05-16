@@ -27,6 +27,7 @@ export function useWhatsappLayoutState() {
   const [chatSearchTerm, setChatSearchTerm] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [contactKindFilter, setContactKindFilter] = useState<'ALL' | ContactKind>('ALL');
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [viewerMessage, setViewerMessage] = useState<Message | null>(null);
@@ -80,6 +81,8 @@ export function useWhatsappLayoutState() {
     setCustomerSearch,
     contactKindFilter,
     setContactKindFilter,
+    isCreateGroupOpen,
+    setIsCreateGroupOpen,
     isInstanceModalOpen,
     setIsInstanceModalOpen,
     isDeleteModalOpen,

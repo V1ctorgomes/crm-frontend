@@ -196,6 +196,9 @@ export function MessageList({
                 setCtx({ x: e.clientX, y: e.clientY, msg });
               }}
             >
+              {!msg.fromMe && msg.groupSenderLabel ? (
+                <p className="text-[11px] font-semibold text-brand-700 leading-tight mb-1">{msg.groupSenderLabel}</p>
+              ) : null}
               {msg.isMedia && msg.mediaData && (
                 msg.mimeType?.startsWith('audio/') ? (
                   // Largura fixa: o elemento <audio> não tem tamanho intrínseco e colapsa

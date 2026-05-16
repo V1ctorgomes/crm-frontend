@@ -31,9 +31,10 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
     }
     const msgData = payload.data as WhatsappIngressDetail['msgData'];
     const remoteJid = msgData.key?.remoteJid;
-    if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return null;
+    if (!remoteJid || remoteJid === 'status@broadcast') return null;
 
-    const contactNumber = remoteJid.split('@')[0];
+    const isGroupJid = remoteJid.includes('@g.us');
+    const contactNumber = isGroupJid ? remoteJid : remoteJid.split('@')[0];
     const isFromMe = msgData.key?.fromMe || false;
     const waId = msgData.key?.id || Date.now().toString();
     const now = new Date();
@@ -45,6 +46,10 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
         : now.toISOString();
 
     const customMedia = (msgData.customMedia || {}) as Record<string, unknown>;
+    const groupSenderLabel =
+      typeof (msgData as { groupSenderLabel?: unknown }).groupSenderLabel === 'string'
+        ? String((msgData as { groupSenderLabel: string }).groupSenderLabel)
+        : undefined;
     const message = (msgData.message || {}) as Record<string, unknown>;
     const ext = message.extendedTextMessage as { text?: string } | undefined;
     const incomingText =
@@ -74,6 +79,7 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
       mimeType: customMedia.mimeType as string | undefined,
       fileName: customMedia.fileName as string | undefined,
       sendStatus: isFromMe ? 'delivered' : undefined,
+      groupSenderLabel: groupSenderLabel || undefined,
     };
 
     return {

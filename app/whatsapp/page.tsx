@@ -36,6 +36,7 @@ export default function WhatsAppPage() {
               instances={p.instances}
               selectedInstance={p.selectedInstance}
               onOpenInstanceModal={() => p.setIsInstanceModalOpen(true)}
+              onOpenCreateGroup={() => p.setIsCreateGroupOpen(true)}
               filteredActiveContacts={p.filteredActiveContacts}
               filteredNewContacts={p.filteredNewContacts}
               handleSelectContact={p.handleSelectContact}
@@ -142,6 +143,17 @@ export default function WhatsAppPage() {
         onSaveEdit={() => void p.msgActions.handleSaveEditedMessage()}
         viewerMessage={p.viewerMessage}
         onCloseViewer={() => p.setViewerMessage(null)}
+        isCreateGroupOpen={p.isCreateGroupOpen}
+        onCloseCreateGroup={() => p.setIsCreateGroupOpen(false)}
+        onGroupCreated={(contact) => {
+          p.setContacts((prev) => {
+            const rest = prev.filter((c) => c.number !== contact.number);
+            return [contact, ...rest];
+          });
+          p.handleSelectContact(contact);
+          p.setIsCreateGroupOpen(false);
+        }}
+        onCreateGroupToast={(type, message) => p.setToast({ type, message })}
       />
     </div>
   );

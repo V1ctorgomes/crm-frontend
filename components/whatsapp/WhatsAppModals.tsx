@@ -8,3 +8,4 @@ export { DeleteMessageModal } from './modals/DeleteMessageModal';
 export { EditMessageModal } from './modals/EditMessageModal';
 export { CreateTicketModal } from './modals/CreateTicketModal';
 export { MediaViewerModal } from './modals/MediaViewerModal';
+export { CreateGroupModal } from './modals/CreateGroupModal';

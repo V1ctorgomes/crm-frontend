@@ -29,6 +29,9 @@ export function ChatHeader({
   onContactKindChange,
   kindSaving = false,
 }: ChatHeaderProps) {
+  const isWaGroup = activeContact.number.trim().toLowerCase().endsWith('@g.us');
+  const displayInitials = (activeContact.name || '?').substring(0, 2).toUpperCase();
+
   return (
     <>
       <div className="min-h-[68px] py-2 bg-white border-b border-slate-200 flex flex-wrap sm:flex-nowrap items-center gap-y-2 px-4 md:px-6 shrink-0 z-20">
@@ -50,14 +53,23 @@ export function ChatHeader({
           />
         ) : (
           <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shrink-0 border border-slate-200 text-xs">
-            {activeContact.name.substring(0, 2).toUpperCase()}
+            {displayInitials}
           </div>
         )}
 
         <div className="ml-3 overflow-hidden flex-1 min-w-0">
-          <h2 className="text-sm font-bold text-brand-950 leading-tight truncate">{activeContact.name}</h2>
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-sm font-bold text-brand-950 leading-tight truncate">{activeContact.name}</h2>
+            {isWaGroup && (
+              <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-800 border border-violet-200">
+                Grupo
+              </span>
+            )}
+          </div>
           <span className="text-[11px] text-slate-500 font-mono leading-tight truncate block mt-0.5">
-            {activeContact.number}
+            {isWaGroup
+              ? `Grupo WhatsApp · …${activeContact.number.replace(/\D/g, '').slice(-10)}`
+              : activeContact.number}
             {activeContact.instanceName && (
               <span className="ml-2 text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">
                 {activeContact.instanceName}
@@ -71,7 +83,7 @@ export function ChatHeader({
             <select
               id="wa-contact-kind"
               value={contactKind}
-              disabled={kindSaving}
+              disabled={kindSaving || isWaGroup}
               onChange={(e) => onContactKindChange(e.target.value as ContactKind)}
               className="max-w-[min(100%,220px)] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-brand-950 shadow-sm disabled:opacity-60"
             >
@@ -87,8 +99,13 @@ export function ChatHeader({
 
         <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
           <button
-            onClick={openNewTicketModal}
-            className="h-9 px-3 rounded-md flex items-center justify-center bg-brand-600 text-white font-medium hover:bg-brand-700 transition-colors text-xs gap-1.5 whitespace-nowrap hidden sm:flex"
+            type="button"
+            disabled={isWaGroup}
+            onClick={() => {
+              if (!isWaGroup) openNewTicketModal();
+            }}
+            title={isWaGroup ? 'Criar OS só está disponível em conversas individuais.' : undefined}
+            className="h-9 px-3 rounded-md flex items-center justify-center bg-brand-600 text-white font-medium hover:bg-brand-700 transition-colors text-xs gap-1.5 whitespace-nowrap hidden sm:flex disabled:opacity-40 disabled:pointer-events-none disabled:hover:bg-brand-600"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -96,8 +113,13 @@ export function ChatHeader({
             Criar OS
           </button>
           <button
-            onClick={openNewTicketModal}
-            className="w-9 h-9 rounded-md flex items-center justify-center bg-brand-600 text-white hover:bg-brand-700 transition-colors sm:hidden"
+            type="button"
+            disabled={isWaGroup}
+            onClick={() => {
+              if (!isWaGroup) openNewTicketModal();
+            }}
+            title={isWaGroup ? 'Criar OS só está disponível em conversas individuais.' : undefined}
+            className="w-9 h-9 rounded-md flex items-center justify-center bg-brand-600 text-white hover:bg-brand-700 transition-colors sm:hidden disabled:opacity-40 disabled:pointer-events-none disabled:hover:bg-brand-600"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

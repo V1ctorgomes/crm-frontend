@@ -9,6 +9,7 @@ import {
   CreateTicketModal,
   MediaViewerModal,
   EditMessageModal,
+  CreateGroupModal,
 } from '@/components/whatsapp/WhatsAppModals';
 import type { TicketCatalogOptions } from '@/lib/ticket-catalog-types';
 import type { Company } from '@/lib/companies';
@@ -55,6 +56,10 @@ export interface WhatsAppPageModalsProps {
   onSaveEdit: () => void;
   viewerMessage: Message | null;
   onCloseViewer: () => void;
+  isCreateGroupOpen: boolean;
+  onCloseCreateGroup: () => void;
+  onGroupCreated: (contact: Contact) => void;
+  onCreateGroupToast: (type: 'success' | 'error', message: string) => void;
 }
 
 /** Modais da página WhatsApp agrupados num único sítio (legibilidade da página). */
@@ -100,6 +105,10 @@ export function WhatsAppPageModals({
   onSaveEdit,
   viewerMessage,
   onCloseViewer,
+  isCreateGroupOpen,
+  onCloseCreateGroup,
+  onGroupCreated,
+  onCreateGroupToast,
 }: WhatsAppPageModalsProps) {
   return (
     <>
@@ -157,6 +166,16 @@ export function WhatsAppPageModals({
       )}
       {viewerMessage && viewerMessage.mediaData && (
         <MediaViewerModal viewerMessage={viewerMessage} onClose={onCloseViewer} />
+      )}
+      {isCreateGroupOpen && (
+        <CreateGroupModal
+          open={isCreateGroupOpen}
+          onClose={onCloseCreateGroup}
+          selectedInstance={selectedInstance}
+          instances={instances}
+          onCreated={onGroupCreated}
+          onToast={onCreateGroupToast}
+        />
       )}
     </>
   );

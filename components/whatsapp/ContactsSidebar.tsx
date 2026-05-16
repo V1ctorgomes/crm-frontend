@@ -2,6 +2,7 @@ import React from 'react';
 import { Contact } from './types';
 import { WhatsappPushAlertRow } from '@/components/whatsapp/WhatsappPushAlertRow';
 import { type ContactKind, CONTACT_KIND_OPTIONS } from '@/lib/contact-kind';
+import { UsersRound } from 'lucide-react';
 
 interface ContactsSidebarProps {
   activeContact: Contact | null;
@@ -10,6 +11,8 @@ interface ContactsSidebarProps {
   instances: any[];
   selectedInstance: string;
   onOpenInstanceModal: () => void;
+  /** Abre fluxo para criar grupo WhatsApp (Evolution). */
+  onOpenCreateGroup?: () => void;
   filteredActiveContacts: Contact[];
   filteredNewContacts: Contact[];
   handleSelectContact: (contact: Contact | null) => void;
@@ -21,7 +24,8 @@ interface ContactsSidebarProps {
 }
 
 export function ContactsSidebar({
-  activeContact, customerSearch, setCustomerSearch, instances, selectedInstance, onOpenInstanceModal, 
+  activeContact, customerSearch, setCustomerSearch, instances, selectedInstance, onOpenInstanceModal,
+  onOpenCreateGroup,
   filteredActiveContacts, filteredNewContacts, handleSelectContact, startChatWithContact, unreadByContact,
   contactKindFilter,
   onContactKindFilterChange,
@@ -43,6 +47,17 @@ export function ContactsSidebar({
           </div>
           
           {instances.length > 0 && (
+            <>
+              {onOpenCreateGroup && (
+                <button
+                  type="button"
+                  onClick={onOpenCreateGroup}
+                  className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-brand-950 hover:bg-brand-50 transition-all shrink-0"
+                  title="Novo grupo WhatsApp"
+                >
+                  <UsersRound className="w-4 h-4" />
+                </button>
+              )}
             <button 
               onClick={onOpenInstanceModal}
               className="w-10 h-10 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-brand-950 hover:bg-slate-50 transition-all shrink-0 relative"
@@ -51,6 +66,7 @@ export function ContactsSidebar({
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z" /></svg>
               {selectedInstance !== 'ALL' && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-brand-500 rounded-full border-2 border-white"></span>}
             </button>
+            </>
           )}
         </div>
         {onPushToast && <WhatsappPushAlertRow onToast={onPushToast} />}

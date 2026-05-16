@@ -33,5 +33,9 @@ export function mapApiRowToMessage(m: Record<string, unknown>): Message {
     mimeType: m.mimeType ? String(m.mimeType) : undefined,
     fileName: m.fileName ? String(m.fileName) : undefined,
     sendStatus: fromMe ? ('delivered' as const) : undefined,
+    groupSenderLabel:
+      typeof m.groupSenderLabel === 'string' && m.groupSenderLabel.trim()
+        ? String(m.groupSenderLabel)
+        : undefined,
   };
 }

@@ -21,6 +21,8 @@ export interface Message {  id: string | number;
    * `delivered` = confirmação final na UI (histórico remoto / eco SSE usa sempre `delivered`).
    */
   sendStatus?: MessageSendStatus;
+  /** Nome do remetente em mensagens recebidas de grupo. */
+  groupSenderLabel?: string;
 }
 
 export interface Contact {
