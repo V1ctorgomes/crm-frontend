@@ -4,19 +4,31 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiRequest } from '@/lib/api-client';
 import type { Instance, ProxyNode } from './types';
 
+type SettingsMeUser = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  profilePictureUrl?: string | null;
+};
+
+type QrConnectResponse = {
+  base64?: string;
+  pairingCode?: string;
+};
+
 export type SettingsTab = 'perfil' | 'conexoes' | 'notificacoes';
 
 export type SettingsConfirmState = {
   isOpen: boolean;
   title: string;
   message: string;
-  onConfirm: () => void;
+  onConfirm: (deleteReason?: string) => void | Promise<void>;
 } | null;
 
 export function useSettingsModal() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('perfil');
 
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<SettingsMeUser | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,8 +57,8 @@ export function useSettingsModal() {
 
   const fetchProxies = useCallback(async () => {
     try {
-      const data = await apiRequest('/proxies');
-      setAvailableProxies(data);
+      const data = await apiRequest<ProxyNode[]>('/proxies');
+      setAvailableProxies(Array.isArray(data) ? data : []);
     } catch {
       /* ignore */
     }
@@ -54,9 +66,14 @@ export function useSettingsModal() {
 
   const fetchInstances = useCallback(async (userId?: string) => {
     try {
-      const resolvedUserId = userId || (await apiRequest('/users/me')).id;
-      const list = await apiRequest(`/instances/user/${resolvedUserId}`);
-      setInstances(list);
+      const me = await apiRequest<SettingsMeUser | null>('/users/me');
+      const resolvedUserId = userId || me?.id;
+      if (!resolvedUserId) {
+        setInstances([]);
+        return;
+      }
+      const list = await apiRequest<Instance[]>(`/instances/user/${resolvedUserId}`);
+      setInstances(Array.isArray(list) ? list : []);
     } catch {
       /* ignore */
     } finally {
@@ -66,7 +83,7 @@ export function useSettingsModal() {
 
   useEffect(() => {
     const fetchSettingsData = async () => {
-      const userPromise = apiRequest('/users/me').catch(() => null);
+      const userPromise = apiRequest<SettingsMeUser | null>('/users/me').catch(() => null);
       const proxiesPromise = fetchProxies();
       const currentUser = await userPromise;
 
@@ -128,7 +145,11 @@ export function useSettingsModal() {
       setIsCreatingInstance(true);
 
       try {
-        const me = await apiRequest('/users/me');
+        const me = await apiRequest<SettingsMeUser | null>('/users/me');
+        if (!me?.id) {
+          showFeedback('error', 'Sessão inválida.');
+          return;
+        }
         const payload: Record<string, unknown> = { name: newInstanceName, userId: me.id };
         if (selectedProxyId) {
           const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
@@ -180,8 +201,8 @@ export function useSettingsModal() {
   const handleConnectInstance = useCallback(
     async (name: string) => {
       try {
-        const data = await apiRequest(`/instances/connect/${name}`);
-        setQrCodeData(data);
+        const data = await apiRequest<QrConnectResponse | null>(`/instances/connect/${name}`);
+        setQrCodeData(data && typeof data === 'object' ? data : null);
       } catch {
         showFeedback('error', 'Erro ao conectar à Evolution API.');
       }

@@ -24,7 +24,6 @@ function resolveInstance(c: Contact | null, selectedInstance: string) {
 export function useWhatsappMessaging({
   activeContact,
   selectedInstance,
-  chatHistoryRef,
   setChatHistory,
   setContacts,
   showFeedback,

@@ -27,15 +27,15 @@ export function Toast({
 
   const shellRef = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState(false);
-  const autoCloseRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const exitFallbackRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const autoCloseRef = useRef<number | null>(null);
+  const exitFallbackRef = useRef<number | null>(null);
 
   const runDismiss = useCallback(() => {
     dismissRef.current();
   }, []);
 
   const requestDismiss = useCallback(() => {
-    if (autoCloseRef.current) {
+    if (autoCloseRef.current != null) {
       window.clearTimeout(autoCloseRef.current);
       autoCloseRef.current = null;
     }
@@ -48,7 +48,7 @@ export function Toast({
   useEffect(() => {
     autoCloseRef.current = window.setTimeout(requestDismiss, durationMs);
     return () => {
-      if (autoCloseRef.current) window.clearTimeout(autoCloseRef.current);
+      if (autoCloseRef.current != null) window.clearTimeout(autoCloseRef.current);
     };
   }, [durationMs, requestDismiss]);
 
@@ -56,8 +56,13 @@ export function Toast({
     if (!leaving) return;
 
     const shell = shellRef.current;
+    if (!shell) {
+      runDismiss();
+      return;
+    }
+
     const cleanupExit = () => {
-      if (exitFallbackRef.current) {
+      if (exitFallbackRef.current != null) {
         window.clearTimeout(exitFallbackRef.current);
         exitFallbackRef.current = null;
       }
@@ -71,15 +76,15 @@ export function Toast({
       runDismiss();
     };
 
-    shell?.addEventListener('animationend', onAnimEnd);
+    shell.addEventListener('animationend', onAnimEnd);
     exitFallbackRef.current = window.setTimeout(() => {
-      shell?.removeEventListener('animationend', onAnimEnd);
+      shell.removeEventListener('animationend', onAnimEnd);
       runDismiss();
     }, EXIT_ANIM_MS + 80);
 
     return () => {
       cleanupExit();
-      shell?.removeEventListener('animationend', onAnimEnd);
+      shell.removeEventListener('animationend', onAnimEnd);
     };
   }, [leaving, runDismiss]);
 

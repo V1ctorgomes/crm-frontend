@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, QrCode } from 'lucide-react';
 import type { SettingsConfirmState } from '../use-settings-modal';
+import { canConfirmDelete, crmUserIsDeveloper } from '@/lib/delete-reason-policy';
+import { DeleteReasonFields } from '@/components/ui/delete-reason-fields';
 
 type QrData = { base64?: string; pairingCode?: string } | null;
 
@@ -12,6 +14,64 @@ type SettingsNestedOverlaysProps = {
   confirmModal: SettingsConfirmState;
   onCloseConfirm: () => void;
 };
+
+function SettingsDeleteDialog({
+  modal,
+  onClose,
+}: {
+  modal: NonNullable<SettingsConfirmState>;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState('');
+  const skipReason = crmUserIsDeveloper();
+
+  useEffect(() => {
+    setReason('');
+  }, [modal.title, modal.message]);
+
+  const canConfirm = canConfirmDelete(reason);
+
+  const handleEliminar = () => {
+    if (!canConfirm) return;
+    void modal.onConfirm(skipReason ? undefined : reason.trim());
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-brand-950/55 backdrop-blur-sm z-[1000] flex items-center justify-center p-4"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full text-center animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 bg-red-50 rounded-full p-2 shrink-0" />
+        <h3 className="font-bold text-lg mb-2 text-brand-950">{modal.title}</h3>
+        <p className="text-sm text-slate-500 mb-2">{modal.message}</p>
+        <DeleteReasonFields value={reason} onChange={setReason} id="settings-delete-instance-reason" />
+        <div className="flex gap-3 mt-4 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-10 rounded-md border border-slate-200 text-sm font-medium hover:bg-slate-50 text-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={!canConfirm}
+            onClick={handleEliminar}
+            className="flex-1 h-10 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 shadow-sm disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsNestedOverlays({
   qrCodeData,
@@ -57,39 +117,7 @@ export function SettingsNestedOverlays({
         </div>
       )}
 
-      {confirmModal && (
-        <div
-          className="fixed inset-0 bg-brand-950/55 backdrop-blur-sm z-[1000] flex items-center justify-center p-4"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={onCloseConfirm}
-        >
-          <div
-            className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 bg-red-50 rounded-full p-2" />
-            <h3 className="font-bold text-lg mb-2 text-brand-950">{confirmModal.title}</h3>
-            <p className="text-sm text-slate-500 mb-6">{confirmModal.message}</p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onCloseConfirm}
-                className="flex-1 h-10 rounded-md border border-slate-200 text-sm font-medium hover:bg-slate-50 text-slate-700"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmModal.onConfirm()}
-                className="flex-1 h-10 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 shadow-sm"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmModal && <SettingsDeleteDialog modal={confirmModal} onClose={onCloseConfirm} />}
     </>
   );
 }

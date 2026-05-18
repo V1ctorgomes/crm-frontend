@@ -89,6 +89,10 @@ export function NewTicketModal({ stages, onClose, onSuccess, showFeedback }: New
       try {
         const detail = await apiRequest<CompanyDetail>(`/companies/${formCompanyId}`);
         if (cancelled) return;
+        if (!detail) {
+          setLinkedContacts([]);
+          return;
+        }
         const list = detail.contacts || [];
         setLinkedContacts(list);
         if (list.length === 1) {

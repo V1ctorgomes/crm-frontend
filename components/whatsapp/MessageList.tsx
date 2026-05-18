@@ -83,9 +83,17 @@ function MessageSendTicks({
     );
   }
   if (sendStatus === 'sent') {
-    return <Check className="h-3.5 w-3.5 shrink-0 opacity-95" strokeWidth={2.25} aria-hidden title="Enviada" />;
+    return (
+      <span title="Enviada" className="inline-flex shrink-0">
+        <Check className="h-3.5 w-3.5 opacity-95" strokeWidth={2.25} aria-hidden />
+      </span>
+    );
   }
-  return <CheckCheck className="h-3.5 w-3.5 shrink-0 opacity-95" strokeWidth={2.25} aria-hidden title="Entregue" />;
+  return (
+    <span title="Entregue" className="inline-flex shrink-0">
+      <CheckCheck className="h-3.5 w-3.5 opacity-95" strokeWidth={2.25} aria-hidden />
+    </span>
+  );
 }
 
 export function MessageList({

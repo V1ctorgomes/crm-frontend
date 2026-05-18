@@ -45,17 +45,22 @@ export function useDeveloperPage() {
   const fetchProviders = useCallback(async () => {
     try {
       const [evo, cf] = await Promise.all([
-        apiRequest<Record<string, unknown>>('/providers/evolution').catch(() => ({})),
-        apiRequest<Record<string, unknown>>('/providers/cloudflare').catch(() => ({})),
+        apiRequest<Record<string, unknown>>('/providers/evolution').catch(() => null),
+        apiRequest<Record<string, unknown>>('/providers/cloudflare').catch(() => null),
       ]);
-      if (typeof evo.baseUrl === 'string') setEvoBaseUrl(evo.baseUrl);
-      if (typeof evo.apiKey === 'string') setEvoApiKey(evo.apiKey);
-
-      if (typeof cf.accountId === 'string') setCfAccountId(cf.accountId);
-      if (typeof cf.bucket === 'string') setCfBucket(cf.bucket);
-      if (typeof cf.apiKey === 'string') setCfAccessKey(cf.apiKey);
-      if (typeof cf.apiToken === 'string') setCfSecretKey(cf.apiToken);
-      if (typeof cf.baseUrl === 'string') setCfPublicUrl(cf.baseUrl);
+      const evoRec = evo && typeof evo === 'object' ? evo : null;
+      const cfRec = cf && typeof cf === 'object' ? cf : null;
+      if (evoRec) {
+        if (typeof evoRec.baseUrl === 'string') setEvoBaseUrl(evoRec.baseUrl);
+        if (typeof evoRec.apiKey === 'string') setEvoApiKey(evoRec.apiKey);
+      }
+      if (cfRec) {
+        if (typeof cfRec.accountId === 'string') setCfAccountId(cfRec.accountId);
+        if (typeof cfRec.bucket === 'string') setCfBucket(cfRec.bucket);
+        if (typeof cfRec.apiKey === 'string') setCfAccessKey(cfRec.apiKey);
+        if (typeof cfRec.apiToken === 'string') setCfSecretKey(cfRec.apiToken);
+        if (typeof cfRec.baseUrl === 'string') setCfPublicUrl(cfRec.baseUrl);
+      }
     } catch {
       showFeedback('error', 'Erro ao carregar configurações dos provedores.');
     }

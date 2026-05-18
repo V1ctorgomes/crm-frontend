@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Building2, Link2Off, Plus } from 'lucide-react';
 import { CONTACT_KIND_OPTIONS, type ContactKind } from '@/lib/contact-kind';
 import { formatCnpjInput, type Company } from '@/lib/companies';
+import { DeleteConfirmModal } from '@/components/arquivos/DeleteConfirmModal';
 
 interface EditContactModalProps {
   contactNumber: string;
@@ -53,6 +54,7 @@ export function EditContactModal({
   isWhatsAppGroup = false,
 }: EditContactModalProps) {
   const [companySearch, setCompanySearch] = useState('');
+  const [unlinkCompany, setUnlinkCompany] = useState<Company | null>(null);
 
   const linkedSet = useMemo(() => new Set(linkedCompanies.map((c) => c.id)), [linkedCompanies]);
   const candidates = useMemo(() => {
@@ -176,7 +178,7 @@ export function EditContactModal({
                       </div>
                       <button
                         disabled={linkBusy}
-                        onClick={() => void onUnlinkCompany(c.id)}
+                        onClick={() => setUnlinkCompany(c)}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors disabled:opacity-60"
                       >
                         <Link2Off className="w-3.5 h-3.5" /> Desvincular
@@ -282,6 +284,18 @@ export function EditContactModal({
           </button>
         </div>
       </div>
+
+      {unlinkCompany && (
+        <DeleteConfirmModal
+          title="Desvincular empresa?"
+          message={`A empresa «${unlinkCompany.legalName}» deixará de estar vinculada a este contato.`}
+          onClose={() => setUnlinkCompany(null)}
+          onConfirm={async () => {
+            await onUnlinkCompany(unlinkCompany.id);
+            setUnlinkCompany(null);
+          }}
+        />
+      )}
     </div>
   );
 }

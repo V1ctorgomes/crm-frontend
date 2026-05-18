@@ -42,7 +42,7 @@ export default function ArquivosPage() {
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
     message: string;
-    onConfirm: () => void;
+    onConfirm: (deleteReason?: string) => void | Promise<void>;
   } | null>(null);
 
   const showFeedback = (type: 'success' | 'error', message: string) => {

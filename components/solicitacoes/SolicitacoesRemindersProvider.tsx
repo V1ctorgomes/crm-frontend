@@ -20,7 +20,7 @@ export function SolicitacoesRemindersProvider({ children }: { children: React.Re
     }
     let cancelled = false;
     (async () => {
-      const me = await apiRequest('/users/me').catch(() => null);
+      const me = await apiRequest<{ id?: string } | null>('/users/me').catch(() => null);
       if (cancelled) return;
       setAllowed(!!me?.id);
     })();

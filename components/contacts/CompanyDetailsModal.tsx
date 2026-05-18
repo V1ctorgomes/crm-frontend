@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Building2, Link2Off, Plus } from 'lucide-react';
 import { apiRequest } from '@/lib/api-client';
 import { formatCnpjInput, type Company } from '@/lib/companies';
+import { DeleteConfirmModal } from '@/components/arquivos/DeleteConfirmModal';
 
 interface LinkedContact {
   number: string;
@@ -39,6 +40,7 @@ export function CompanyDetailsModal({
   const [ticketCount, setTicketCount] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [linking, setLinking] = useState(false);
+  const [unlinkConfirm, setUnlinkConfirm] = useState<{ number: string; label: string } | null>(null);
 
   const loadDetails = async () => {
     setLoading(true);
@@ -224,7 +226,7 @@ export function CompanyDetailsModal({
                       </div>
                       <button
                         disabled={linking}
-                        onClick={() => void handleUnlink(c.number)}
+                        onClick={() => setUnlinkConfirm({ number: c.number, label: c.name || c.number })}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors disabled:opacity-60"
                       >
                         <Link2Off className="w-3.5 h-3.5" />
@@ -247,6 +249,18 @@ export function CompanyDetailsModal({
           </button>
         </div>
       </div>
+
+      {unlinkConfirm && (
+        <DeleteConfirmModal
+          title="Desvincular contato?"
+          message={`O contato «${unlinkConfirm.label}» deixará de estar associado a ${company.legalName}.`}
+          onClose={() => setUnlinkConfirm(null)}
+          onConfirm={async () => {
+            await handleUnlink(unlinkConfirm.number);
+            setUnlinkConfirm(null);
+          }}
+        />
+      )}
     </div>
   );
 }

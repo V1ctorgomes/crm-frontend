@@ -17,6 +17,9 @@ interface Ticket {
 }
 interface Stage { id: string; name: string; color: string; order: number; tickets: Ticket[]; }
 
+type MeBrief = { id?: string };
+type InstanceRow = { status?: string };
+
 /** Data do eixo: criação para OS abertas; última atualização (arquivamento) para ganhas/canceladas. */
 function getTicketTimelineBucket(t: Ticket): string | null {
   const iso = t.isArchived ? (t.updatedAt || t.createdAt) : t.createdAt;
@@ -77,30 +80,35 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const fetchOpts = { cache: 'no-store' as RequestCache };
-        const instanceConnectedPromise = apiRequest('/users/me', fetchOpts as RequestInit)
-          .then((me) =>
-            me?.id
-              ? apiRequest(`/instances/user/${me.id}`, fetchOpts as RequestInit).catch(() => [])
-              : [],
-          )
-          .then((instances) => instances.some((i: any) => i.status === 'connected'))
+        const instanceConnectedPromise = apiRequest<MeBrief | null>('/users/me', fetchOpts as RequestInit)
+          .then(async (me) => {
+            const id = me?.id;
+            if (!id) return [] as InstanceRow[];
+            const list = await apiRequest<InstanceRow[]>(`/instances/user/${id}`, fetchOpts as RequestInit).catch(
+              () => [] as InstanceRow[],
+            );
+            return Array.isArray(list) ? list : [];
+          })
+          .then((instances) => instances.some((i) => i.status === 'connected'))
           .catch(() => false);
 
         const [activeStages, archivedOS, isConnected] = await Promise.all([
-          apiRequest('/tickets/board', fetchOpts as RequestInit).catch(() => [] as Stage[]),
-          apiRequest('/tickets/archived', fetchOpts as RequestInit).catch(() => [] as Ticket[]),
+          apiRequest<Stage[]>('/tickets/board', fetchOpts as RequestInit).catch(() => [] as Stage[]),
+          apiRequest<Ticket[]>('/tickets/archived', fetchOpts as RequestInit).catch(() => [] as Ticket[]),
           instanceConnectedPromise,
         ]);
         
-        setStages(activeStages);
+        const stagesSafe = Array.isArray(activeStages) ? activeStages : [];
+        const archivedSafe = Array.isArray(archivedOS) ? archivedOS : [];
+        setStages(stagesSafe);
         setIsInstanceConnected(isConnected);
 
         // ================= CÁLCULO DOS KPIs =================
-        const activeCount = activeStages.reduce((acc, stage) => acc + stage.tickets.length, 0);
+        const activeCount = stagesSafe.reduce((acc: number, stage: Stage) => acc + stage.tickets.length, 0);
         
         // Assumimos que as OS antigas (sem resolução) contam como "Ganhas" para não perder histórico
-        const wonCount = archivedOS.filter(t => t.resolution === 'SUCCESS' || !t.resolution).length;
-        const lostCount = archivedOS.filter(t => t.resolution === 'CANCELLED').length;
+        const wonCount = archivedSafe.filter((t: Ticket) => t.resolution === 'SUCCESS' || !t.resolution).length;
+        const lostCount = archivedSafe.filter((t: Ticket) => t.resolution === 'CANCELLED').length;
         const totalClosed = wonCount + lostCount;
 
         setTotalActiveOS(activeCount);
@@ -109,7 +117,7 @@ export default function DashboardPage() {
         setWinRate(totalClosed > 0 ? Math.round((wonCount / totalClosed) * 100) : 0);
         // ====================================================
 
-        const allTickets = [...activeStages.flatMap(s => s.tickets), ...archivedOS];
+        const allTickets = [...stagesSafe.flatMap((s: Stage) => s.tickets), ...archivedSafe];
         const brandMap = new Map<string, number>();
         const typeMap = new Map<string, number>();
         

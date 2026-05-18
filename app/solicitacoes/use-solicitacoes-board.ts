@@ -13,7 +13,7 @@ import {
 export type ConfirmModalState = {
   title: string;
   message: string;
-  onConfirm: () => void;
+  onConfirm: (deleteReason?: string) => void | Promise<void>;
   onClose: () => void;
 } | null;
 
@@ -38,21 +38,22 @@ export function useSolicitacoesBoard() {
     setToast({ type, message });
   }, []);
 
-  const fetchBoardData = useCallback(async () => {
+  const fetchBoardData = useCallback(async (): Promise<Stage[] | null> => {
     try {
-      const data = await apiRequest('/tickets/board');
-      setStages(data);
-      return data;
+      const data = await apiRequest<Stage[]>('/tickets/board');
+      const next = Array.isArray(data) ? data : [];
+      setStages(next);
+      return next;
     } catch (err) {
       console.error(err);
+      return null;
     }
-    return null;
   }, []);
 
   const fetchContactsData = useCallback(async () => {
     try {
-      const data = await apiRequest('/whatsapp/contacts');
-      setContacts(data);
+      const data = await apiRequest<Contact[]>('/whatsapp/contacts');
+      setContacts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     }

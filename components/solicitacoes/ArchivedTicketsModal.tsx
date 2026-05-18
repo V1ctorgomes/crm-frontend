@@ -16,8 +16,8 @@ export function ArchivedTicketsModal({ baseUrl, onClose, onRestoreSuccess, showF
   useEffect(() => {
     const fetchArchived = async () => {
       try {
-        const data = await apiRequest('/tickets/archived');
-        setArchivedTickets(data);
+        const data = await apiRequest<Ticket[]>('/tickets/archived');
+        setArchivedTickets(Array.isArray(data) ? data : []);
       } catch {}
     };
     fetchArchived();

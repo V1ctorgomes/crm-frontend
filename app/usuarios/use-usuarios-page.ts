@@ -64,8 +64,9 @@ export function useUsuariosPage() {
 
   useEffect(() => {
     void fetchUsers();
-    apiRequest('/users/me')
-      .then((u: { id?: string; role?: string }) => {
+    apiRequest<{ id?: string; role?: string } | null>('/users/me')
+      .then((u) => {
+        if (!u) return;
         setViewerId(u.id ?? null);
         setViewerRole(u.role || 'USER');
         if (u.role === 'ADMIN' || u.role === 'DEVELOPER') {
