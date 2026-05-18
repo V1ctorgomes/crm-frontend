@@ -56,6 +56,18 @@ export function useWhatsappLayoutState() {
     else localStorage.removeItem('lastActiveContact');
   }, []);
 
+  const patchContactByNumber = useCallback((number: string, patch: Partial<Contact>) => {
+    const groupKey = (n: string) => {
+      const t = String(n || '').trim();
+      return t.toLowerCase().endsWith('@g.us') ? t.toLowerCase() : t;
+    };
+    const target = groupKey(number);
+    setContacts((prev) =>
+      prev.map((c) => (groupKey(c.number) === target ? { ...c, ...patch } : c)),
+    );
+    setActiveContact((cur) => (cur && groupKey(cur.number) === target ? { ...cur, ...patch } : cur));
+  }, []);
+
   return {
     toast,
     setToast,
@@ -94,6 +106,7 @@ export function useWhatsappLayoutState() {
     unreadByContact,
     setUnreadByContact,
     handleSelectContact,
+    patchContactByNumber,
   };
 }
 

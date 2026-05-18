@@ -75,9 +75,10 @@ export function CreateGroupModal({
         onToast('error', 'Resposta inválida do servidor.');
         return;
       }
+      const normJid = res.groupJid.trim().toLowerCase();
       const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const contact: Contact = {
-        number: res.groupJid,
+        number: normJid,
         name: res.subject || sub,
         lastMessage: 'Grupo criado',
         lastMessageTime: timeNow,

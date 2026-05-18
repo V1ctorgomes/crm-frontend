@@ -44,6 +44,8 @@ export interface WhatsAppChatPanelProps {
   startRecording: () => void | Promise<void>;
   cancelRecording: () => void;
   stopRecordingAndSend: () => void;
+  groupSyncBusy?: boolean;
+  onSyncGroupProfile?: () => void;
 }
 
 /** Coluna principal: cabeçalho, pré-visualização, lista de mensagens e composer. */
@@ -83,6 +85,8 @@ export function WhatsAppChatPanel({
   startRecording,
   cancelRecording,
   stopRecordingAndSend,
+  groupSyncBusy = false,
+  onSyncGroupProfile,
 }: WhatsAppChatPanelProps) {
   return (
     <>
@@ -98,6 +102,8 @@ export function WhatsAppChatPanel({
         contactKind={contactKind}
         onContactKindChange={onContactKindChange}
         kindSaving={kindSaving}
+        groupSyncBusy={groupSyncBusy}
+        onSyncGroupProfile={onSyncGroupProfile}
       />
 
       {previewFile && previewUrl && (

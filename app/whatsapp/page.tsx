@@ -1,8 +1,10 @@
 'use client';
 
+import { useCallback, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { Toast } from '@/components/ui/toast';
 import { normalizeContactKind } from '@/lib/contact-kind';
+import { apiRequest } from '@/lib/api-client';
 import { NoInstancesView } from '@/components/whatsapp/NoInstancesView';
 import { ContactsSidebar } from '@/components/whatsapp/ContactsSidebar';
 import { WhatsAppEmptyChat } from '@/components/whatsapp/WhatsAppEmptyChat';
@@ -12,6 +14,45 @@ import { useWhatsappPage } from './use-whatsapp-page';
 
 export default function WhatsAppPage() {
   const p = useWhatsappPage();
+  const { patchContactByNumber, setToast, activeContact } = p;
+  const [groupSyncBusy, setGroupSyncBusy] = useState(false);
+
+  const handleSyncGroupProfile = useCallback(async () => {
+    const c = activeContact;
+    if (!c?.number?.toLowerCase().endsWith('@g.us')) return;
+    setGroupSyncBusy(true);
+    try {
+      const res = await apiRequest<{
+        number: string;
+        name: string | null;
+        profilePictureUrl: string | null;
+        updated: boolean;
+      }>('/whatsapp/groups/sync-profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          number: c.number,
+          instanceName: c.instanceName || undefined,
+        }),
+      });
+      patchContactByNumber(c.number, {
+        name: res?.name ?? undefined,
+        profilePictureUrl: res?.profilePictureUrl ?? undefined,
+      });
+      setToast({
+        type: 'success',
+        message: res?.updated
+          ? 'Foto e nome do grupo foram sincronizados com o WhatsApp.'
+          : 'Sem alterações novas na Evolution (foto/nome já iguais ou indisponíveis).',
+      });
+    } catch (e) {
+      setToast({
+        type: 'error',
+        message: e instanceof Error ? e.message : 'Erro ao sincronizar o grupo.',
+      });
+    } finally {
+      setGroupSyncBusy(false);
+    }
+  }, [activeContact, patchContactByNumber, setToast]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -29,7 +70,7 @@ export default function WhatsAppPage() {
           <NoInstancesView />
         ) : (
           <>
-            <ContactsSidebar
+            <ContactsSidebar 
               activeContact={p.activeContact}
               customerSearch={p.customerSearch}
               setCustomerSearch={p.setCustomerSearch}
@@ -87,6 +128,8 @@ export default function WhatsAppPage() {
                   startRecording={p.recorder.start}
                   cancelRecording={p.recorder.cancel}
                   stopRecordingAndSend={p.recorder.stopAndSend}
+                  groupSyncBusy={groupSyncBusy}
+                  onSyncGroupProfile={() => void handleSyncGroupProfile()}
                 />
               ) : (
                 <WhatsAppEmptyChat />
