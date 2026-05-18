@@ -1,6 +1,6 @@
 import React from 'react';
 import { TablePagination, TablePaginationProps } from '@/components/ui/TablePagination';
-import type { ContactKind } from '@/lib/contact-kind';
+import { isWhatsAppGroupJid, type ContactKind } from '@/lib/contact-kind';
 import type { Company } from '@/lib/companies';
 
 export interface Contact {
@@ -17,12 +17,22 @@ export interface Contact {
 interface ContactsTableProps {
   isLoading: boolean;
   contacts: Contact[];
+  /** Secção «Grupos» da página de contactos — ajusta rótulos da tabela. */
+  isGroupsSection?: boolean;
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
   pagination?: Pick<TablePaginationProps, 'page' | 'pageSize' | 'total' | 'onPageChange'>;
 }
 
-export function ContactsTable({ isLoading, contacts, onEdit, onDelete, pagination }: ContactsTableProps) {
+export function ContactsTable({
+  isLoading,
+  contacts,
+  isGroupsSection = false,
+  onEdit,
+  onDelete,
+  pagination,
+}: ContactsTableProps) {
+  const firstColLabel = isGroupsSection ? 'Grupo' : 'Nome';
   return (
     <div className="px-6 md:px-8 pb-12 flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
@@ -30,7 +40,7 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/50 hover:bg-slate-50/50">
-                <th className="h-12 px-4 align-middle font-medium text-slate-500">Cliente</th>
+                <th className="h-12 px-4 align-middle font-medium text-slate-500">{firstColLabel}</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">WhatsApp</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">E-mail</th>
                 <th className="h-12 px-4 align-middle font-medium text-slate-500">CNPJ / CPF</th>
@@ -51,10 +61,12 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
               ) : contacts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="h-32 text-center text-slate-500 text-sm">
-                    Nenhum contato encontrado.
+                    {isGroupsSection ? 'Nenhum grupo WhatsApp na base ainda.' : 'Nenhum contato encontrado.'}
                   </td>
                 </tr>
-              ) : contacts.map((contact) => (
+              ) : contacts.map((contact) => {
+                const isGroupRow = isWhatsAppGroupJid(contact.number);
+                return (
                 <tr key={contact.number} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="p-4 align-middle">
                     <div className="flex items-center gap-3">
@@ -67,11 +79,15 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                       </div>
                       <div className="flex flex-col max-w-[150px] sm:max-w-[250px]">
                         <span className="font-semibold text-brand-950 truncate">{contact.name || 'Sem nome'}</span>
-                        <span className="text-[12px] text-slate-500 truncate">Registado via WhatsApp</span>
+                        <span className="text-[12px] text-slate-500 truncate">
+                          {isGroupRow ? 'Grupo WhatsApp' : 'Registado via WhatsApp'}
+                        </span>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.number}</td>
+                  <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">
+                    {isGroupRow ? `…${contact.number.replace(/\D/g, '').slice(-12)}` : contact.number}
+                  </td>
                   <td className="p-4 align-middle text-slate-600 truncate max-w-[150px]">{contact.email || '--'}</td>
                   <td className="p-4 align-middle text-slate-600 font-mono text-[13px]">{contact.cnpj || '--'}</td>
                   <td className="p-4 align-middle text-slate-600 text-xs">
@@ -98,7 +114,8 @@ export function ContactsTable({ isLoading, contacts, onEdit, onDelete, paginatio
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

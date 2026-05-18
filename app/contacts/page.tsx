@@ -12,12 +12,15 @@ import { CompanyFormModal } from '@/components/contacts/CompanyFormModal';
 import { CompanyDetailsModal } from '@/components/contacts/CompanyDetailsModal';
 import { DeleteCompanyModal } from '@/components/contacts/DeleteCompanyModal';
 import { useContactsPage } from './use-contacts-page';
+import { isWhatsAppGroupJid } from '@/lib/contact-kind';
 
 export const dynamic = 'force-dynamic';
 
 export default function ContactsPage() {
   const c = useContactsPage();
   const isCompaniesTab = c.listSection === 'companies';
+  const isGroupsTab = c.listSection === 'groups';
+  const totalIndividuals = c.contacts.filter((x) => !isWhatsAppGroupJid(x.number)).length;
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-canvas font-sans">
@@ -33,9 +36,11 @@ export default function ContactsPage() {
         )}
 
         <ContactsHeader
-          totalContacts={c.contacts.length}
+          totalIndividualContacts={totalIndividuals}
+          totalGroups={c.kindCounts.groups}
           totalCompanies={c.companies.length}
           isCompaniesTab={isCompaniesTab}
+          isGroupsTab={isGroupsTab}
           searchTerm={c.searchTerm}
           onSearchChange={c.setSearchTerm}
           onCreateCompany={() => c.openCreateCompanyModal()}
@@ -47,6 +52,7 @@ export default function ContactsPage() {
           customerCount={c.kindCounts.customer}
           internalCount={c.kindCounts.internal}
           unknownCount={c.kindCounts.unknown}
+          groupsCount={c.kindCounts.groups}
           companiesCount={c.companies.length}
         />
 
@@ -68,6 +74,7 @@ export default function ContactsPage() {
           <ContactsTable
             isLoading={c.isLoading}
             contacts={c.paginatedContacts}
+            isGroupsSection={isGroupsTab}
             onEdit={c.openEditModal}
             onDelete={c.setContactToDelete}
             pagination={{
@@ -97,6 +104,7 @@ export default function ContactsPage() {
           onSave={c.handleSaveContact}
           linkedCompanies={c.linkedCompaniesForEditing}
           allCompanies={c.companies}
+          isWhatsAppGroup={c.editingContact ? isWhatsAppGroupJid(c.editingContact.number) : false}
           onLinkCompany={c.linkCompanyToContact}
           onUnlinkCompany={c.unlinkCompanyFromContact}
           onRequestCreateCompany={(initialLegalName) => c.openCreateCompanyModal(initialLegalName)}

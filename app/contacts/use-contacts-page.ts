@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Contact } from '@/components/contacts/ContactsTable';
 import type { ContactsListSection } from '@/components/contacts/ContactsSectionTabs';
 import { apiRequest } from '@/lib/api-client';
-import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
+import { isWhatsAppGroupJid, normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
 import type { Company } from '@/lib/companies';
 
 const PAGE_SIZE = 8;
@@ -257,20 +257,30 @@ export function useContactsPage() {
     let customer = 0;
     let internal = 0;
     let unknown = 0;
+    let groups = 0;
     for (const c of contacts) {
+      if (isWhatsAppGroupJid(c.number)) {
+        groups += 1;
+        continue;
+      }
       const k = normalizeContactKind(c.contactKind);
       if (k === 'CUSTOMER') customer += 1;
       else if (k === 'INTERNAL') internal += 1;
       else unknown += 1;
     }
-    return { customer, internal, unknown };
+    return { customer, internal, unknown, groups };
   }, [contacts]);
 
   const contactsInSection = useMemo(() => {
     if (listSection === 'companies') return [] as Contact[];
+    if (listSection === 'groups') {
+      return contacts.filter((c) => isWhatsAppGroupJid(c.number));
+    }
     const want: ContactKind =
       listSection === 'customer' ? 'CUSTOMER' : listSection === 'internal' ? 'INTERNAL' : 'UNKNOWN';
-    return contacts.filter((c) => normalizeContactKind(c.contactKind) === want);
+    return contacts.filter(
+      (c) => !isWhatsAppGroupJid(c.number) && normalizeContactKind(c.contactKind) === want,
+    );
   }, [contacts, listSection]);
 
   const filteredContacts = useMemo(
@@ -299,7 +309,8 @@ export function useContactsPage() {
     setTablePage(0);
   }, [searchTerm, listSection]);
 
-  const totalRows = listSection === 'companies' ? filteredCompanies.length : filteredContacts.length;
+  const totalRows =
+    listSection === 'companies' ? filteredCompanies.length : filteredContacts.length;
 
   useEffect(() => {
     setTablePage((p) => {

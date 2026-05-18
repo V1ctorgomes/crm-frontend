@@ -83,7 +83,7 @@ export function CreateGroupModal({
         lastMessage: 'Grupo criado',
         lastMessageTime: timeNow,
         instanceName: effectiveInstance,
-        contactKind: 'INTERNAL',
+        contactKind: 'UNKNOWN',
       };
       onToast('success', 'Grupo criado. Já pode enviar mensagens.');
       onCreated(contact);

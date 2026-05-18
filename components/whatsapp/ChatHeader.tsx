@@ -72,7 +72,7 @@ export function ChatHeader({
           </div>
           <span className="text-[11px] text-slate-500 font-mono leading-tight truncate block mt-0.5">
             {isWaGroup
-              ? `Grupo WhatsApp · …${activeContact.number.replace(/\D/g, '').slice(-10)}`
+              ? `Classifique o grupo acima (cliente/colaborador) · …${activeContact.number.replace(/\D/g, '').slice(-10)}`
               : activeContact.number}
             {activeContact.instanceName && (
               <span className="ml-2 text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest">
@@ -87,7 +87,7 @@ export function ChatHeader({
             <select
               id="wa-contact-kind"
               value={contactKind}
-              disabled={kindSaving || isWaGroup}
+              disabled={kindSaving}
               onChange={(e) => onContactKindChange(e.target.value as ContactKind)}
               className="max-w-[min(100%,220px)] rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-brand-950 shadow-sm disabled:opacity-60"
             >

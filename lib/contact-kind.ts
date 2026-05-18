@@ -16,3 +16,8 @@ export function normalizeContactKind(v: unknown): ContactKind {
   if (s === 'CUSTOMER' || s === 'INTERNAL' || s === 'UNKNOWN') return s;
   return 'UNKNOWN';
 }
+
+/** JID de grupo WhatsApp (termina em `@g.us`). */
+export function isWhatsAppGroupJid(number: string | undefined | null): boolean {
+  return String(number ?? '').trim().toLowerCase().endsWith('@g.us');
+}

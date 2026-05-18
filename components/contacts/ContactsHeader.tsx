@@ -2,18 +2,23 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 
 interface ContactsHeaderProps {
-  totalContacts: number;
+  /** Contactos individuais (exclui grupos @g.us). */
+  totalIndividualContacts: number;
+  totalGroups: number;
   totalCompanies: number;
   isCompaniesTab: boolean;
+  isGroupsTab: boolean;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onCreateCompany: () => void;
 }
 
 export function ContactsHeader({
-  totalContacts,
+  totalIndividualContacts,
+  totalGroups,
   totalCompanies,
   isCompaniesTab,
+  isGroupsTab,
   searchTerm,
   onSearchChange,
   onCreateCompany,
@@ -22,12 +27,14 @@ export function ContactsHeader({
     <header className="px-6 md:px-8 pt-8 md:pt-10 pb-6 flex flex-col xl:flex-row xl:items-end justify-between gap-6 shrink-0 z-10">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-brand-950">
-          {isCompaniesTab ? 'Empresas' : 'Contatos'}
+          {isCompaniesTab ? 'Empresas' : isGroupsTab ? 'Grupos WhatsApp' : 'Contatos'}
         </h1>
         <p className="text-slate-500 text-sm mt-1">
           {isCompaniesTab
             ? `Directório global de empresas que pode vincular aos contatos (${totalCompanies} registadas).`
-            : `Faça a gestão da sua base de clientes (${totalContacts} registados).`}
+            : isGroupsTab
+              ? `Grupos com conversa no CRM — classifique como cliente ou colaborador (${totalGroups} registados).`
+              : `Faça a gestão da sua base de contactos individuais (${totalIndividualContacts} registados).`}
         </p>
       </div>
 
@@ -38,7 +45,13 @@ export function ContactsHeader({
           </svg>
           <input
             type="text"
-            placeholder={isCompaniesTab ? 'Procurar por razão social, nome fantasia ou CNPJ...' : 'Procurar por nome, número ou e-mail...'}
+            placeholder={
+              isCompaniesTab
+                ? 'Procurar por razão social, nome fantasia ou CNPJ...'
+                : isGroupsTab
+                  ? 'Procurar por nome do grupo ou id…'
+                  : 'Procurar por nome, número ou e-mail...'
+            }
             className="bg-transparent border-none outline-none w-full text-sm font-medium text-brand-950 placeholder:text-slate-400 placeholder:font-normal"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
