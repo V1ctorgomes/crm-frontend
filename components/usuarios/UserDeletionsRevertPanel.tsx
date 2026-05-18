@@ -7,6 +7,7 @@ export type UserDeletionAuditRow = {
   createdAt: string;
   actorUserId: string;
   actorEmail: string;
+  actorRole?: string;
   resourceType: string;
   resourceId: string;
   reason: string;
@@ -35,6 +36,13 @@ function resourceLabel(type: string) {
   return RESOURCE_LABELS[type] ?? type;
 }
 
+function actorRoleLabel(role: string) {
+  if (role === 'ADMIN') return 'Administrador';
+  if (role === 'DEVELOPER') return 'Developer';
+  if (role === 'USER') return 'Atendimento';
+  return role || '—';
+}
+
 interface UserDeletionsRevertPanelProps {
   items: UserDeletionAuditRow[];
   isLoading: boolean;
@@ -54,12 +62,13 @@ export function UserDeletionsRevertPanel({
     <div className="rounded-xl border border-slate-200/90 bg-white/90 shadow-sm overflow-hidden">
       <div className="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-brand-950">Exclusões por atendimento</h2>
+          <h2 className="text-base font-semibold text-brand-950">Restaurar exclusões</h2>
           <p className="text-xs text-slate-500 mt-1 max-w-3xl">
-            Apenas exclusões feitas por utilizadores com perfil <strong>Usuario (atendimento)</strong>. Pode{' '}
-            <strong>restaurar</strong> cada registo até <strong>24 horas</strong> após a exclusão. Depois disso, o
-            botão deixa de estar disponível. Tipos como ficheiros de OS ou conversa WhatsApp completa não têm
-            restauração automática na base de dados.
+            Lista exclusões registadas na auditoria (por <strong>atendimento</strong>,{' '}
+            <strong>administrador</strong> ou <strong>developer</strong>). Pode <strong>restaurar</strong> cada
+            registo até <strong>24 horas</strong> após a exclusão. Depois disso, o botão deixa de estar disponível.
+            Tipos como ficheiros de OS ou conversa WhatsApp completa não têm restauração automática na base de
+            dados.
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Mensagens WhatsApp: a restauração recria o registo no CRM; no telefone dos clientes a mensagem pode
@@ -89,6 +98,7 @@ export function UserDeletionsRevertPanel({
               <tr className="bg-slate-50 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
                 <th className="px-4 py-3 whitespace-nowrap">Data</th>
                 <th className="px-4 py-3">Quem excluiu</th>
+                <th className="px-4 py-3 whitespace-nowrap">Perfil</th>
                 <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3 max-w-[200px]">Referência</th>
                 <th className="px-4 py-3 max-w-[220px]">Motivo</th>
@@ -110,6 +120,9 @@ export function UserDeletionsRevertPanel({
                       <span className="block truncate max-w-[180px]" title={row.actorEmail}>
                         {row.actorEmail}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap text-xs">
+                      {actorRoleLabel(row.actorRole ?? '')}
                     </td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{resourceLabel(row.resourceType)}</td>
                     <td className="px-4 py-3 text-slate-600">

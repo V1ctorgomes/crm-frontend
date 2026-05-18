@@ -4,7 +4,7 @@ interface UsuariosHeaderProps {
   totalUsers: number;
   pendingCount?: number;
   passwordResetCount?: number;
-  /** Exclusões por atendimento que ainda podem ser revertidas (≤24 h). */
+  /** Exclusões auditadas que ainda podem ser revertidas (≤24 h). */
   revertibleDeletionCount?: number;
   /** Quando falso, esconde pesquisa e «Novo usuario» (ex.: secções de pedidos no mesmo ecrã). */
   showToolbar?: boolean;
@@ -32,7 +32,7 @@ export function UsuariosHeader({
           {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}
           {passwordResetCount > 0 ? ` · ${passwordResetCount} pedido(s) de nova palavra-passe` : ''}
           {revertibleDeletionCount > 0
-            ? ` · ${revertibleDeletionCount} exclusão(ões) por atendimento reversível(is) (24 h)`
+            ? ` · ${revertibleDeletionCount} exclusão(ões) reversível(is) nas últimas 24 h`
             : ''}
           ).
         </p>
