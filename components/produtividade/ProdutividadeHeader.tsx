@@ -12,8 +12,9 @@ interface ProdutividadeHeaderProps {
 }
 
 const presets: { value: PeriodPreset; label: string }[] = [
-  { value: '7d', label: 'Últimos 7 dias' },
-  { value: '30d', label: 'Últimos 30 dias' },
+  { value: 'hoje', label: 'Hoje' },
+  { value: '7d', label: '7 dias' },
+  { value: '30d', label: '30 dias' },
   { value: 'mes', label: 'Este mês' },
 ];
 
@@ -28,15 +29,16 @@ export function ProdutividadeHeader({
   return (
     <div className="px-6 md:px-8 pt-8 pb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-slate-200">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-brand-950 tracking-tight">Visão geral da equipe</h1>
-        <p className="text-sm text-slate-500">
-          Atividade e produtividade dos usuarios no período escolhido.
+        <h1 className="text-2xl font-bold text-brand-950 tracking-tight">Monitorização da equipe</h1>
+        <p className="text-sm text-slate-500 max-w-2xl">
+          Actividade real no período: WhatsApp (enviadas, recebidas, mídia), OS criadas e fechadas, notas e tarefas
+          nas solicitações, ficheiros anexados, empresas criadas e exclusões registadas na auditoria.
         </p>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-          <CalendarRange className="ml-2 mr-1 h-4 w-4 text-slate-400" />
+          <CalendarRange className="ml-2 mr-1 h-4 w-4 text-slate-400 shrink-0" />
           {presets.map((p) => {
             const active = p.value === period;
             return (
@@ -44,7 +46,7 @@ export function ProdutividadeHeader({
                 key={p.value}
                 type="button"
                 onClick={() => onPeriodChange(p.value)}
-                className={`px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-3 h-8 rounded-md text-xs font-semibold transition-colors whitespace-nowrap ${
                   active ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >

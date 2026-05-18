@@ -1,7 +1,21 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { X, Send, Inbox, Ticket as TicketIcon, CheckSquare } from 'lucide-react';
+import {
+  X,
+  Send,
+  Inbox,
+  Image,
+  Ticket as TicketIcon,
+  CheckSquare,
+  StickyNote,
+  ListTodo,
+  ListChecks,
+  Paperclip,
+  Building2,
+  Trash2,
+  Activity,
+} from 'lucide-react';
 import type { PerUserStats } from './types';
 
 interface UserDetailDrawerProps {
@@ -17,6 +31,12 @@ function formatDateTime(iso: string | null): string {
   return d.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+function roleLabel(role: string): string {
+  if (role === 'ADMIN') return 'Administrador';
+  if (role === 'DEVELOPER') return 'Developer';
+  return 'Atendimento';
+}
+
 export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawerProps) {
   useEffect(() => {
     if (!user) return;
@@ -29,20 +49,24 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
 
   if (!user) return null;
 
-  const totalActions =
-    user.messagesSent + user.messagesReceived + user.ticketsCreated + user.ticketsArchived;
-
   const stats = [
     { key: 'messagesSent', label: 'Mensagens enviadas', value: user.messagesSent, icon: Send, color: 'text-emerald-600' },
     { key: 'messagesReceived', label: 'Mensagens recebidas', value: user.messagesReceived, icon: Inbox, color: 'text-sky-600' },
+    { key: 'mediaMessagesSent', label: 'Mensagens com mídia', value: user.mediaMessagesSent, icon: Image, color: 'text-teal-600' },
     { key: 'ticketsCreated', label: 'OS criadas', value: user.ticketsCreated, icon: TicketIcon, color: 'text-amber-600' },
-    { key: 'ticketsArchived', label: 'OS fechadas', value: user.ticketsArchived, icon: CheckSquare, color: 'text-violet-600' },
+    { key: 'ticketsArchived', label: 'OS fechadas / arquivadas', value: user.ticketsArchived, icon: CheckSquare, color: 'text-violet-600' },
+    { key: 'notesAdded', label: 'Notas nas OS', value: user.notesAdded, icon: StickyNote, color: 'text-orange-600' },
+    { key: 'tasksCreated', label: 'Tarefas criadas', value: user.tasksCreated, icon: ListTodo, color: 'text-indigo-600' },
+    { key: 'tasksCompleted', label: 'Tarefas concluídas', value: user.tasksCompleted, icon: ListChecks, color: 'text-green-700' },
+    { key: 'ticketFilesUploaded', label: 'Ficheiros na OS', value: user.ticketFilesUploaded, icon: Paperclip, color: 'text-cyan-700' },
+    { key: 'companiesCreated', label: 'Empresas criadas', value: user.companiesCreated, icon: Building2, color: 'text-blue-700' },
+    { key: 'deletionsRecorded', label: 'Exclusões (auditoria)', value: user.deletionsRecorded, icon: Trash2, color: 'text-red-600' },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-brand-950/45 backdrop-blur-sm" onClick={onClose} />
-      <aside className="relative ml-auto h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      <aside className="relative ml-auto h-full w-full max-w-lg bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
         <header className="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-500 overflow-hidden shrink-0">
@@ -61,7 +85,7 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
             <div className="min-w-0">
               <h2 className="text-base font-bold text-brand-950 truncate">{user.name}</h2>
               <p className="text-xs text-slate-500 truncate">
-                {user.role === 'ADMIN' ? 'Administrador' : 'Equipe'} · {user.email}
+                {roleLabel(user.role)} · {user.email}
               </p>
             </div>
           </div>
@@ -76,43 +100,42 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
         </header>
 
         <div className="px-5 py-4 border-b border-slate-100">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Período
-          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Período</span>
           <p className="text-sm font-semibold text-brand-950 mt-0.5">{periodLabel}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto crm-thin-scrollbar p-5 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-brand-100 bg-brand-50/60 p-4 flex items-center gap-3">
+            <Activity className="h-8 w-8 text-brand-600 shrink-0" />
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">Total de actividade</span>
+              <p className="text-2xl font-bold text-brand-950 tabular-nums">{user.totalActivity.toLocaleString('pt-PT')}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Soma de todas as contagens no período</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
             {stats.map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.key} className="rounded-lg border border-slate-200 p-3 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <div key={s.key} className="rounded-lg border border-slate-200 p-2.5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 leading-tight">
                       {s.label}
                     </span>
-                    <Icon className={`h-4 w-4 ${s.color}`} />
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${s.color}`} />
                   </div>
-                  <span className="text-xl font-bold text-brand-950 tabular-nums">
-                    {s.value.toLocaleString('pt-PT')}
-                  </span>
+                  <span className="text-lg font-bold text-brand-950 tabular-nums">{s.value.toLocaleString('pt-PT')}</span>
                 </div>
               );
             })}
           </div>
 
           <div className="rounded-lg border border-slate-200 p-4 flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Resumo
-            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Resumo</span>
             <div className="text-sm text-slate-700 flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Total de ações</span>
-                <span className="font-semibold tabular-nums">{totalActions.toLocaleString('pt-PT')}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Última atividade</span>
+                <span className="text-slate-500">Última actividade no período</span>
                 <span className="font-semibold text-[12px]">{formatDateTime(user.lastActivityAt)}</span>
               </div>
               {user.messagesReceived > 0 && (

@@ -14,7 +14,9 @@ function computePeriodRange(preset: PeriodPreset): { from: string; to: string } 
   const now = new Date();
   const to = now;
   let from: Date;
-  if (preset === '7d') {
+  if (preset === 'hoje') {
+    from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  } else if (preset === '7d') {
     from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   } else if (preset === '30d') {
     from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -30,9 +32,16 @@ const EMPTY: TeamOverviewResponse = {
     activeUsers: 0,
     messagesSent: 0,
     messagesReceived: 0,
+    mediaMessagesSent: 0,
     ticketsCreated: 0,
     ticketsArchived: 0,
     openTickets: 0,
+    notesAdded: 0,
+    tasksCreated: 0,
+    tasksCompleted: 0,
+    ticketFilesUploaded: 0,
+    companiesCreated: 0,
+    deletionsRecorded: 0,
   },
   perUser: [],
   funnel: [],
@@ -40,6 +49,7 @@ const EMPTY: TeamOverviewResponse = {
 };
 
 const PERIOD_LABELS: Record<PeriodPreset, string> = {
+  hoje: 'Hoje (desde meia-noite)',
   '7d': 'Últimos 7 dias',
   '30d': 'Últimos 30 dias',
   mes: 'Este mês',
@@ -47,7 +57,7 @@ const PERIOD_LABELS: Record<PeriodPreset, string> = {
 
 export function useProdutividadePage() {
   const router = useRouter();
-  const [period, setPeriod] = useState<PeriodPreset>('30d');
+  const [period, setPeriod] = useState<PeriodPreset>('hoje');
   const [data, setData] = useState<TeamOverviewResponse>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

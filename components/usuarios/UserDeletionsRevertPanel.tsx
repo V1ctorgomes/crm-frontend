@@ -67,8 +67,12 @@ export function UserDeletionsRevertPanel({
             Lista exclusões registadas na auditoria (por <strong>atendimento</strong>,{' '}
             <strong>administrador</strong> ou <strong>developer</strong>). Pode <strong>restaurar</strong> cada
             registo até <strong>24 horas</strong> após a exclusão. Depois disso, o botão deixa de estar disponível.
-            Tipos como ficheiros de OS ou conversa WhatsApp completa não têm restauração automática na base de
-            dados.
+            Tipos como <strong>ficheiro anexado na OS</strong> ou <strong>histórico WhatsApp completo</strong> (conversa
+            inteira) não têm restauração automática.
+          </p>
+          <p className="text-xs text-slate-500 mt-2">
+            <strong>Instâncias WhatsApp:</strong> a restauração volta a criar a instância na Evolution e no CRM;
+            normalmente fica desligada até voltar a emparelhar (QR / ligar).
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Mensagens WhatsApp: a restauração recria o registo no CRM; no telefone dos clientes a mensagem pode

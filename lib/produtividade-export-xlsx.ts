@@ -143,9 +143,16 @@ export async function downloadProdutividadeWorkbook(
     ['Membros com atividade', data.totals.activeUsers],
     ['Mensagens enviadas (equipe)', data.totals.messagesSent],
     ['Mensagens recebidas (equipe)', data.totals.messagesReceived],
+    ['Mensagens com mídia (envio)', data.totals.mediaMessagesSent],
     ['Ordens de serviço criadas', data.totals.ticketsCreated],
     ['Ordens de serviço fechadas', data.totals.ticketsArchived],
     ['OS em aberto (estado actual)', data.totals.openTickets],
+    ['Notas adicionadas nas OS', data.totals.notesAdded],
+    ['Tarefas criadas', data.totals.tasksCreated],
+    ['Tarefas concluídas', data.totals.tasksCompleted],
+    ['Ficheiros anexados nas OS', data.totals.ticketFilesUploaded],
+    ['Empresas criadas', data.totals.companiesCreated],
+    ['Exclusões registadas (auditoria)', data.totals.deletionsRecorded],
   ];
   const kpiHeader = resumo.getRow(r);
   kpiHeader.values = ['Indicador', 'Valor'];
@@ -205,11 +212,23 @@ export async function downloadProdutividadeWorkbook(
   resumo.getCell(`A${r}`).font = SECTION_FONT;
   r += 1;
   const dailyHeader = resumo.getRow(r);
-  dailyHeader.values = ['Data', 'Mensagens enviadas', 'OS criadas', 'OS fechadas'];
-  styleHeaderRow(dailyHeader, 4);
+  dailyHeader.values = [
+    'Data',
+    'Msg env.',
+    'Msg rec.',
+    'Mídia env.',
+    'OS criadas',
+    'OS fech.',
+    'Notas',
+    'Tar. +',
+    'Tar. ✓',
+    'Fich.',
+    'Excl.',
+  ];
+  styleHeaderRow(dailyHeader, 11);
   r += 1;
   if (data.daily.length === 0) {
-    resumo.mergeCells(`A${r}:D${r}`);
+    resumo.mergeCells(`A${r}:K${r}`);
     resumo.getCell(`A${r}`).value = 'Sem série diária para este período.';
     resumo.getCell(`A${r}`).font = { italic: true, color: { argb: 'FF94A3B8' } };
     r += 1;
@@ -218,10 +237,17 @@ export async function downloadProdutividadeWorkbook(
       const row = resumo.getRow(r);
       row.getCell(1).value = p.date;
       row.getCell(2).value = p.messagesSent;
-      row.getCell(3).value = p.ticketsCreated;
-      row.getCell(4).value = p.ticketsArchived;
-      for (let c = 2; c <= 4; c++) row.getCell(c).alignment = { horizontal: 'right' };
-      for (let c = 1; c <= 4; c++) row.getCell(c).border = thinBorder;
+      row.getCell(3).value = p.messagesReceived;
+      row.getCell(4).value = p.mediaMessagesSent;
+      row.getCell(5).value = p.ticketsCreated;
+      row.getCell(6).value = p.ticketsArchived;
+      row.getCell(7).value = p.notesAdded;
+      row.getCell(8).value = p.tasksCreated;
+      row.getCell(9).value = p.tasksCompleted;
+      row.getCell(10).value = p.ticketFilesUploaded;
+      row.getCell(11).value = p.deletionsRecorded;
+      for (let c = 2; c <= 11; c++) row.getCell(c).alignment = { horizontal: 'right' };
+      for (let c = 1; c <= 11; c++) row.getCell(c).border = thinBorder;
       r += 1;
     }
   }
@@ -231,29 +257,28 @@ export async function downloadProdutividadeWorkbook(
     views: [{ state: 'frozen', ySplit: 1 }],
     properties: { defaultRowHeight: 19 },
   });
-  memberSheet.columns = [
-    { width: 26 },
-    { width: 32 },
-    { width: 18 },
-    { width: 16 },
-    { width: 18 },
-    { width: 14 },
-    { width: 14 },
-    { width: 20 },
-  ];
+  memberSheet.columns = Array.from({ length: 16 }, (_, i) => ({ width: i < 2 ? 28 : i === 2 ? 14 : 12 }));
   const teamHeader = memberSheet.getRow(1);
   teamHeader.values = [
     'Membro',
     'Email',
     'Função',
-    'Mensagens enviadas',
-    'Mensagens recebidas',
+    'Total act.',
+    'Msg env.',
+    'Msg rec.',
+    'Mídia',
     'OS criadas',
-    'OS fechadas',
-    'Última atividade',
+    'OS fech.',
+    'Notas',
+    'Tar. criadas',
+    'Tar. concl.',
+    'Ficheiros',
+    'Empresas',
+    'Exclusões',
+    'Última actividade',
   ];
-  styleHeaderRow(teamHeader, 8);
-  memberSheet.autoFilter = { from: 'A1', to: `H${Math.max(1, data.perUser.length + 1)}` };
+  styleHeaderRow(teamHeader, 16);
+  memberSheet.autoFilter = { from: 'A1', to: `P${Math.max(1, data.perUser.length + 1)}` };
 
   let rowNum = 2;
   for (const u of data.perUser) {
@@ -261,19 +286,27 @@ export async function downloadProdutividadeWorkbook(
     row.getCell(1).value = u.name;
     row.getCell(2).value = u.email;
     row.getCell(3).value = u.role;
-    row.getCell(4).value = u.messagesSent;
-    row.getCell(5).value = u.messagesReceived;
-    row.getCell(6).value = u.ticketsCreated;
-    row.getCell(7).value = u.ticketsArchived;
-    row.getCell(8).value = formatDateTimePt(u.lastActivityAt);
-    for (let c = 4; c <= 7; c++) {
+    row.getCell(4).value = u.totalActivity;
+    row.getCell(5).value = u.messagesSent;
+    row.getCell(6).value = u.messagesReceived;
+    row.getCell(7).value = u.mediaMessagesSent;
+    row.getCell(8).value = u.ticketsCreated;
+    row.getCell(9).value = u.ticketsArchived;
+    row.getCell(10).value = u.notesAdded;
+    row.getCell(11).value = u.tasksCreated;
+    row.getCell(12).value = u.tasksCompleted;
+    row.getCell(13).value = u.ticketFilesUploaded;
+    row.getCell(14).value = u.companiesCreated;
+    row.getCell(15).value = u.deletionsRecorded;
+    row.getCell(16).value = formatDateTimePt(u.lastActivityAt);
+    for (let c = 4; c <= 15; c++) {
       row.getCell(c).numFmt = '#,##0';
       row.getCell(c).alignment = { horizontal: 'right' };
     }
-    row.getCell(8).alignment = { horizontal: 'right' };
-    for (let c = 1; c <= 8; c++) row.getCell(c).border = thinBorder;
+    row.getCell(16).alignment = { horizontal: 'right' };
+    for (let c = 1; c <= 16; c++) row.getCell(c).border = thinBorder;
     if (rowNum % 2 === 0) {
-      for (let c = 1; c <= 8; c++) {
+      for (let c = 1; c <= 16; c++) {
         row.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
       }
     }
