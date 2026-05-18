@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Contact } from '@/components/contacts/ContactsTable';
 import type { ContactsListSection } from '@/components/contacts/ContactsSectionTabs';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import { isWhatsAppGroupJid, normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
 import type { Company } from '@/lib/companies';
 
@@ -118,12 +118,10 @@ export function useContactsPage() {
     }
   }, [editingContact, editName, editEmail, editCnpj, editContactKind, showFeedback]);
 
-  const handleDeleteContact = useCallback(async () => {
+  const handleDeleteContact = useCallback(async (deleteReason?: string) => {
     if (!contactToDelete) return;
     try {
-      await apiRequest(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, {
-        method: 'DELETE',
-      });
+      await apiDelete(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, deleteReason);
       setContacts((prev) => prev.filter((c) => c.number !== contactToDelete.number));
       setContactToDelete(null);
       showFeedback('success', 'Contato removido da base de dados.');
@@ -186,10 +184,10 @@ export function useContactsPage() {
     [editingCompany, editingContact, fetchCompanies, fetchContacts, showFeedback, closeCompanyForm],
   );
 
-  const handleDeleteCompany = useCallback(async () => {
+  const handleDeleteCompany = useCallback(async (deleteReason?: string) => {
     if (!companyToDelete) return;
     try {
-      await apiRequest(`/companies/${companyToDelete.id}`, { method: 'DELETE' });
+      await apiDelete(`/companies/${companyToDelete.id}`, deleteReason);
       setCompanyToDelete(null);
       await Promise.all([fetchCompanies(), fetchContacts()]);
       showFeedback('success', 'Empresa removida.');
@@ -228,13 +226,13 @@ export function useContactsPage() {
   );
 
   const unlinkCompanyFromContact = useCallback(
-    async (companyId: string) => {
+    async (companyId: string, deleteReason?: string) => {
       if (!editingContact) return;
       setLinkBusy(true);
       try {
-        await apiRequest(
+        await apiDelete(
           `/companies/${companyId}/contacts/${encodeURIComponent(editingContact.number)}`,
-          { method: 'DELETE' },
+          deleteReason,
         );
         await Promise.all([fetchContacts(), fetchCompanies()]);
         setEditingContact((prev) => {

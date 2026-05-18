@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import type { Instance, ProxyNode } from './types';
 
 type SettingsMeUser = {
@@ -182,9 +182,9 @@ export function useSettingsModal() {
         isOpen: true,
         title: 'Excluir Instância?',
         message: 'Tem a certeza que deseja excluir esta conexão?',
-        onConfirm: async () => {
+        onConfirm: async (deleteReason?: string) => {
           try {
-            await apiRequest(`/instances/${encodeURIComponent(instanceName)}`, { method: 'DELETE' });
+            await apiDelete(`/instances/${encodeURIComponent(instanceName)}`, deleteReason);
             await fetchInstances();
             showFeedback('success', 'Instância removida com sucesso.');
           } catch {

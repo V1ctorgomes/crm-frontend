@@ -142,7 +142,7 @@ export default function WhatsAppPage() {
       <WhatsAppPageModals
         messagePendingDelete={p.msgActions.messagePendingDelete}
         onCloseDeleteMessage={p.msgActions.dismissDeleteModal}
-        onConfirmDeleteMessage={() => void p.msgActions.confirmDeleteSingleMessage()}
+        onConfirmDeleteMessage={(deleteReason) => void p.msgActions.confirmDeleteSingleMessage(deleteReason)}
         isInstanceModalOpen={p.isInstanceModalOpen}
         onCloseInstanceModal={() => p.setIsInstanceModalOpen(false)}
         instances={p.instances}
@@ -151,9 +151,9 @@ export default function WhatsAppPage() {
         handleSelectContact={p.handleSelectContact}
         isDeleteModalOpen={p.isDeleteModalOpen}
         onCloseDeleteChat={() => p.setIsDeleteModalOpen(false)}
-        onConfirmDeleteChat={() => {
+        onConfirmDeleteChat={(deleteReason) => {
           p.setIsDeleteModalOpen(false);
-          void p.confirmDeleteConversation();
+          void p.confirmDeleteConversation(deleteReason);
         }}
         osModalOpen={p.osForm.isOpen}
         activeContact={p.activeContact}

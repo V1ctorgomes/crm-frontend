@@ -51,7 +51,7 @@ export function useWhatsappMessageActions({
     [activeContact, showFeedback],
   );
 
-  const confirmDeleteSingleMessage = useCallback(async () => {
+  const confirmDeleteSingleMessage = useCallback(async (deleteReason?: string) => {
     const msg = pendingDeleteRef.current;
     setMessagePendingDelete(null);
     pendingDeleteRef.current = null;
@@ -69,6 +69,7 @@ export function useWhatsappMessageActions({
           contactNumber: num,
           messageId: String(msg.id),
           ...(inst ? { instanceName: inst } : {}),
+          ...(deleteReason && deleteReason.trim() ? { reason: deleteReason.trim() } : {}),
         }),
       });
       const list = (chatHistoryRef.current[num] || []).filter((m) => m.id !== msg.id);

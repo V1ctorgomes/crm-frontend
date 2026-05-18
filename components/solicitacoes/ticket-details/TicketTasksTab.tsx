@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle2, Circle, Clock, Trash2 } from 'lucide-react';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import type { Ticket } from '../types';
 
 interface TicketTasksTabProps {
@@ -48,9 +48,9 @@ export function TicketTasksTab({ ticket, onTicketUpdated, showFeedback, setConfi
     setConfirmModal({
       title: 'Apagar Lembrete?',
       message: 'Tem a certeza que deseja apagar este lembrete?',
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/tasks/${taskId}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/tasks/${taskId}`, deleteReason);
           onTicketUpdated();
           showFeedback('success', 'Lembrete apagado.');
         } catch {

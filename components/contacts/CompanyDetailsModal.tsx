@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Building2, Link2Off, Plus } from 'lucide-react';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import { formatCnpjInput, type Company } from '@/lib/companies';
 import { DeleteConfirmModal } from '@/components/arquivos/DeleteConfirmModal';
 
@@ -90,10 +90,10 @@ export function CompanyDetailsModal({
     }
   };
 
-  const handleUnlink = async (number: string) => {
+  const handleUnlink = async (number: string, deleteReason?: string) => {
     setLinking(true);
     try {
-      await apiRequest(`/companies/${company.id}/contacts/${encodeURIComponent(number)}`, { method: 'DELETE' });
+      await apiDelete(`/companies/${company.id}/contacts/${encodeURIComponent(number)}`, deleteReason);
       setLinked((prev) => prev.filter((c) => c.number !== number));
       onChanged();
       onShowFeedback('success', 'Contato desvinculado.');
@@ -255,8 +255,8 @@ export function CompanyDetailsModal({
           title="Desvincular contato?"
           message={`O contato «${unlinkConfirm.label}» deixará de estar associado a ${company.legalName}.`}
           onClose={() => setUnlinkConfirm(null)}
-          onConfirm={async () => {
-            await handleUnlink(unlinkConfirm.number);
+          onConfirm={async (deleteReason?: string) => {
+            await handleUnlink(unlinkConfirm.number, deleteReason);
             setUnlinkConfirm(null);
           }}
         />

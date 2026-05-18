@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { User, type PasswordResetRequestRow } from '@/components/usuarios/types';
 import type { UsuariosAdminSection } from '@/components/usuarios/UsuariosSectionTabs';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 
 const PAGE_SIZE = 8;
 
@@ -160,10 +160,10 @@ export function useUsuariosPage() {
     showFeedback,
   ]);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(async (deleteReason?: string) => {
     if (!userToDelete) return;
     try {
-      await apiRequest(`/users/${userToDelete.id}`, { method: 'DELETE' });
+      await apiDelete(`/users/${userToDelete.id}`, deleteReason);
       showFeedback('success', 'Usuario removido da equipe.');
       setUserToDelete(null);
       void fetchUsers();

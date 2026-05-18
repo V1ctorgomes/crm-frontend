@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import type { Ticket } from '../types';
 
 interface TicketNotesTabProps {
@@ -33,9 +33,9 @@ export function TicketNotesTab({ ticket, onTicketUpdated, showFeedback, setConfi
     setConfirmModal({
       title: 'Apagar Nota?',
       message: 'Tem a certeza que deseja apagar esta nota? Esta ação é irreversível.',
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/notes/${noteId}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/notes/${noteId}`, deleteReason);
           onTicketUpdated();
           showFeedback('success', 'Nota apagada.');
         } catch {

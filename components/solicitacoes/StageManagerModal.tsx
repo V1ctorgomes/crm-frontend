@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Stage } from './types';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 
 /** Apenas paleta da marca + neutro e vermelho semântico (cancelado / alerta) */
 const PREDEFINED_COLORS = [
@@ -67,9 +67,9 @@ export function StageManagerModal({ baseUrl, onClose, onStagesChanged, showFeedb
   const handleDeleteStage = (id: string) => {
     setConfirmModal({
       title: "Apagar Fase?", message: "Tem a certeza que deseja apagar esta fase permanentemente? As suas OS poderão ser afetadas.",
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/stages/${id}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/stages/${id}`, deleteReason);
           loadStages();
           onStagesChanged();
           showFeedback('success', 'Fase removida permanentemente.');

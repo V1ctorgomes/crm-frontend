@@ -66,3 +66,13 @@ export async function apiRequest<T = unknown>(
     return null;
   }
 }
+
+/** DELETE com corpo `{ reason }` para auditoria no servidor (obrigatório para não-developers na UI). */
+export async function apiDelete<T = unknown>(endpoint: string, reason?: string): Promise<T | null> {
+  const trimmed = (reason ?? '').trim();
+  const opts: RequestInit = { method: 'DELETE' };
+  if (trimmed.length > 0) {
+    opts.body = JSON.stringify({ reason: trimmed });
+  }
+  return apiRequest<T>(endpoint, opts);
+}

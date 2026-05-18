@@ -2,7 +2,7 @@
 
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import type { Contact, Message } from '@/components/whatsapp/types';
-import { apiRequest } from '@/lib/api-client';
+import { apiDelete } from '@/lib/api-client';
 import { saveUnreadAndBroadcast } from '@/lib/whatsapp-notifications';
 
 interface UseWhatsappDeleteConversationArgs {
@@ -24,11 +24,11 @@ export function useWhatsappDeleteConversation({
   setUnreadByContact,
   showFeedback,
 }: UseWhatsappDeleteConversationArgs) {
-  const confirmDeleteConversation = useCallback(async () => {
+  const confirmDeleteConversation = useCallback(async (deleteReason?: string) => {
     if (!activeContact) return;
     const num = activeContact.number;
     try {
-      await apiRequest(`/whatsapp/history/${encodeURIComponent(num)}`, { method: 'DELETE' });
+      await apiDelete(`/whatsapp/history/${encodeURIComponent(num)}`, deleteReason);
       setChatHistory((prev) => {
         const next = { ...prev };
         delete next[num];

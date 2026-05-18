@@ -17,7 +17,7 @@ import type { Company } from '@/lib/companies';
 export interface WhatsAppPageModalsProps {
   messagePendingDelete: Message | null;
   onCloseDeleteMessage: () => void;
-  onConfirmDeleteMessage: () => void | Promise<void>;
+  onConfirmDeleteMessage: (deleteReason?: string) => void | Promise<void>;
   isInstanceModalOpen: boolean;
   onCloseInstanceModal: () => void;
   instances: any[];
@@ -26,7 +26,7 @@ export interface WhatsAppPageModalsProps {
   handleSelectContact: (c: Contact | null) => void;
   isDeleteModalOpen: boolean;
   onCloseDeleteChat: () => void;
-  onConfirmDeleteChat: () => void | Promise<void>;
+  onConfirmDeleteChat: (deleteReason?: string) => void | Promise<void>;
   osModalOpen: boolean;
   activeContact: Contact | null;
   ticketCatalog: TicketCatalogOptions | null;

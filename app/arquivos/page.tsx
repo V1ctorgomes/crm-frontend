@@ -15,7 +15,7 @@ import { CustomerFoldersGrid } from '@/components/arquivos/CustomerFoldersGrid';
 import { TicketFoldersGrid } from '@/components/arquivos/TicketFoldersGrid';
 import { FilesViewer } from '@/components/arquivos/FilesViewer';
 import { DeleteConfirmModal } from '@/components/arquivos/DeleteConfirmModal';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,9 +131,9 @@ export default function ArquivosPage() {
     setConfirmModal({
       title: 'Apagar Arquivo?',
       message: 'Tem a certeza que deseja apagar este ficheiro? Ação irreversível.',
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/files/${fileId}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/files/${fileId}`, deleteReason);
           await fetchFolders();
           showFeedback('success', 'Ficheiro apagado com sucesso.');
         } catch {
@@ -149,9 +149,9 @@ export default function ArquivosPage() {
       title: 'Excluir Solicitação?',
       message:
         '⚠️ Tem a certeza que deseja EXCLUIR PERMANENTEMENTE esta solicitação e todos os seus ficheiros? Esta ação não pode ser desfeita.',
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/${ticketId}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/${ticketId}`, deleteReason);
           if (selectedTicket?.id === ticketId) setSelectedTicket(null);
           await fetchFolders();
           showFeedback('success', 'OS excluída com sucesso.');

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, apiDelete } from '@/lib/api-client';
 import type { Ticket } from '../types';
 import { formatFileSize } from './format-size';
 
@@ -57,9 +57,9 @@ export function TicketFilesTab({ ticket, onTicketUpdated, showFeedback, setConfi
     setConfirmModal({
       title: 'Remover Anexo?',
       message: 'Tem a certeza que deseja apagar este ficheiro? Não poderá ser recuperado.',
-      onConfirm: async () => {
+      onConfirm: async (deleteReason?: string) => {
         try {
-          await apiRequest(`/tickets/files/${fileId}`, { method: 'DELETE' });
+          await apiDelete(`/tickets/files/${fileId}`, deleteReason);
           onTicketUpdated();
           showFeedback('success', 'Ficheiro removido.');
         } catch {

@@ -24,7 +24,7 @@ interface EditContactModalProps {
   linkedCompanies: Company[];
   allCompanies: Company[];
   onLinkCompany: (companyId: string) => void | Promise<void>;
-  onUnlinkCompany: (companyId: string) => void | Promise<void>;
+  onUnlinkCompany: (companyId: string, deleteReason?: string) => void | Promise<void>;
   onRequestCreateCompany: (initialLegalName?: string) => void;
   linkBusy: boolean;
   /** Grupo WhatsApp — sem e-mail/CPF nem vínculos a empresas neste modal. */
@@ -290,8 +290,8 @@ export function EditContactModal({
           title="Desvincular empresa?"
           message={`A empresa «${unlinkCompany.legalName}» deixará de estar vinculada a este contato.`}
           onClose={() => setUnlinkCompany(null)}
-          onConfirm={async () => {
-            await onUnlinkCompany(unlinkCompany.id);
+          onConfirm={async (deleteReason?: string) => {
+            await onUnlinkCompany(unlinkCompany.id, deleteReason);
             setUnlinkCompany(null);
           }}
         />
