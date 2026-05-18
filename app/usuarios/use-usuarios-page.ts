@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { User, type PasswordResetRequestRow } from '@/components/usuarios/types';
 import type { UsuariosAdminSection } from '@/components/usuarios/UsuariosSectionTabs';
+import type { UserDeletionAuditRow } from '@/components/usuarios/UserDeletionsRevertPanel';
 import { apiRequest, apiDelete } from '@/lib/api-client';
 
 const PAGE_SIZE = 8;
@@ -27,6 +28,12 @@ export function useUsuariosPage() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [tablePage, setTablePage] = useState(0);
   const [adminSection, setAdminSection] = useState<UsuariosAdminSection>('users');
+  const [deletionAudits, setDeletionAudits] = useState<{
+    items: UserDeletionAuditRow[];
+    revertibleCount: number;
+  } | null>(null);
+  const [deletionAuditsLoading, setDeletionAuditsLoading] = useState(false);
+  const [revertingAuditId, setRevertingAuditId] = useState<string | null>(null);
 
   const showFeedback = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -50,6 +57,28 @@ export function useUsuariosPage() {
     }
   }, []);
 
+  const fetchDeletionAudits = useCallback(async () => {
+    setDeletionAuditsLoading(true);
+    try {
+      const data = await apiRequest<{ items?: UserDeletionAuditRow[]; revertibleCount?: number } | null>(
+        '/users/deletion-audits/recent',
+      );
+      if (data && Array.isArray(data.items)) {
+        setDeletionAudits({
+          items: data.items,
+          revertibleCount: typeof data.revertibleCount === 'number' ? data.revertibleCount : 0,
+        });
+      } else {
+        setDeletionAudits({ items: [], revertibleCount: 0 });
+      }
+    } catch {
+      setDeletionAudits({ items: [], revertibleCount: 0 });
+      showFeedback('error', 'Erro ao carregar exclusões para restauração.');
+    } finally {
+      setDeletionAuditsLoading(false);
+    }
+  }, [showFeedback]);
+
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -72,10 +101,11 @@ export function useUsuariosPage() {
         if (u.role === 'ADMIN' || u.role === 'DEVELOPER') {
           void fetchPending();
           void fetchPasswordResetRequests();
+          void fetchDeletionAudits();
         }
       })
       .catch(() => {});
-  }, [fetchUsers, fetchPending, fetchPasswordResetRequests]);
+  }, [fetchUsers, fetchPending, fetchPasswordResetRequests, fetchDeletionAudits]);
 
   const isAdmin = viewerRole === 'ADMIN' || viewerRole === 'DEVELOPER';
 
@@ -83,7 +113,8 @@ export function useUsuariosPage() {
     if (!isAdmin) return;
     if (adminSection === 'pending') void fetchPending();
     if (adminSection === 'password') void fetchPasswordResetRequests();
-  }, [adminSection, isAdmin, fetchPending, fetchPasswordResetRequests]);
+    if (adminSection === 'reverts') void fetchDeletionAudits();
+  }, [adminSection, isAdmin, fetchPending, fetchPasswordResetRequests, fetchDeletionAudits]);
 
   const openModal = useCallback((user?: User) => {
     if (user) {
@@ -230,6 +261,26 @@ export function useUsuariosPage() {
     void fetchUsers();
   }, [fetchPasswordResetRequests, fetchUsers]);
 
+  const handleRevertDeletion = useCallback(
+    async (auditId: string) => {
+      setRevertingAuditId(auditId);
+      try {
+        await apiRequest(`/users/deletion-audits/${auditId}/revert`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        showFeedback('success', 'Registo restaurado com sucesso.');
+        await fetchDeletionAudits();
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erro ao restaurar.';
+        showFeedback('error', msg);
+      } finally {
+        setRevertingAuditId(null);
+      }
+    },
+    [fetchDeletionAudits, showFeedback],
+  );
+
   return {
     PAGE_SIZE,
     users,
@@ -269,5 +320,10 @@ export function useUsuariosPage() {
     filteredUsers,
     paginatedUsers,
     onPasswordPanelCompleted,
+    deletionAudits,
+    deletionAuditsLoading,
+    revertingAuditId,
+    fetchDeletionAudits,
+    handleRevertDeletion,
   };
 }

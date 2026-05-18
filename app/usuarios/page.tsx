@@ -8,6 +8,7 @@ import { UserFormModal } from '@/components/usuarios/UserFormModal';
 import { DeleteUserModal } from '@/components/usuarios/DeleteUserModal';
 import { PendingUsersPanel } from '@/components/usuarios/PendingUsersPanel';
 import { PasswordResetRequestsPanel } from '@/components/usuarios/PasswordResetRequestsPanel';
+import { UserDeletionsRevertPanel } from '@/components/usuarios/UserDeletionsRevertPanel';
 import { UsuariosSectionTabs } from '@/components/usuarios/UsuariosSectionTabs';
 import { useUsuariosPage } from './use-usuarios-page';
 
@@ -33,6 +34,7 @@ export default function UsuariosPage() {
           totalUsers={u.users.length}
           pendingCount={u.isAdmin ? u.pendingUsers.length : 0}
           passwordResetCount={u.isAdmin ? u.passwordResetRequests.length : 0}
+          revertibleDeletionCount={u.isAdmin ? (u.deletionAudits?.revertibleCount ?? 0) : 0}
           showToolbar={!u.isAdmin || u.adminSection === 'users'}
           searchTerm={u.searchTerm}
           onSearchChange={u.setSearchTerm}
@@ -45,6 +47,7 @@ export default function UsuariosPage() {
             onChange={u.setAdminSection}
             pendingCount={u.pendingUsers.length}
             passwordResetCount={u.passwordResetRequests.length}
+            revertibleCount={u.deletionAudits?.revertibleCount ?? 0}
           />
         )}
 
@@ -64,6 +67,18 @@ export default function UsuariosPage() {
               requests={u.passwordResetRequests}
               onCompleted={u.onPasswordPanelCompleted}
               showFeedback={u.showFeedback}
+            />
+          </div>
+        )}
+
+        {u.isAdmin && u.adminSection === 'reverts' && (
+          <div className="mx-6 md:mx-8">
+            <UserDeletionsRevertPanel
+              items={u.deletionAudits?.items ?? []}
+              isLoading={u.deletionAuditsLoading}
+              revertingId={u.revertingAuditId}
+              onRevert={u.handleRevertDeletion}
+              onRefresh={() => void u.fetchDeletionAudits()}
             />
           </div>
         )}

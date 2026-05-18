@@ -4,6 +4,8 @@ interface UsuariosHeaderProps {
   totalUsers: number;
   pendingCount?: number;
   passwordResetCount?: number;
+  /** Exclusões por atendimento que ainda podem ser revertidas (≤24 h). */
+  revertibleDeletionCount?: number;
   /** Quando falso, esconde pesquisa e «Novo usuario» (ex.: secções de pedidos no mesmo ecrã). */
   showToolbar?: boolean;
   searchTerm: string;
@@ -15,6 +17,7 @@ export function UsuariosHeader({
   totalUsers,
   pendingCount = 0,
   passwordResetCount = 0,
+  revertibleDeletionCount = 0,
   showToolbar = true,
   searchTerm,
   onSearchChange,
@@ -27,7 +30,11 @@ export function UsuariosHeader({
         <p className="text-slate-500 text-sm mt-1">
           Gira os usuarios, permissões e contas de acesso ({totalUsers} activos
           {pendingCount > 0 ? ` · ${pendingCount} aguardam aprovação` : ''}
-          {passwordResetCount > 0 ? ` · ${passwordResetCount} pedido(s) de nova palavra-passe` : ''}).
+          {passwordResetCount > 0 ? ` · ${passwordResetCount} pedido(s) de nova palavra-passe` : ''}
+          {revertibleDeletionCount > 0
+            ? ` · ${revertibleDeletionCount} exclusão(ões) por atendimento reversível(is) (24 h)`
+            : ''}
+          ).
         </p>
       </div>
 

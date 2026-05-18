@@ -1,13 +1,14 @@
 import React from 'react';
-import { Users, UserPlus, KeyRound } from 'lucide-react';
+import { Users, UserPlus, KeyRound, Undo2 } from 'lucide-react';
 
-export type UsuariosAdminSection = 'users' | 'pending' | 'password';
+export type UsuariosAdminSection = 'users' | 'pending' | 'password' | 'reverts';
 
 interface UsuariosSectionTabsProps {
   value: UsuariosAdminSection;
   onChange: (section: UsuariosAdminSection) => void;
   pendingCount: number;
   passwordResetCount: number;
+  revertibleCount?: number;
 }
 
 function TabCount({ n, inverted }: { n: number; inverted?: boolean }) {
@@ -28,6 +29,7 @@ export function UsuariosSectionTabs({
   onChange,
   pendingCount,
   passwordResetCount,
+  revertibleCount = 0,
 }: UsuariosSectionTabsProps) {
   const tabs: {
     id: UsuariosAdminSection;
@@ -42,6 +44,12 @@ export function UsuariosSectionTabs({
       label: 'Palavra-passe',
       icon: <KeyRound className="h-4 w-4 shrink-0" />,
       count: passwordResetCount,
+    },
+    {
+      id: 'reverts',
+      label: 'Restaurar exclusões',
+      icon: <Undo2 className="h-4 w-4 shrink-0" />,
+      count: revertibleCount,
     },
   ];
 
