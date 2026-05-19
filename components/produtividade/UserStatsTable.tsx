@@ -117,7 +117,7 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
   const colCount = 14;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
+    <div className="rounded-2xl border border-slate-200/80 bg-white text-brand-950 shadow-sm ring-1 ring-slate-200/60 overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-brand-950">Por membro (detalhe completo)</h3>
         <span className="text-[11px] font-medium text-slate-500">

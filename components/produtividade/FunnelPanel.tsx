@@ -11,12 +11,12 @@ export function FunnelPanel({ funnel, isLoading }: FunnelPanelProps) {
   const max = funnel.reduce((acc, f) => (f.count > acc ? f.count : acc), 0);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white text-brand-950 shadow-sm overflow-hidden flex flex-col">
-      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <div className="rounded-2xl border border-slate-200/90 bg-white text-brand-950 shadow-sm ring-1 ring-slate-900/[0.03] overflow-hidden flex flex-col h-full min-h-[300px] lg:min-h-[340px]">
+      <div className="px-4 py-3.5 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold text-brand-950">Funil — OS abertas por fase</h3>
         <span className="text-[11px] font-medium text-slate-500 tabular-nums">{total} total</span>
       </div>
-      <div className="p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3 flex-1">
         {isLoading ? (
           <div className="flex items-center gap-3 h-24 justify-center">
             <div className="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />

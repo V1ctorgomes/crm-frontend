@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar from '@/components/Sidebar'; 
 import { Toast } from '@/components/ui/toast';
 import { normalizeContactKind } from '@/lib/contact-kind';
 import { apiRequest } from '@/lib/api-client';

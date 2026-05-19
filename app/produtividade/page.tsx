@@ -28,31 +28,33 @@ export default function ProdutividadePage() {
           />
         )}
 
-        <ProdutividadeHeader
-          period={p.period}
-          onPeriodChange={p.setPeriod}
-          isRefreshing={p.isLoading}
-          onRefresh={() => void p.fetchData()}
-          onExportSpreadsheet={() => void p.handleExportSpreadsheet()}
-          canExport={p.data.perUser.length > 0}
-        />
+        <div className="mx-auto w-full max-w-[1600px]">
+          <ProdutividadeHeader
+            period={p.period}
+            onPeriodChange={p.setPeriod}
+            isRefreshing={p.isLoading}
+            onRefresh={() => void p.fetchData()}
+            onExportSpreadsheet={() => void p.handleExportSpreadsheet()}
+            canExport={p.data.perUser.length > 0}
+          />
 
-        <div className="px-6 md:px-8 py-6 flex flex-col gap-6">
-          <KpiCards totals={p.data.totals} isLoading={p.isLoading} />
+          <div className="px-4 sm:px-6 md:px-8 py-6 md:py-8 flex flex-col gap-8 md:gap-10 pb-12">
+            <KpiCards totals={p.data.totals} isLoading={p.isLoading} />
 
-          <DailyChart data={p.data.daily} isLoading={p.isLoading} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <UserStatsTable
-                rows={p.data.perUser}
-                isLoading={p.isLoading}
-                onUserClick={p.setSelectedUser}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8 items-stretch">
+              <div className="lg:col-span-3 min-w-0 flex flex-col">
+                <DailyChart data={p.data.daily} isLoading={p.isLoading} />
+              </div>
+              <div className="lg:col-span-2 min-w-0 flex flex-col lg:sticky lg:top-4 self-start">
+                <FunnelPanel funnel={p.data.funnel} isLoading={p.isLoading} />
+              </div>
             </div>
-            <div className="lg:col-span-1">
-              <FunnelPanel funnel={p.data.funnel} isLoading={p.isLoading} />
-            </div>
+
+            <UserStatsTable
+              rows={p.data.perUser}
+              isLoading={p.isLoading}
+              onUserClick={p.setSelectedUser}
+            />
           </div>
         </div>
       </main>
