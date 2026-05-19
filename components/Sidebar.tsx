@@ -25,6 +25,7 @@ import {
   WHATSAPP_UNREAD_STORAGE_KEY,
 } from '@/lib/whatsapp-notifications';
 import { REMINDERS_BADGE_EVENT, getLastReminderBadgeSnapshot } from '@/lib/solicitacoes-reminders';
+import { setTrustedUserSession, clearTrustedUserSession } from '@/lib/user-session';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
@@ -83,6 +84,7 @@ export default function Sidebar() {
   const handleLogout = async () => {
     await revokeWebPushSubscription().catch(() => undefined);
     globalUserCache = null;
+    clearTrustedUserSession();
     localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
     await apiRequest('/auth/logout', { method: 'POST' }).catch(() => undefined);
@@ -104,11 +106,15 @@ export default function Sidebar() {
 
     apiRequest('/users/me')
       .then((user) => {
-        if (user && JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
-          globalUserCache = user;
-          setCurrentUser(user);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('crm_user_cache', JSON.stringify(user));
+        if (user && typeof user === 'object') {
+          setTrustedUserSession(user as { role?: string });
+          if (JSON.stringify(globalUserCache) !== JSON.stringify(user)) {
+            globalUserCache = user;
+            setCurrentUser(user);
+            if (typeof window !== 'undefined') {
+              const { password: _pw, ...safe } = user as Record<string, unknown>;
+              localStorage.setItem('crm_user_cache', JSON.stringify(safe));
+            }
           }
         }
       })

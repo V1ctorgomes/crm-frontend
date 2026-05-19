@@ -1,31 +1,27 @@
+import { getTrustedUserRole } from './user-session';
+
 /**
- * Mínimo de caracteres no motivo de eliminação (conta o texto após `.trim()`:
- * espaços no início e no fim não entram na contagem).
+ * Mínimo de caracteres no motivo de eliminação (conta o texto após `.trim()`).
  */
 export const MIN_DELETE_REASON_LENGTH = 10;
 
-export function readCachedUserRole(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('crm_user_cache');
-    if (!raw) return null;
-    const u = JSON.parse(raw) as { role?: unknown };
-    return typeof u.role === 'string' ? u.role : null;
-  } catch {
-    return null;
-  }
-}
+/** Alinhado ao backend (`DELETE_REASON_MAX_LEN`). */
+export const MAX_DELETE_REASON_LENGTH = 2000;
 
-/** Utilizadores com papel técnico não precisam de indicar motivo ao apagar. */
+/** Papel técnico: motivo opcional no cliente; o servidor valida sempre. */
 export function crmUserIsDeveloper(): boolean {
-  return readCachedUserRole() === 'DEVELOPER';
+  return getTrustedUserRole() === 'DEVELOPER';
 }
 
 export function isValidDeleteReason(text: string): boolean {
-  return text.trim().length >= MIN_DELETE_REASON_LENGTH;
+  const len = text.trim().length;
+  return len >= MIN_DELETE_REASON_LENGTH && len <= MAX_DELETE_REASON_LENGTH;
 }
 
 export function canConfirmDelete(reason: string): boolean {
-  if (crmUserIsDeveloper()) return true;
+  if (crmUserIsDeveloper()) {
+    const len = reason.trim().length;
+    return len === 0 || len <= MAX_DELETE_REASON_LENGTH;
+  }
   return isValidDeleteReason(reason);
 }

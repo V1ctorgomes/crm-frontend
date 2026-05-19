@@ -52,7 +52,9 @@ export async function apiRequest<T = unknown>(
         const errorData = JSON.parse(raw) as { message?: string };
         errorMessage = errorData.message || errorMessage;
       } catch {
-        errorMessage = raw.slice(0, 200) || errorMessage;
+        if (process.env.NODE_ENV !== 'production') {
+          errorMessage = raw.slice(0, 200) || errorMessage;
+        }
       }
     }
     throw new Error(errorMessage);

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ProxyNode, ProxyFormData } from '@/components/developer/types';
 import { apiRequest } from '@/lib/api-client';
+import { MASKED_SECRET_PREFIX, secretForSave } from '@/lib/masked-secret';
 
 export type DeveloperTab = 'providers' | 'proxies' | 'catalogo';
 
@@ -52,13 +53,25 @@ export function useDeveloperPage() {
       const cfRec = cf && typeof cf === 'object' ? cf : null;
       if (evoRec) {
         if (typeof evoRec.baseUrl === 'string') setEvoBaseUrl(evoRec.baseUrl);
-        if (typeof evoRec.apiKey === 'string') setEvoApiKey(evoRec.apiKey);
+        if (typeof evoRec.apiKey === 'string' && evoRec.apiKey.startsWith(MASKED_SECRET_PREFIX)) {
+          setEvoApiKey(evoRec.apiKey);
+        } else if (evoRec.apiKeySet) {
+          setEvoApiKey(MASKED_SECRET_PREFIX);
+        }
       }
       if (cfRec) {
         if (typeof cfRec.accountId === 'string') setCfAccountId(cfRec.accountId);
         if (typeof cfRec.bucket === 'string') setCfBucket(cfRec.bucket);
-        if (typeof cfRec.apiKey === 'string') setCfAccessKey(cfRec.apiKey);
-        if (typeof cfRec.apiToken === 'string') setCfSecretKey(cfRec.apiToken);
+        if (typeof cfRec.apiKey === 'string' && cfRec.apiKey.startsWith(MASKED_SECRET_PREFIX)) {
+          setCfAccessKey(cfRec.apiKey);
+        } else if (cfRec.apiKeySet) {
+          setCfAccessKey(MASKED_SECRET_PREFIX);
+        }
+        if (typeof cfRec.apiToken === 'string' && cfRec.apiToken.startsWith(MASKED_SECRET_PREFIX)) {
+          setCfSecretKey(cfRec.apiToken);
+        } else if (cfRec.apiTokenSet) {
+          setCfSecretKey(MASKED_SECRET_PREFIX);
+        }
         if (typeof cfRec.baseUrl === 'string') setCfPublicUrl(cfRec.baseUrl);
       }
     } catch {
@@ -108,9 +121,13 @@ export function useDeveloperPage() {
   const handleSaveEvo = useCallback(async () => {
     setIsSavingProviders(true);
     try {
+      const apiKey = secretForSave(evoApiKey);
       await apiRequest('/providers/evolution', {
         method: 'POST',
-        body: JSON.stringify({ baseUrl: evoBaseUrl, apiKey: evoApiKey }),
+        body: JSON.stringify({
+          baseUrl: evoBaseUrl,
+          ...(apiKey !== undefined ? { apiKey } : {}),
+        }),
       });
       showFeedback('success', 'Configurações da Evolution API atualizadas!');
     } catch {
@@ -122,14 +139,16 @@ export function useDeveloperPage() {
   const handleSaveCf = useCallback(async () => {
     setIsSavingProviders(true);
     try {
+      const apiKey = secretForSave(cfAccessKey);
+      const apiToken = secretForSave(cfSecretKey);
       await apiRequest('/providers/cloudflare', {
         method: 'POST',
         body: JSON.stringify({
           accountId: cfAccountId,
           bucket: cfBucket,
-          apiKey: cfAccessKey,
-          apiToken: cfSecretKey,
           baseUrl: cfPublicUrl,
+          ...(apiKey !== undefined ? { apiKey } : {}),
+          ...(apiToken !== undefined ? { apiToken } : {}),
         }),
       });
       showFeedback('success', 'Configurações da Cloudflare atualizadas!');

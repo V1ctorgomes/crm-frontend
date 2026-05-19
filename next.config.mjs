@@ -39,23 +39,33 @@ function securityHeaders() {
     csp.push('upgrade-insecure-requests');
   }
 
-  return [
+  const headers = [
     { key: 'Content-Security-Policy', value: csp.join('; ') },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
     {
       key: 'Permissions-Policy',
       value: 'camera=(), microphone=(self), geolocation=(), payment=()',
     },
   ];
+
+  if (process.env.NODE_ENV === 'production') {
+    headers.push({
+      key: 'Strict-Transport-Security',
+      value: 'max-age=31536000; includeSubDomains',
+    });
+  }
+
+  return headers;
 }
 
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: process.env.SKIP_LINT !== 'true',
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: process.env.SKIP_TYPECHECK === 'true',
   },
   async headers() {
     return [

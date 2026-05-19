@@ -1,4 +1,16 @@
 /* eslint-disable no-undef */
+function safeSameOriginUrl(raw, origin) {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const url = new URL(raw, origin);
+    if (url.origin !== origin) return null;
+    if (!url.pathname.startsWith('/')) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 self.addEventListener('push', (event) => {
   let payload = {
     title: 'Suporte Imagem CRM',
@@ -19,7 +31,9 @@ self.addEventListener('push', (event) => {
   }
 
   const title = payload.title || 'Suporte Imagem CRM';
-  const fullUrl = new URL(payload.url || '/whatsapp', self.location.origin).href;
+  const safeUrl =
+    safeSameOriginUrl(payload.url || '/whatsapp', self.location.origin) ||
+    new URL('/whatsapp', self.location.origin).href;
 
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -28,7 +42,7 @@ self.addEventListener('push', (event) => {
       badge: '/icon.png',
       tag: payload.tag || 'crm-push',
       renotify: true,
-      data: { url: fullUrl },
+      data: { url: safeUrl },
     }),
   );
 });
@@ -36,7 +50,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen =
-    event.notification?.data?.url ||
+    safeSameOriginUrl(event.notification?.data?.url, self.location.origin) ||
     new URL('/whatsapp', self.location.origin).href;
 
   event.waitUntil(
