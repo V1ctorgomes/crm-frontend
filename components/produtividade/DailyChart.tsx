@@ -31,14 +31,9 @@ function dayTotal(p: DailyPoint): number {
   return (
     p.messagesSent +
     p.messagesReceived +
-    p.mediaMessagesSent +
     p.ticketsCreated +
-    p.ticketsArchived +
-    p.notesAdded +
-    p.tasksCreated +
-    p.tasksCompleted +
-    p.ticketFilesUploaded +
-    p.deletionsRecorded
+    p.ticketsClosed +
+    p.ticketsCancelled
   );
 }
 
@@ -69,30 +64,27 @@ export function DailyChart({ data, isLoading }: DailyChartProps) {
         ) : (
           <div className="w-full h-[240px] md:h-[280px] lg:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: '#64748b' }}
-                interval="preserveStartEnd"
-                minTickGap={16}
-              />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#64748b' }} width={36} />
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 11 }}
-                labelStyle={{ fontWeight: 600, color: '#0c1a0f' }}
-              />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
-              <Line type="monotone" dataKey="messagesSent" name="Msg enviadas" stroke="#16a34a" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="messagesReceived" name="Msg recebidas" stroke="#0ea5e9" strokeWidth={1.5} dot={false} />
-              <Line type="monotone" dataKey="ticketsCreated" name="OS criadas" stroke="#d97706" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="ticketsArchived" name="OS fechadas" stroke="#7c3aed" strokeWidth={1.5} dot={false} />
-              <Line type="monotone" dataKey="notesAdded" name="Notas" stroke="#ea580c" strokeWidth={1.5} dot={false} />
-              <Line type="monotone" dataKey="tasksCompleted" name="Tarefas concl." stroke="#15803d" strokeWidth={1.5} dot={false} />
-              <Line type="monotone" dataKey="ticketFilesUploaded" name="Ficheiros OS" stroke="#0d9488" strokeWidth={1} dot={false} />
-              <Line type="monotone" dataKey="deletionsRecorded" name="Exclusões" stroke="#dc2626" strokeWidth={1} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fill: '#64748b' }}
+                  interval="preserveStartEnd"
+                  minTickGap={16}
+                />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#64748b' }} width={36} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 11 }}
+                  labelStyle={{ fontWeight: 600, color: '#0c1a0f' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Line type="monotone" dataKey="messagesSent" name="Msg enviadas" stroke="#16a34a" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="messagesReceived" name="Msg recebidas" stroke="#0ea5e9" strokeWidth={1.5} dot={false} />
+                <Line type="monotone" dataKey="ticketsCreated" name="OS criadas" stroke="#d97706" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="ticketsClosed" name="OS fechadas" stroke="#7c3aed" strokeWidth={1.5} dot={false} />
+                <Line type="monotone" dataKey="ticketsCancelled" name="OS canceladas" stroke="#dc2626" strokeWidth={1.5} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>

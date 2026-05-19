@@ -1,21 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import {
-  X,
-  Send,
-  Inbox,
-  Image,
-  Ticket as TicketIcon,
-  CheckSquare,
-  StickyNote,
-  ListTodo,
-  ListChecks,
-  Paperclip,
-  Building2,
-  Trash2,
-  Activity,
-} from 'lucide-react';
+import { X, Send, Inbox, Ticket as TicketIcon, CheckSquare, Ban, Activity } from 'lucide-react';
 import type { PerUserStats } from './types';
 
 interface UserDetailDrawerProps {
@@ -52,15 +38,9 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
   const stats = [
     { key: 'messagesSent', label: 'Mensagens enviadas', value: user.messagesSent, icon: Send, color: 'text-emerald-600' },
     { key: 'messagesReceived', label: 'Mensagens recebidas', value: user.messagesReceived, icon: Inbox, color: 'text-sky-600' },
-    { key: 'mediaMessagesSent', label: 'Mensagens com mídia', value: user.mediaMessagesSent, icon: Image, color: 'text-teal-600' },
     { key: 'ticketsCreated', label: 'OS criadas', value: user.ticketsCreated, icon: TicketIcon, color: 'text-amber-600' },
-    { key: 'ticketsArchived', label: 'OS fechadas / arquivadas', value: user.ticketsArchived, icon: CheckSquare, color: 'text-violet-600' },
-    { key: 'notesAdded', label: 'Notas nas OS', value: user.notesAdded, icon: StickyNote, color: 'text-orange-600' },
-    { key: 'tasksCreated', label: 'Tarefas criadas', value: user.tasksCreated, icon: ListTodo, color: 'text-indigo-600' },
-    { key: 'tasksCompleted', label: 'Tarefas concluídas', value: user.tasksCompleted, icon: ListChecks, color: 'text-green-700' },
-    { key: 'ticketFilesUploaded', label: 'Ficheiros na OS', value: user.ticketFilesUploaded, icon: Paperclip, color: 'text-cyan-700' },
-    { key: 'companiesCreated', label: 'Empresas criadas', value: user.companiesCreated, icon: Building2, color: 'text-blue-700' },
-    { key: 'deletionsRecorded', label: 'Exclusões (auditoria)', value: user.deletionsRecorded, icon: Trash2, color: 'text-red-600' },
+    { key: 'ticketsClosed', label: 'OS fechadas', value: user.ticketsClosed, icon: CheckSquare, color: 'text-violet-600' },
+    { key: 'ticketsCancelled', label: 'OS canceladas', value: user.ticketsCancelled, icon: Ban, color: 'text-red-600' },
   ];
 
   return (
@@ -110,7 +90,7 @@ export function UserDetailDrawer({ user, periodLabel, onClose }: UserDetailDrawe
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">Total de actividade</span>
               <p className="text-2xl font-bold text-brand-950 tabular-nums">{user.totalActivity.toLocaleString('pt-PT')}</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">Soma de todas as contagens no período</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Mensagens e movimentação de OS no período</p>
             </div>
           </div>
 

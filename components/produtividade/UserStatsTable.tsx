@@ -11,15 +11,9 @@ type SortKey = keyof Pick<
   | 'totalActivity'
   | 'messagesSent'
   | 'messagesReceived'
-  | 'mediaMessagesSent'
   | 'ticketsCreated'
-  | 'ticketsArchived'
-  | 'notesAdded'
-  | 'tasksCreated'
-  | 'tasksCompleted'
-  | 'ticketFilesUploaded'
-  | 'companiesCreated'
-  | 'deletionsRecorded'
+  | 'ticketsClosed'
+  | 'ticketsCancelled'
   | 'lastActivityAt'
 >;
 
@@ -114,18 +108,18 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
     setPage(0);
   };
 
-  const colCount = 14;
+  const colCount = 8;
 
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white text-brand-950 shadow-sm ring-1 ring-slate-200/60 overflow-hidden flex flex-col">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-brand-950">Por membro (detalhe completo)</h3>
+        <h3 className="text-sm font-semibold text-brand-950">Por membro</h3>
         <span className="text-[11px] font-medium text-slate-500">
           {rows.length} {rows.length === 1 ? 'membro' : 'membros'}
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[1100px]">
+        <table className="w-full text-left text-sm min-w-[720px]">
           <thead>
             <tr className="border-b border-slate-200 bg-white">
               <SortHeader k="name" current={sortKey} asc={sortAsc} onSort={toggleSort}>
@@ -140,32 +134,14 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
               <SortHeader k="messagesReceived" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
                 Rec.
               </SortHeader>
-              <SortHeader k="mediaMessagesSent" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Míd.
-              </SortHeader>
               <SortHeader k="ticketsCreated" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
                 OS+
               </SortHeader>
-              <SortHeader k="ticketsArchived" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                OS✓
+              <SortHeader k="ticketsClosed" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
+                OS ✓
               </SortHeader>
-              <SortHeader k="notesAdded" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Notas
-              </SortHeader>
-              <SortHeader k="tasksCreated" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Tar.+
-              </SortHeader>
-              <SortHeader k="tasksCompleted" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Tar.✓
-              </SortHeader>
-              <SortHeader k="ticketFilesUploaded" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Fich.
-              </SortHeader>
-              <SortHeader k="companiesCreated" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Emp.
-              </SortHeader>
-              <SortHeader k="deletionsRecorded" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
-                Excl.
+              <SortHeader k="ticketsCancelled" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
+                OS ✕
               </SortHeader>
               <SortHeader k="lastActivityAt" current={sortKey} asc={sortAsc} onSort={toggleSort} align="right">
                 Última
@@ -225,18 +201,10 @@ export function UserStatsTable({ rows, isLoading, onUserClick }: UserStatsTableP
                   <td className="p-3 align-middle text-right tabular-nums text-slate-600">
                     {u.messagesReceived.toLocaleString('pt-PT')}
                   </td>
-                  <td className="p-3 align-middle text-right tabular-nums text-slate-600">
-                    {u.mediaMessagesSent.toLocaleString('pt-PT')}
-                  </td>
                   <td className="p-3 align-middle text-right tabular-nums">{u.ticketsCreated.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.ticketsArchived.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.notesAdded.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.tasksCreated.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.tasksCompleted.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.ticketFilesUploaded.toLocaleString('pt-PT')}</td>
-                  <td className="p-3 align-middle text-right tabular-nums">{u.companiesCreated.toLocaleString('pt-PT')}</td>
+                  <td className="p-3 align-middle text-right tabular-nums">{u.ticketsClosed.toLocaleString('pt-PT')}</td>
                   <td className="p-3 align-middle text-right tabular-nums text-slate-600">
-                    {u.deletionsRecorded.toLocaleString('pt-PT')}
+                    {u.ticketsCancelled.toLocaleString('pt-PT')}
                   </td>
                   <td className="p-3 align-middle text-right text-slate-500 text-[11px] whitespace-nowrap">
                     {formatRelative(u.lastActivityAt)}

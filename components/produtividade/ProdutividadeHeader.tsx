@@ -32,8 +32,8 @@ export function ProdutividadeHeader({
         <div className="flex flex-col gap-1.5 min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-brand-950 tracking-tight">Monitorização da equipe</h1>
           <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
-            Actividade real no período: WhatsApp, ordens de serviço, notas e tarefas nas solicitações, ficheiros,
-            empresas criadas e exclusões na auditoria.
+            Mensagens WhatsApp e movimentação de ordens de serviço (criadas, fechadas e canceladas) no período
+            seleccionado.
           </p>
         </div>
 
