@@ -1,4 +1,5 @@
 import type { Message } from '@/components/whatsapp/types';
+import { extractInboundMessageContent, unwrapProtoMessage } from '@/lib/whatsapp-inbound-extract';
 
 export type WhatsappIngressDetail = {
   payload: { event?: string; data?: unknown; instance?: string };
@@ -9,6 +10,7 @@ export type WhatsappIngressDetail = {
     timestamp?: number;
     customMedia?: Record<string, unknown>;
     profilePictureUrl?: string;
+    crmMessageKind?: string;
   };
   contactNumber: string;
   isFromMe: boolean;
@@ -50,21 +52,23 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
       typeof (msgData as { groupSenderLabel?: unknown }).groupSenderLabel === 'string'
         ? String((msgData as { groupSenderLabel: string }).groupSenderLabel)
         : undefined;
-    const message = (msgData.message || {}) as Record<string, unknown>;
-    const ext = message.extendedTextMessage as { text?: string } | undefined;
+
+    const rawMsg = msgData.message;
+    if (!rawMsg || typeof rawMsg !== 'object' || Object.keys(rawMsg).length === 0) {
+      return null;
+    }
+    const inner = unwrapProtoMessage(rawMsg);
+    const extracted = extractInboundMessageContent(inner);
+    if (extracted.skipPersist) return null;
+
     const incomingText =
-      customMedia.text !== undefined
-        ? String(customMedia.text)
-        : String(message.conversation || ext?.text || '');
-    const fallbackSidebarText = message.imageMessage
-      ? 'Imagem'
-      : message.documentMessage
-        ? 'Documento'
-        : message.audioMessage
-          ? 'Áudio'
-          : message.videoMessage
-            ? 'Vídeo'
-            : 'Mídia';
+      customMedia.text !== undefined ? String(customMedia.text) : extracted.text;
+    const fallbackSidebarText = extracted.fallbackSidebar;
+    const isMedia = Boolean(customMedia.isMedia ?? extracted.isMedia);
+    const messageKind =
+      (typeof msgData.crmMessageKind === 'string' && msgData.crmMessageKind) ||
+      extracted.messageKind ||
+      undefined;
 
     const newMessage: Message = {
       id: waId,
@@ -74,12 +78,13 @@ export function tryParseWhatsappSseMessage(raw: string): WhatsappIngressDetail |
       sentAt: sentAtIso,
       fromMe: isFromMe,
       senderNumber: contactNumber,
-      isMedia: Boolean(customMedia.isMedia),
-      mediaData: customMedia.mediaData as string | undefined,
-      mimeType: customMedia.mimeType as string | undefined,
-      fileName: customMedia.fileName as string | undefined,
+      isMedia,
+      mediaData: (customMedia.mediaData as string | undefined) || undefined,
+      mimeType: (customMedia.mimeType as string | undefined) || extracted.mimeType,
+      fileName: (customMedia.fileName as string | undefined) || extracted.fileName,
       sendStatus: isFromMe ? 'delivered' : undefined,
       groupSenderLabel: groupSenderLabel || undefined,
+      messageKind,
     };
 
     return {

@@ -49,6 +49,53 @@ function formatDaySeparatorLabel(sentAt?: string): string {
   return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Texto com quebras de linha; linhas que são URL tornam-se links. Destaque de pesquisa opcional. */
+function RichMessageText({
+  text,
+  chatSearchTerm,
+  invert,
+}: {
+  text: string;
+  chatSearchTerm: string;
+  invert: boolean;
+}) {
+  if (!text.trim()) return null;
+  const linkCls = invert
+    ? 'text-white underline font-medium break-all decoration-white/80'
+    : 'text-brand-700 underline font-medium break-all';
+  const lines = text.split('\n');
+  return (
+    <span className="text-[14px] leading-relaxed whitespace-pre-wrap">
+      {lines.map((line, li) => (
+        <Fragment key={li}>
+          {li > 0 ? <br /> : null}
+          {/^https?:\/\//i.test(line.trim()) ? (
+            <a href={line.trim()} target="_blank" rel="noopener noreferrer" className={linkCls}>
+              {line.trim()}
+            </a>
+          ) : chatSearchTerm.trim() ? (
+            line.split(new RegExp(`(${escapeRegExp(chatSearchTerm)})`, 'gi')).map((part, i) =>
+              part.toLowerCase() === chatSearchTerm.toLowerCase() ? (
+                <mark key={i} className="bg-highlight text-brand-950 px-0.5 rounded">
+                  {part}
+                </mark>
+              ) : (
+                part
+              ),
+            )
+          ) : (
+            line
+          )}
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
 function MessageSendTicks({
   sendStatus,
   isMedia,
@@ -180,7 +227,12 @@ export function MessageList({
       {filteredMessages.map((msg, idx) => {
         const prev = idx > 0 ? filteredMessages[idx - 1] : null;
         const showDayDivider = !prev || dayKeyFromSentAt(prev.sentAt) !== dayKeyFromSentAt(msg.sentAt);
-        const isFilePreview = msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/');
+        const isStickerUi =
+          msg.messageKind === 'sticker' &&
+          Boolean(msg.mediaData) &&
+          Boolean(msg.mimeType?.startsWith('image/'));
+        const isFilePreview = msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/') && !isStickerUi;
+        const isReactionBubble = msg.messageKind === 'reaction';
 
         return (
           <Fragment key={String(msg.id)}>
@@ -192,10 +244,13 @@ export function MessageList({
               </div>
             )}
             <div
-              className={`${isFilePreview ? 'max-w-[min(85%,304px)]' : 'max-w-[85%] md:max-w-[70%]'} w-fit min-w-0 relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
+              className={`${isFilePreview ? 'max-w-[min(85%,304px)]' : isStickerUi ? 'max-w-[min(92%,280px)]' : 'max-w-[85%] md:max-w-[70%]'} w-fit min-w-0 relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${isReactionBubble ? 'border border-dashed' : ''} ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm border-brand-400/50' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
               onContextMenu={(e) => {
                 if (!msg.fromMe || typeof msg.id === 'number') return;
-                const canEditText = !msg.isMedia && !!(msg.text && msg.text.trim());
+                const canEditText =
+                  !msg.isMedia &&
+                  msg.messageKind !== 'reaction' &&
+                  !!(msg.text && msg.text.trim());
                 const wantsEdit =
                   canEditText && !!onMessageEditRequest && canEditMessageByTime(msg.sentAt);
                 const wantsDelete = !!onMessageDelete && canDeleteMessageByTime(msg.sentAt);
@@ -207,7 +262,18 @@ export function MessageList({
               {!msg.fromMe && msg.groupSenderLabel ? (
                 <p className="text-[11px] font-semibold text-brand-700 leading-tight mb-1">{msg.groupSenderLabel}</p>
               ) : null}
-              {msg.isMedia && msg.mediaData && (
+              {isStickerUi && msg.mediaData ? (
+                <div className="mb-1.5 overflow-hidden rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={msg.mediaData}
+                    alt="Figurinha"
+                    className="max-h-[220px] max-w-full w-auto object-contain"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+              {msg.isMedia && msg.mediaData && !isStickerUi && (
                 msg.mimeType?.startsWith('audio/') ? (
                   // Largura fixa: o elemento <audio> não tem tamanho intrínseco e colapsa
                   // dentro de balões `w-fit`, mostrando apenas o menu (⋮). Fixar o container resolve.
@@ -255,19 +321,7 @@ export function MessageList({
               )}
 
               {msg.text && msg.text.trim() !== '' && (
-                <span className="text-[14px] leading-relaxed">
-                  {chatSearchTerm
-                    ? msg.text.split(new RegExp(`(${chatSearchTerm})`, 'gi')).map((part, i) =>
-                        part.toLowerCase() === chatSearchTerm.toLowerCase() ? (
-                          <mark key={i} className="bg-highlight text-brand-950 px-0.5 rounded">
-                            {part}
-                          </mark>
-                        ) : (
-                          part
-                        ),
-                      )
-                    : msg.text}
-                </span>
+                <RichMessageText text={msg.text} chatSearchTerm={chatSearchTerm} invert={msg.fromMe} />
               )}
 
               <div

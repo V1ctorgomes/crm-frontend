@@ -23,6 +23,8 @@ export interface Message {  id: string | number;
   sendStatus?: MessageSendStatus;
   /** Nome do remetente em mensagens recebidas de grupo. */
   groupSenderLabel?: string;
+  /** Tipo semântico (reação, figurinha, localização, inquérito, …) vindo do backend. */
+  messageKind?: string;
 }
 
 export interface Contact {

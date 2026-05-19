@@ -37,5 +37,7 @@ export function mapApiRowToMessage(m: Record<string, unknown>): Message {
       typeof m.groupSenderLabel === 'string' && m.groupSenderLabel.trim()
         ? String(m.groupSenderLabel)
         : undefined,
+    messageKind:
+      typeof m.messageKind === 'string' && m.messageKind.trim() ? String(m.messageKind) : undefined,
   };
 }
