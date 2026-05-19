@@ -46,12 +46,12 @@ export function DailyChart({ data, isLoading }: DailyChartProps) {
   const hasData = chartData.some((p) => dayTotal(p) > 0);
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white text-brand-950 shadow-sm ring-1 ring-slate-900/[0.03] overflow-hidden flex flex-col h-full min-h-[300px] lg:min-h-[340px]">
+    <div className="rounded-2xl border border-slate-200/90 bg-white text-brand-950 shadow-sm ring-1 ring-slate-900/[0.03] overflow-hidden flex flex-col h-full min-h-0">
       <div className="px-4 py-3.5 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold text-brand-950">Actividade diária (equipe)</h3>
         <span className="text-[11px] font-medium text-slate-500 tabular-nums">{chartData.length} dias</span>
       </div>
-      <div className="p-4 flex-1 flex flex-col">
+      <div className="p-4 flex-1 flex flex-col min-h-0">
         {isLoading ? (
           <div className="h-[240px] md:h-[280px] flex items-center justify-center gap-3">
             <div className="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
@@ -62,7 +62,7 @@ export function DailyChart({ data, isLoading }: DailyChartProps) {
             <span className="text-slate-500 text-sm">Sem atividade no período.</span>
           </div>
         ) : (
-          <div className="w-full h-[240px] md:h-[280px] lg:h-[300px]">
+          <div className="w-full h-[240px] md:h-[280px] lg:h-[300px] shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

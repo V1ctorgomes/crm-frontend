@@ -42,10 +42,10 @@ export default function ProdutividadePage() {
             <KpiCards totals={p.data.totals} isLoading={p.isLoading} />
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8 items-stretch">
-              <div className="lg:col-span-3 min-w-0 flex flex-col">
+              <div className="lg:col-span-3 min-w-0 flex flex-col h-full min-h-0">
                 <DailyChart data={p.data.daily} isLoading={p.isLoading} />
               </div>
-              <div className="lg:col-span-2 min-w-0 flex flex-col lg:sticky lg:top-4 self-start">
+              <div className="lg:col-span-2 min-w-0 flex flex-col h-full min-h-0">
                 <FunnelPanel funnel={p.data.funnel} isLoading={p.isLoading} />
               </div>
             </div>
