@@ -48,6 +48,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             selectedProvider={s.selectedProvider}
             setSelectedProvider={s.setSelectedProvider}
             instances={s.instances}
+            instancesHealth={s.instancesHealth}
             isInstancesLoading={s.isInstancesLoading}
             availableProxies={s.availableProxies}
             newInstanceName={s.newInstanceName}

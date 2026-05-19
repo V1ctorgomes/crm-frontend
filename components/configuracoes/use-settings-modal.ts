@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiRequest, apiDelete } from '@/lib/api-client';
-import type { Instance, ProxyNode } from './types';
+import type { Instance, InstanceHealthSnapshot, ProxyNode } from './types';
 
 type SettingsMeUser = {
   id: string;
@@ -40,6 +40,7 @@ export function useSettingsModal() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [instances, setInstances] = useState<Instance[]>([]);
+  const [instancesHealth, setInstancesHealth] = useState<Record<string, InstanceHealthSnapshot>>({});
   const [isInstancesLoading, setIsInstancesLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [availableProxies, setAvailableProxies] = useState<ProxyNode[]>([]);
@@ -64,22 +65,37 @@ export function useSettingsModal() {
     }
   }, []);
 
+  const fetchInstancesHealth = useCallback(async () => {
+    try {
+      const rows = await apiRequest<InstanceHealthSnapshot[]>('/whatsapp/instances-health');
+      const map: Record<string, InstanceHealthSnapshot> = {};
+      for (const row of rows || []) {
+        map[row.instanceName] = row;
+      }
+      setInstancesHealth(map);
+    } catch {
+      setInstancesHealth({});
+    }
+  }, []);
+
   const fetchInstances = useCallback(async (userId?: string) => {
     try {
       const me = await apiRequest<SettingsMeUser | null>('/users/me');
       const resolvedUserId = userId || me?.id;
       if (!resolvedUserId) {
         setInstances([]);
+        setInstancesHealth({});
         return;
       }
       const list = await apiRequest<Instance[]>(`/instances/user/${resolvedUserId}`);
       setInstances(Array.isArray(list) ? list : []);
+      await fetchInstancesHealth();
     } catch {
       /* ignore */
     } finally {
       setIsInstancesLoading(false);
     }
-  }, []);
+  }, [fetchInstancesHealth]);
 
   useEffect(() => {
     const fetchSettingsData = async () => {
@@ -142,6 +158,15 @@ export function useSettingsModal() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newInstanceName.trim()) return;
+      if (!selectedProxyId) {
+        showFeedback('error', 'Selecione uma proxy. É obrigatório para criar uma linha WhatsApp.');
+        return;
+      }
+      const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
+      if (!selectedProxy) {
+        showFeedback('error', 'Proxy inválida. Recarregue a página ou adicione uma em Developer → Proxies.');
+        return;
+      }
       setIsCreatingInstance(true);
 
       try {
@@ -150,25 +175,24 @@ export function useSettingsModal() {
           showFeedback('error', 'Sessão inválida.');
           return;
         }
-        const payload: Record<string, unknown> = { name: newInstanceName, userId: me.id };
-        if (selectedProxyId) {
-          const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
-          if (selectedProxy) {
-            payload.proxyHost = selectedProxy.host;
-            payload.proxyPort = String(selectedProxy.port);
-            payload.proxyUser = selectedProxy.username;
-            payload.proxyPass = selectedProxy.password;
-            payload.proxyProto = selectedProxy.protocol;
-          }
-        }
+        const payload: Record<string, unknown> = {
+          name: newInstanceName,
+          userId: me.id,
+          proxyHost: selectedProxy.host,
+          proxyPort: String(selectedProxy.port),
+          proxyUser: selectedProxy.username,
+          proxyPass: selectedProxy.password,
+          proxyProto: selectedProxy.protocol,
+        };
 
         await apiRequest('/instances', { method: 'POST', body: JSON.stringify(payload) });
         setNewInstanceName('');
         setSelectedProxyId('');
         await fetchInstances();
         showFeedback('success', 'Instância criada com sucesso!');
-      } catch {
-        showFeedback('error', 'Erro de conexão com o servidor.');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro de conexão com o servidor.';
+        showFeedback('error', msg);
       } finally {
         setIsCreatingInstance(false);
       }
@@ -227,6 +251,7 @@ export function useSettingsModal() {
     handlePhotoSelect,
     handleSaveProfile,
     instances,
+    instancesHealth,
     isInstancesLoading,
     selectedProvider,
     setSelectedProvider,

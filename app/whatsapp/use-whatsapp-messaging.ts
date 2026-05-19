@@ -242,8 +242,9 @@ export function useWhatsappMessaging({
           ),
         }));
         scheduleMessageDeliveredUi(setChatHistory, targetNumber, newId);
-      } catch {
-        showFeedback('error', 'Erro de conexão.');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erro de conexão.';
+        showFeedback('error', msg);
         setChatHistory((prev) => ({
           ...prev,
           [targetNumber]: (prev[targetNumber] || []).filter((m) => m.id !== tempId),

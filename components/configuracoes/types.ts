@@ -1,3 +1,18 @@
+export type InstanceHealthLevel = 'ok' | 'warning' | 'critical';
+
+export interface InstanceHealthSnapshot {
+  instanceName: string;
+  level: InstanceHealthLevel;
+  message: string;
+  failuresLastHour: number;
+  successesLastHour: number;
+  disconnectsLastHour: number;
+  failureRatePercent: number;
+  lastFailureAt: string | null;
+  lastDisconnectAt: string | null;
+  lastConnectionState: string | null;
+}
+
 export interface Instance {
   id: string;
   name: string;

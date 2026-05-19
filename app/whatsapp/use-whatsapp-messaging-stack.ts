@@ -7,6 +7,7 @@ import { useWhatsappContactKind } from './use-whatsapp-contact-kind';
 import { useWhatsappDeleteConversation } from './use-whatsapp-delete-conversation';
 import type { WhatsappLayoutState } from './use-whatsapp-layout-state';
 import type { WhatsappRealtimeThread } from './use-whatsapp-realtime-thread';
+import { useWhatsappTypingPresence } from './use-whatsapp-typing-presence';
 
 export function useWhatsappMessagingStack(
   layout: WhatsappLayoutState,
@@ -37,6 +38,14 @@ export function useWhatsappMessagingStack(
     onTooShort: () =>
       layout.showFeedback('error', 'Gravação vazia ou demasiado curta. Tente falar mais perto do microfone.'),
     onPermissionDenied: () => layout.showFeedback('error', 'Acesso ao microfone negado.'),
+  });
+
+  useWhatsappTypingPresence({
+    activeContact: layout.activeContact,
+    selectedInstance: layout.selectedInstance,
+    inputText,
+    isRecording: recorder.isRecording,
+    isSending,
   });
 
   const msgActions = useWhatsappMessageActions({
