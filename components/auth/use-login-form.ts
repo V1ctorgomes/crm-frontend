@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api-client';
 import { ensureWebPushSubscription } from '@/lib/web-push-client';
@@ -24,7 +24,20 @@ export function useLoginForm() {
   const [registerSuccess, setRegisterSuccess] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [publicRegister, setPublicRegister] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    apiRequest<{ publicRegister?: boolean }>('/auth/config')
+      .then((cfg) => setPublicRegister(cfg?.publicRegister !== false))
+      .catch(() => setPublicRegister(false));
+  }, []);
+
+  useEffect(() => {
+    if (!publicRegister && mode === 'register') {
+      setMode('login');
+    }
+  }, [publicRegister, mode]);
 
   const clearMessages = () => {
     setError('');
@@ -143,6 +156,7 @@ export function useLoginForm() {
     handleLogin,
     handleRegister,
     handleForgotPassword,
+    publicRegister,
   } as const;
 }
 

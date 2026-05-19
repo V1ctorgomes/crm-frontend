@@ -26,7 +26,7 @@ interface TicketDetailsModalProps {
  * Modal de detalhes da OS — orquestra a coluna lateral (info/edição) e as três abas
  * (Lembretes/Notas/Anexos). Lógica de cada bloco vive em `./ticket-details/*`.
  */
-export function TicketDetailsModal({
+export function TicketDetailsModal({ 
   ticket,
   initialTab = 'tasks',
   onClose,
@@ -69,7 +69,7 @@ export function TicketDetailsModal({
                 className="w-full flex items-center justify-center gap-2 text-white bg-brand-600 hover:bg-brand-700 py-2.5 rounded-md text-sm font-medium transition-colors"
               >
                 Encerrar Solicitação
-              </button>
+             </button>
             ) : (
               <p className="text-center text-xs text-slate-500">Solicitação encerrada — edição não disponível.</p>
             )}

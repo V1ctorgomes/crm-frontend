@@ -1,3 +1,5 @@
+import { readCsrfToken } from './csrf';
+
 /**
  * Base da API:
  * - Se `NEXT_PUBLIC_API_URL` estiver definido, usa-se (ex.: backend noutro domínio com proxy reverso).
@@ -32,8 +34,13 @@ export async function apiRequest<T = unknown>(
   const isFormData =
     typeof FormData !== 'undefined' && options.body instanceof FormData;
 
+  const method = (options.method || 'GET').toUpperCase();
+  const csrf =
+    method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' ? readCsrfToken() : null;
+
   const headers: HeadersInit = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     ...(options.headers || {}),
   };
 

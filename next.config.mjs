@@ -22,9 +22,14 @@ function securityHeaders() {
   // Ficheiros de mídia no R2 (ou outro HTTPS) — sem isto o <audio> fica 0:00 / bloqueado pela CSP
   mediaSrc.push('https:');
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const scriptSrc = isProd
+    ? "script-src 'self' 'unsafe-inline'"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
@@ -35,7 +40,7 @@ function securityHeaders() {
     "form-action 'self'",
     "object-src 'none'",
   ];
-  if (process.env.NODE_ENV === 'production') {
+  if (isProd) {
     csp.push('upgrade-insecure-requests');
   }
 

@@ -64,14 +64,16 @@ export function LoginFormSignIn({ bag }: { bag: LoginFormBag }) {
         )}
       </button>
 
-      <button
-        type="button"
-        onClick={switchToRegister}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-white text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
-      >
-        <UserPlus className="w-4 h-4" />
-        Pedir acesso (novo usuario)
-      </button>
+      {bag.publicRegister ? (
+        <button
+          type="button"
+          onClick={switchToRegister}
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-white text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+        >
+          <UserPlus className="w-4 h-4" />
+          Pedir acesso (novo usuario)
+        </button>
+      ) : null}
     </form>
   );
 }
