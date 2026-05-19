@@ -9,6 +9,7 @@ import {
   extractTasksDueCalendarToday,
   SOLICITACOES_BOARD_SYNC_EVENT,
 } from '@/lib/solicitacoes-reminders';
+import { validateTicketResolutionReason } from '@/lib/ticket-resolution-validation';
 
 export type ConfirmModalState = {
   title: string;
@@ -146,10 +147,19 @@ export function useSolicitacoesBoard() {
   const handleCloseTicketConfirm = useCallback(
     async (resolution: 'SUCCESS' | 'CANCELLED', reason: string) => {
       if (!activeTicket) return;
+      const checked = validateTicketResolutionReason(resolution, reason);
+      if (!checked.ok) {
+        showFeedback('error', checked.message);
+        return;
+      }
       try {
         await apiRequest(`/tickets/${activeTicket.id}/archive`, {
           method: 'PUT',
-          body: JSON.stringify({ isArchived: true, resolution, resolutionReason: reason }),
+          body: JSON.stringify({
+            isArchived: true,
+            resolution,
+            resolutionReason: checked.trimmed,
+          }),
         });
         setActiveTicket(null);
         setIsCloseModalOpen(false);
