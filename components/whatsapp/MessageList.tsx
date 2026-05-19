@@ -111,7 +111,10 @@ function MessageSendTicks({
 }) {
   if (sendStatus === 'sending') {
     return (
-      <span className="inline-flex items-center gap-0.5 shrink-0" aria-label="A enviar">
+      <span
+        className="inline-flex items-center gap-0.5 shrink-0"
+        aria-label={isMedia ? 'A enviar ficheiro' : 'A digitar no WhatsApp…'}
+      >
         <Loader2 className="h-3.5 w-3.5 animate-spin opacity-95" strokeWidth={2.25} aria-hidden />
         {isMedia && onCancelMedia && (
           <button
