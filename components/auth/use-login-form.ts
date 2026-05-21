@@ -79,7 +79,7 @@ export function useLoginForm() {
         body: JSON.stringify({ email, password }),
       });
       if (data?.name != null && data?.role != null) {
-        const dest = data.role === 'DEVELOPER' ? '/developer' : '/dashboard';
+        const dest = data.role === 'DEVELOPER' ? '/developer' : '/inicio';
         await ensureWebPushSubscription().catch(() => undefined);
         router.replace(dest);
         router.refresh();

@@ -14,7 +14,8 @@ import {
   LineChart,
   LogOut,
   Menu,
-  X
+  X,
+  LayoutGrid,
 } from 'lucide-react';
 import { SettingsModal } from '@/components/configuracoes/SettingsModal';
 import { apiRequest } from '@/lib/api-client';
@@ -26,21 +27,16 @@ import {
 } from '@/lib/whatsapp-notifications';
 import { REMINDERS_BADGE_EVENT, getLastReminderBadgeSnapshot } from '@/lib/solicitacoes-reminders';
 import { setTrustedUserSession, clearTrustedUserSession } from '@/lib/user-session';
+import { filterMenuByRole, type CompanyModuleId } from '@/lib/company-modules';
+import {
+  clearActiveModuleClient,
+  getModuleDefinition,
+  inferModuleFromPath,
+  readActiveModuleClient,
+} from '@/lib/active-module';
 
 // CACHE GLOBAL: Evita que a foto e o nome pisquem ao trocar de página
 let globalUserCache: any = null;
-
-// Lista completa de páginas restaurada com a ordem correta
-const mainMenuItems = [
-  { name: 'Visão Geral', icon: LayoutDashboard, path: '/dashboard' },
-  { name: 'Contatos', icon: Contact, path: '/contacts' },
-  { name: 'Equipe', icon: Users, path: '/usuarios' },
-  { name: 'Produtividade', icon: LineChart, path: '/produtividade' },
-  { name: 'Solicitações', icon: KanbanSquare, path: '/solicitacoes' },
-  { name: 'WhatsApp', icon: MessageCircle, path: '/whatsapp' },
-  { name: 'Arquivos', icon: FolderOpen, path: '/arquivos' },
-  { name: 'Developer', icon: Code, path: '/developer' },
-];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -58,23 +54,28 @@ export default function Sidebar() {
   // Estado inicializado com o cache para ser instantâneo
   const [currentUser, setCurrentUser] = useState<any>(globalUserCache);
 
+  const activeModuleId: CompanyModuleId = useMemo(() => {
+    const stored = readActiveModuleClient();
+    if (stored) return stored;
+    return inferModuleFromPath(pathname ?? '') ?? 'comercial';
+  }, [pathname]);
+
+  const moduleDef = getModuleDefinition(activeModuleId);
+
   const menuItems = useMemo(() => {
     const role = currentUser?.role as string | undefined;
-    if (!role || role === 'USER') {
-      return mainMenuItems.filter(
-        (i) => i.path !== '/usuarios' && i.path !== '/developer' && i.path !== '/produtividade',
-      );
-    }
-    if (role === 'ADMIN') {
-      return mainMenuItems.filter((i) => i.path !== '/developer');
-    }
     if (role === 'DEVELOPER') {
-      return mainMenuItems.filter(
-        (i) => i.path === '/usuarios' || i.path === '/developer' || i.path === '/produtividade',
+      return filterMenuByRole(
+        [
+          { name: 'Equipe', icon: Users, path: '/usuarios' },
+          { name: 'Developer', icon: Code, path: '/developer' },
+          { name: 'Produtividade', icon: LineChart, path: '/produtividade' },
+        ],
+        role,
       );
     }
-    return mainMenuItems;
-  }, [currentUser?.role]);
+    return filterMenuByRole(moduleDef.menuItems, role);
+  }, [currentUser?.role, moduleDef.menuItems]);
 
   const canOpenSettings = currentUser?.role === 'ADMIN' || currentUser?.role === 'USER';
 
@@ -85,6 +86,7 @@ export default function Sidebar() {
     await revokeWebPushSubscription().catch(() => undefined);
     globalUserCache = null;
     clearTrustedUserSession();
+    clearActiveModuleClient();
     localStorage.removeItem('crm_user_cache');
     localStorage.removeItem('lastActiveContact');
     await apiRequest('/auth/logout', { method: 'POST' }).catch(() => undefined);
@@ -223,8 +225,17 @@ export default function Sidebar() {
 
         {/* Navegação Principal */}
         <div className="flex-1 py-6 px-4 flex flex-col gap-1.5 overflow-y-auto no-scrollbar">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
-            Menu Principal
+          <div className="mb-3 px-2">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              {moduleDef.menuSection}
+            </div>
+            <Link
+              href="/inicio"
+              className="mt-1.5 flex items-center gap-2 text-xs font-medium text-brand-600 hover:text-brand-800"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Trocar área
+            </Link>
           </div>
           
           {menuItems.map((item) => {

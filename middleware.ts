@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { isComercialAppPath, isEstoqueAppPath, isModuleScopedAppPath } from '@/lib/company-modules';
+import { isCompanyModuleId, MODULE_COOKIE } from '@/lib/active-module';
 
 async function roleFromToken(token: string): Promise<string | null> {
   const secret = process.env.JWT_SECRET?.trim();
   if (!secret) return null;
   try {
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(secret),
-      { algorithms: ['HS256'] },
-    );
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
     return typeof payload.role === 'string' ? payload.role : null;
   } catch {
     return null;
@@ -37,33 +37,26 @@ async function resolveRole(token: string | undefined): Promise<string> {
   return decodeJwtPayloadUnsafe(token)?.role ?? 'USER';
 }
 
-const CRM_ROUTES_PREFIXES = [
-  '/dashboard',
-  '/contacts',
-  '/solicitacoes',
-  '/whatsapp',
-  '/arquivos',
-  '/configuracoes',
-  '/usuarios',
-  '/developer',
-  '/produtividade',
-];
-
-function isCrmAppPath(pathname: string): boolean {
-  if (pathname === '/') return true;
-  return CRM_ROUTES_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function isDeveloperOnlyPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/developer') ||
+    pathname.startsWith('/usuarios') ||
+    pathname.startsWith('/produtividade')
+  );
 }
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
   const role = await resolveRole(token);
+  const moduleCookie = request.cookies.get(MODULE_COOKIE)?.value;
+  const activeModule = isCompanyModuleId(moduleCookie) ? moduleCookie : null;
 
   if (pathname === '/login' && token) {
     if (role === 'DEVELOPER') {
       return NextResponse.redirect(new URL('/developer', request.url));
     }
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/inicio', request.url));
   }
 
   if (!token && pathname !== '/login') {
@@ -74,29 +67,54 @@ export async function middleware(request: NextRequest) {
     if (role === 'DEVELOPER') {
       return NextResponse.redirect(new URL('/developer', request.url));
     }
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/inicio', request.url));
   }
 
-  if (token && pathname !== '/login' && isCrmAppPath(pathname)) {
+  if (token && pathname === '/inicio' && role === 'DEVELOPER') {
+    return NextResponse.redirect(new URL('/developer', request.url));
+  }
+
+  if (token && pathname !== '/login' && isDeveloperOnlyPath(pathname)) {
     if (role === 'ADMIN' && pathname.startsWith('/developer')) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
-    if (
-      role === 'USER' &&
-      (pathname.startsWith('/developer') ||
-        pathname.startsWith('/usuarios') ||
-        pathname.startsWith('/produtividade'))
-    ) {
+    if (role === 'USER') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     if (role === 'DEVELOPER') {
-      const allowed =
-        pathname.startsWith('/developer') ||
-        pathname.startsWith('/usuarios') ||
-        pathname.startsWith('/produtividade');
-      if (!allowed) {
-        return NextResponse.redirect(new URL('/developer', request.url));
+      return NextResponse.next();
+    }
+  }
+
+  if (token && pathname !== '/login' && pathname !== '/inicio' && isModuleScopedAppPath(pathname)) {
+    if (role === 'DEVELOPER') {
+      return NextResponse.redirect(new URL('/developer', request.url));
+    }
+
+    const inferred = isEstoqueAppPath(pathname)
+      ? 'estoque'
+      : isComercialAppPath(pathname)
+        ? 'comercial'
+        : null;
+
+    if (!activeModule) {
+      if (inferred) {
+        const res = NextResponse.next();
+        res.cookies.set(MODULE_COOKIE, inferred, {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 30,
+          sameSite: 'lax',
+        });
+        return res;
       }
+      return NextResponse.redirect(new URL('/inicio', request.url));
+    }
+
+    if (activeModule === 'comercial' && isEstoqueAppPath(pathname)) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    if (activeModule === 'estoque' && isComercialAppPath(pathname)) {
+      return NextResponse.redirect(new URL('/estoque/dashboard', request.url));
     }
   }
 
