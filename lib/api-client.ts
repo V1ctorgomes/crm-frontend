@@ -44,23 +44,40 @@ export async function apiRequest<T = unknown>(
     ...(options.headers || {}),
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch {
+    throw new Error(
+      'Sem ligação ao servidor (rede ou proxy). Confirme que o backend está a correr (ex.: porta 3001) e recarregue a página após login.',
+    );
+  }
 
   const raw = await response.text();
 
   if (!response.ok) {
-    let errorMessage = 'Erro na requisição';
+    let errorMessage = `Erro na requisição (${response.status})`;
     if (raw) {
       try {
-        const errorData = JSON.parse(raw) as { message?: string };
-        errorMessage = errorData.message || errorMessage;
+        const errorData = JSON.parse(raw) as {
+          message?: string | string[] | Record<string, unknown>;
+          error?: string;
+        };
+        const msg = errorData.message;
+        if (Array.isArray(msg)) {
+          errorMessage = msg.join(' ');
+        } else if (typeof msg === 'string' && msg.trim()) {
+          errorMessage = msg;
+        } else if (typeof errorData.error === 'string' && errorData.error.trim()) {
+          errorMessage = errorData.error;
+        }
       } catch {
         if (process.env.NODE_ENV !== 'production') {
-          errorMessage = raw.slice(0, 200) || errorMessage;
+          errorMessage = raw.slice(0, 300) || errorMessage;
         }
       }
     }
