@@ -143,14 +143,11 @@ export function useUsuariosPage() {
       email: formEmail,
       password: formPassword,
     };
-    if (viewerRole === 'DEVELOPER') {
+    const canAssignRole =
+      viewerRole === 'DEVELOPER' ||
+      (viewerRole === 'ADMIN' && (!editingUser || (viewerId != null && editingUser.id !== viewerId)));
+    if (canAssignRole) {
       body.role = formRole;
-    } else if (viewerRole === 'ADMIN') {
-      if (!editingUser) {
-        body.role = 'USER';
-      } else if (viewerId && editingUser.id !== viewerId) {
-        body.role = 'USER';
-      }
     }
     if (editingUser && !formPassword.trim()) {
       delete body.password;

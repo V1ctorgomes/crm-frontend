@@ -102,6 +102,7 @@ export default function UsuariosPage() {
       {u.isModalOpen && (
         <UserFormModal
           viewerRole={u.viewerRole}
+          viewerId={u.viewerId}
           editingUser={u.editingUser}
           formName={u.formName}
           setFormName={u.setFormName}

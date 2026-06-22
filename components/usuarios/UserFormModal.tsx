@@ -2,8 +2,9 @@ import React from 'react';
 import { User } from './types';
 
 interface UserFormModalProps {
-  /** Quem está a usar o modal: ADMIN só cria/edita atendimento (USER); DEVELOPER pode USER, DEVELOPER ou ADMIN. */
+  /** Quem está a usar o modal: ADMIN pode USER ou DEVELOPER; DEVELOPER pode USER, DEVELOPER ou ADMIN. */
   viewerRole: string;
+  viewerId?: string | null;
   editingUser: User | null;
   formName: string;
   setFormName: (val: string) => void;
@@ -20,8 +21,12 @@ interface UserFormModalProps {
 
 export function UserFormModal({
   viewerRole,
+  viewerId,
   editingUser, formName, setFormName, formEmail, setFormEmail, formRole, setFormRole, formPassword, setFormPassword, isSaving, onClose, onSave
 }: UserFormModalProps) {
+  const showRoleSelect =
+    viewerRole === 'DEVELOPER' ||
+    (viewerRole === 'ADMIN' && (!editingUser || editingUser.id !== viewerId));
   return (
     <div className="fixed inset-0 bg-brand-950/45 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-200" onMouseDown={onClose}>
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col" onMouseDown={e => e.stopPropagation()}>
@@ -51,7 +56,7 @@ export function UserFormModal({
               placeholder="maria@empresa.com"
             />
           </div>
-          {viewerRole === 'DEVELOPER' && (
+          {showRoleSelect && (
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none text-slate-700">Nível de Permissão</label>
               <select 
@@ -60,15 +65,12 @@ export function UserFormModal({
                 onChange={e => setFormRole(e.target.value)}
               >
                 <option value="USER">Usuario (Atendimento)</option>
-                <option value="ADMIN">Administrador (Gestão Total)</option>
+                {viewerRole === 'DEVELOPER' && (
+                  <option value="ADMIN">Administrador (Gestão Total)</option>
+                )}
                 <option value="DEVELOPER">Developer (Acesso Técnico)</option>
               </select>
             </div>
-          )}
-          {viewerRole === 'ADMIN' && (
-            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
-              Novos membros são criados como <strong>atendimento</strong> (Usuario). Apenas developers podem atribuir o perfil técnico.
-            </p>
           )}
           <div className="space-y-2 pt-2">
             <label className="text-sm font-medium leading-none text-slate-700">
