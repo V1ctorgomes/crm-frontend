@@ -49,16 +49,15 @@ export function ConnectionsTab({
                 <input type="text" value={newInstanceName} onChange={e => setNewInstanceName(e.target.value)} required className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proxy (obrigatório)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proxy (opcional)</label>
                 <select
                   value={selectedProxyId}
                   onChange={(e) => setSelectedProxyId(e.target.value)}
-                  required
                   disabled={availableProxies.length === 0}
                   className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="">
-                    {availableProxies.length === 0 ? 'Adicione uma proxy em Developer' : 'Selecione uma proxy'}
+                    {availableProxies.length === 0 ? 'Sem proxies cadastradas' : 'Nenhuma (sem proxy)'}
                   </option>
                   {availableProxies.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -66,15 +65,10 @@ export function ConnectionsTab({
                     </option>
                   ))}
                 </select>
-                {availableProxies.length === 0 && (
-                  <p className="text-xs text-amber-800">
-                    Crie pelo menos uma proxy em Developer → Proxies antes de ligar o WhatsApp.
-                  </p>
-                )}
               </div>
               <button
                 type="submit"
-                disabled={isCreatingInstance || availableProxies.length === 0 || !selectedProxyId}
+                disabled={isCreatingInstance || !newInstanceName.trim()}
                 className="md:col-span-2 bg-brand-600 text-white h-10 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreatingInstance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}

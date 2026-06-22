@@ -158,15 +158,6 @@ export function useSettingsModal() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!newInstanceName.trim()) return;
-      if (!selectedProxyId) {
-        showFeedback('error', 'Selecione uma proxy. É obrigatório para criar uma linha WhatsApp.');
-        return;
-      }
-      const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
-      if (!selectedProxy) {
-        showFeedback('error', 'Proxy inválida. Recarregue a página ou adicione uma em Developer → Proxies.');
-        return;
-      }
       setIsCreatingInstance(true);
 
       try {
@@ -178,12 +169,20 @@ export function useSettingsModal() {
         const payload: Record<string, unknown> = {
           name: newInstanceName,
           userId: me.id,
-          proxyHost: selectedProxy.host,
-          proxyPort: String(selectedProxy.port),
-          proxyUser: selectedProxy.username,
-          proxyPass: selectedProxy.password,
-          proxyProto: selectedProxy.protocol,
         };
+
+        if (selectedProxyId) {
+          const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
+          if (!selectedProxy) {
+            showFeedback('error', 'Proxy inválida. Recarregue a página ou adicione uma em Developer → Proxies.');
+            return;
+          }
+          payload.proxyHost = selectedProxy.host;
+          payload.proxyPort = String(selectedProxy.port);
+          payload.proxyUser = selectedProxy.username;
+          payload.proxyPass = selectedProxy.password;
+          payload.proxyProto = selectedProxy.protocol;
+        }
 
         await apiRequest('/instances', { method: 'POST', body: JSON.stringify(payload) });
         setNewInstanceName('');
