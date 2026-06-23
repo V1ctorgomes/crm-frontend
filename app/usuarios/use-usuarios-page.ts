@@ -288,6 +288,7 @@ export function useUsuariosPage() {
     searchTerm,
     setSearchTerm,
     viewerRole,
+    viewerId,
     toast,
     setToast,
     showFeedback,
