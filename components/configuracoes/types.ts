@@ -1,3 +1,19 @@
+export type SettingsTab = 'perfil' | 'conexoes' | 'notificacoes';
+
+export type SettingsConfirmState = {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: (deleteReason?: string) => void | Promise<void>;
+} | null;
+
+export type SettingsMeUser = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  profilePictureUrl?: string | null;
+};
+
 export type InstanceHealthLevel = 'ok' | 'warning' | 'critical';
 
 export interface InstanceHealthSnapshot {

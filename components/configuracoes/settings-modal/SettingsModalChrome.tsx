@@ -3,7 +3,7 @@
 import React from 'react';
 import { User, Link as LinkIcon, Bell, X } from 'lucide-react';
 import { Toast } from '@/components/ui/toast';
-import type { SettingsTab } from '../use-settings-modal';
+import type { SettingsTab } from '../types';
 
 type SettingsModalChromeProps = {
   onClose: () => void;

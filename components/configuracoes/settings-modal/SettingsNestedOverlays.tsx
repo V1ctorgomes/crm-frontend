@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, QrCode } from 'lucide-react';
-import type { SettingsConfirmState } from '../use-settings-modal';
+import type { SettingsConfirmState } from '../types';
 import { canConfirmDelete, crmUserIsDeveloper } from '@/lib/delete-reason-policy';
 import { DeleteReasonFields } from '@/components/ui/delete-reason-fields';
 
