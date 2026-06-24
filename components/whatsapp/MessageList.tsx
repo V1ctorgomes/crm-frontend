@@ -1,149 +1,23 @@
 import React, { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Check, CheckCheck, Loader2, X } from 'lucide-react';
-import type { Message, MessageSendStatus } from './types';
-import { VoiceNotePlayer } from './VoiceNotePlayer';
+import type { Message } from './types';
 import { MessageContextMenu } from './MessageContextMenu';
 import { canDeleteMessageByTime, canEditMessageByTime } from '@/lib/whatsapp-message-windows';
+import { MessageBubble } from './message-list/MessageBubble';
+import { dayKeyFromSentAt, formatDaySeparatorLabel, scrollListToBottom } from './message-list/message-list-utils';
 
-interface MessageListProps {
-  /** Identifica o contato ativo; ao mudar, a lista deve ir ao fim. */
+export interface MessageListProps {
   conversationKey: string;
   filteredMessages: Message[];
   chatSearchTerm: string;
   setViewerMessage: (msg: Message) => void;
-  /** Contentor com scroll (mensagens). */
   listScrollRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onMessageDelete?: (msg: Message) => void;
   onMessageEditRequest?: (msg: Message) => void;
-  /** Paginação de histórico (estilo WhatsApp): há mensagens mais antigas fora do ecrã. */
   hasMoreOlder?: boolean;
   isLoadingOlder?: boolean;
   onLoadOlder?: () => void | Promise<void>;
-  /** Cancelar upload de ficheiro/áudio em curso (mensagem otimista com `sendStatus: 'sending'`). */
   onCancelMediaSend?: (messageId: string | number) => void;
-}
-
-function scrollListToBottom(el: HTMLElement | null) {
-  if (!el) return;
-  el.scrollTop = el.scrollHeight;
-}
-
-function startOfLocalDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function dayKeyFromSentAt(sentAt?: string): string {
-  const d = sentAt ? new Date(sentAt) : new Date();
-  const s = startOfLocalDay(d);
-  return `${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`;
-}
-
-function formatDaySeparatorLabel(sentAt?: string): string {
-  const msgDay = startOfLocalDay(sentAt ? new Date(sentAt) : new Date());
-  const today = startOfLocalDay(new Date());
-  const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
-  if (diffDays === 0) return 'Hoje';
-  if (diffDays === 1) return 'Ontem';
-  const d = sentAt ? new Date(sentAt) : new Date();
-  return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function escapeRegExp(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Texto com quebras de linha; linhas que são URL tornam-se links. Destaque de pesquisa opcional. */
-function RichMessageText({
-  text,
-  chatSearchTerm,
-  invert,
-}: {
-  text: string;
-  chatSearchTerm: string;
-  invert: boolean;
-}) {
-  if (!text.trim()) return null;
-  const linkCls = invert
-    ? 'text-white underline font-medium break-all decoration-white/80'
-    : 'text-brand-700 underline font-medium break-all';
-  const lines = text.split('\n');
-  return (
-    <span className="text-[14px] leading-relaxed whitespace-pre-wrap">
-      {lines.map((line, li) => (
-        <Fragment key={li}>
-          {li > 0 ? <br /> : null}
-          {/^https?:\/\//i.test(line.trim()) ? (
-            <a href={line.trim()} target="_blank" rel="noopener noreferrer" className={linkCls}>
-              {line.trim()}
-            </a>
-          ) : chatSearchTerm.trim() ? (
-            line.split(new RegExp(`(${escapeRegExp(chatSearchTerm)})`, 'gi')).map((part, i) =>
-              part.toLowerCase() === chatSearchTerm.toLowerCase() ? (
-                <mark key={i} className="bg-highlight text-brand-950 px-0.5 rounded">
-                  {part}
-                </mark>
-              ) : (
-                part
-              ),
-            )
-          ) : (
-            line
-          )}
-        </Fragment>
-      ))}
-    </span>
-  );
-}
-
-function MessageSendTicks({
-  sendStatus,
-  isMedia,
-  messageId,
-  invert,
-  onCancelMedia,
-}: {
-  sendStatus: MessageSendStatus;
-  isMedia: boolean;
-  messageId: string | number;
-  invert: boolean;
-  onCancelMedia?: (messageId: string | number) => void;
-}) {
-  if (sendStatus === 'sending') {
-    return (
-      <span
-        className="inline-flex items-center gap-0.5 shrink-0"
-        aria-label={isMedia ? 'A enviar ficheiro' : 'A enviar'}
-      >
-        <Loader2 className="h-3.5 w-3.5 animate-spin opacity-95" strokeWidth={2.25} aria-hidden />
-        {isMedia && onCancelMedia && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancelMedia(messageId);
-            }}
-            className={`rounded-full p-0.5 outline-none transition-colors ${invert ? 'hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/60' : 'hover:bg-slate-200/80 focus-visible:ring-2 focus-visible:ring-slate-400'}`}
-            aria-label="Cancelar envio"
-          >
-            <X className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-          </button>
-        )}
-      </span>
-    );
-  }
-  if (sendStatus === 'sent') {
-    return (
-      <span title="Enviada" className="inline-flex shrink-0">
-        <Check className="h-3.5 w-3.5 opacity-95" strokeWidth={2.25} aria-hidden />
-      </span>
-    );
-  }
-  return (
-    <span title="Entregue" className="inline-flex shrink-0">
-      <CheckCheck className="h-3.5 w-3.5 opacity-95" strokeWidth={2.25} aria-hidden />
-    </span>
-  );
 }
 
 export function MessageList({
@@ -165,7 +39,6 @@ export function MessageList({
 
   const len = filteredMessages.length;
   const tailId = len ? String(filteredMessages[len - 1]!.id) : '';
-  /** Só reencosta ao fim quando muda conversa, pesquisa ou a última mensagem visível — não ao carregar histórico acima. */
   const bottomScrollKey = `${conversationKey}|${chatSearchTerm}|${tailId}`;
 
   useLayoutEffect(() => {
@@ -208,6 +81,16 @@ export function MessageList({
     };
   }, [hasMoreOlder, isLoadingOlder, onLoadOlder, listScrollRef, conversationKey]);
 
+  const handleContextMenu = (e: React.MouseEvent, msg: Message) => {
+    if (!msg.fromMe || typeof msg.id === 'number') return;
+    const canEditText = !msg.isMedia && msg.messageKind !== 'reaction' && !!(msg.text && msg.text.trim());
+    const wantsEdit = canEditText && !!onMessageEditRequest && canEditMessageByTime(msg.sentAt);
+    const wantsDelete = !!onMessageDelete && canDeleteMessageByTime(msg.sentAt);
+    if (!wantsEdit && !wantsDelete) return;
+    e.preventDefault();
+    setCtx({ x: e.clientX, y: e.clientY, msg });
+  };
+
   return (
     <div
       ref={listScrollRef}
@@ -230,12 +113,6 @@ export function MessageList({
       {filteredMessages.map((msg, idx) => {
         const prev = idx > 0 ? filteredMessages[idx - 1] : null;
         const showDayDivider = !prev || dayKeyFromSentAt(prev.sentAt) !== dayKeyFromSentAt(msg.sentAt);
-        const isStickerUi =
-          msg.messageKind === 'sticker' &&
-          Boolean(msg.mediaData) &&
-          Boolean(msg.mimeType?.startsWith('image/'));
-        const isFilePreview = msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/') && !isStickerUi;
-        const isReactionBubble = msg.messageKind === 'reaction';
 
         return (
           <Fragment key={String(msg.id)}>
@@ -246,102 +123,13 @@ export function MessageList({
                 </span>
               </div>
             )}
-            <div
-              className={`${isFilePreview ? 'max-w-[min(85%,304px)]' : isStickerUi ? 'max-w-[min(92%,280px)]' : 'max-w-[85%] md:max-w-[70%]'} w-fit min-w-0 relative px-3 py-2 rounded-xl flex flex-col break-words shadow-sm ${isReactionBubble ? 'border border-dashed' : ''} ${msg.fromMe ? 'self-end bg-brand-600 text-white rounded-tr-sm border-brand-400/50' : 'self-start bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}
-              onContextMenu={(e) => {
-                if (!msg.fromMe || typeof msg.id === 'number') return;
-                const canEditText =
-                  !msg.isMedia &&
-                  msg.messageKind !== 'reaction' &&
-                  !!(msg.text && msg.text.trim());
-                const wantsEdit =
-                  canEditText && !!onMessageEditRequest && canEditMessageByTime(msg.sentAt);
-                const wantsDelete = !!onMessageDelete && canDeleteMessageByTime(msg.sentAt);
-                if (!wantsEdit && !wantsDelete) return;
-                e.preventDefault();
-                setCtx({ x: e.clientX, y: e.clientY, msg });
-              }}
-            >
-              {!msg.fromMe && msg.groupSenderLabel ? (
-                <p className="text-[11px] font-semibold text-brand-700 leading-tight mb-1">{msg.groupSenderLabel}</p>
-              ) : null}
-              {isStickerUi && msg.mediaData ? (
-                <div className="mb-1.5 overflow-hidden rounded-lg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={msg.mediaData}
-                    alt="Figurinha"
-                    className="max-h-[220px] max-w-full w-auto object-contain"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
-              {msg.isMedia && msg.mediaData && !isStickerUi && (
-                msg.mimeType?.startsWith('audio/') ? (
-                  // Largura fixa: o elemento <audio> não tem tamanho intrínseco e colapsa
-                  // dentro de balões `w-fit`, mostrando apenas o menu (⋮). Fixar o container resolve.
-                  <div className="mb-1 w-[260px] max-w-full sm:w-[300px]">
-                    <VoiceNotePlayer
-                      src={msg.mediaData}
-                      mimeType={msg.mimeType}
-                      invertControls={msg.fromMe}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className={`mb-1.5 w-fit max-w-full min-w-0 overflow-hidden rounded-lg border p-2 ${msg.fromMe ? 'border-brand-400 bg-brand-500/90' : 'border-slate-200 bg-slate-50'}`}
-                  >
-                    <div className="flex min-w-0 items-start gap-2">
-                      <div
-                        className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${msg.fromMe ? 'bg-brand-400/50' : 'border border-slate-200 bg-white'}`}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                          />
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold leading-snug">{msg.fileName || 'Ficheiro'}</p>
-                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                          <span className={`font-mono text-[10px] uppercase ${msg.fromMe ? 'text-white/90' : 'text-slate-500'}`}>
-                            {msg.mimeType?.split('/')[1] || 'ficheiro'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setViewerMessage(msg)}
-                            className={`shrink-0 rounded px-2.5 py-1 text-[10px] font-semibold transition-colors ${msg.fromMe ? 'bg-white/95 text-brand-700 hover:bg-white' : 'border border-slate-300 bg-white text-brand-700 hover:bg-brand-50'}`}
-                          >
-                            Abrir
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-
-              {msg.text && msg.text.trim() !== '' && (
-                <RichMessageText text={msg.text} chatSearchTerm={chatSearchTerm} invert={msg.fromMe} />
-              )}
-
-              <div
-                className={`mt-1 flex items-center justify-end gap-1 self-stretch text-[10px] ${msg.fromMe ? 'text-white/85' : 'text-slate-400'}`}
-              >
-                <span>{msg.time}</span>
-                {msg.fromMe && (
-                  <MessageSendTicks
-                    sendStatus={msg.sendStatus ?? 'delivered'}
-                    isMedia={Boolean(msg.isMedia)}
-                    messageId={msg.id}
-                    invert={msg.fromMe}
-                    onCancelMedia={onCancelMediaSend}
-                  />
-                )}
-              </div>
-            </div>
+            <MessageBubble
+              msg={msg}
+              chatSearchTerm={chatSearchTerm}
+              setViewerMessage={setViewerMessage}
+              onCancelMediaSend={onCancelMediaSend}
+              onContextMenu={handleContextMenu}
+            />
           </Fragment>
         );
       })}

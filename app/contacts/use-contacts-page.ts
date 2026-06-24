@@ -4,10 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Contact } from '@/components/contacts/ContactsTable';
 import type { ContactsListSection } from '@/components/contacts/ContactsSectionTabs';
 import { apiRequest, apiDelete } from '@/lib/api-client';
-import { isWhatsAppGroupJid, normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
+import { normalizeContactKind, type ContactKind } from '@/lib/contact-kind';
 import type { Company } from '@/lib/companies';
-
-const PAGE_SIZE = 8;
+import {
+  CONTACTS_PAGE_SIZE,
+  computeKindCounts,
+  filterCompaniesBySearch,
+  filterContactsBySearch,
+  filterContactsInSection,
+  paginateRows,
+  resolveLinkedCompaniesForEditing,
+} from './contacts-page-derivations';
+import { useContactsCompanies } from './use-contacts-companies';
 
 export function useContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -15,7 +23,6 @@ export function useContactsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Edição de contato
   const [isEditing, setIsEditing] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [editName, setEditName] = useState('');
@@ -25,21 +32,10 @@ export function useContactsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
-  // Paginação e secção
   const [tablePage, setTablePage] = useState(0);
   const [listSection, setListSection] = useState<ContactsListSection>('unknown');
-
-  // Empresas
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
-  const [isCompanyFormOpen, setIsCompanyFormOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [companyFormSaving, setCompanyFormSaving] = useState(false);
-  const [companyDetails, setCompanyDetails] = useState<Company | null>(null);
-  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
-  const [companyFormDefaultCnpj, setCompanyFormDefaultCnpj] = useState<string | undefined>(undefined);
-  const [companyFormDefaultLegalName, setCompanyFormDefaultLegalName] = useState<string | undefined>(undefined);
-  const [linkBusy, setLinkBusy] = useState(false);
 
   const showFeedback = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -74,6 +70,15 @@ export function useContactsPage() {
       setCompaniesLoading(false);
     }
   }, [showFeedback]);
+
+  const companiesApi = useContactsCompanies({
+    showFeedback,
+    fetchCompanies,
+    fetchContacts,
+    editingContact,
+    setEditingContact,
+    companies,
+  });
 
   useEffect(() => {
     void fetchContacts();
@@ -118,224 +123,61 @@ export function useContactsPage() {
     }
   }, [editingContact, editName, editEmail, editCnpj, editContactKind, showFeedback]);
 
-  const handleDeleteContact = useCallback(async (deleteReason?: string) => {
-    if (!contactToDelete) return;
-    try {
-      await apiDelete(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, deleteReason);
-      setContacts((prev) => prev.filter((c) => c.number !== contactToDelete.number));
-      setContactToDelete(null);
-      showFeedback('success', 'Contato removido da base de dados.');
-    } catch {
-      showFeedback('error', 'Erro de ligação ao servidor.');
-      setContactToDelete(null);
-    }
-  }, [contactToDelete, showFeedback]);
-
-  // -------- Empresas --------
-  const openCreateCompanyModal = useCallback((initialLegalName?: string, initialCnpj?: string) => {
-    setEditingCompany(null);
-    setCompanyFormDefaultCnpj(initialCnpj);
-    setCompanyFormDefaultLegalName(initialLegalName);
-    setIsCompanyFormOpen(true);
-  }, []);
-
-  const openEditCompanyModal = useCallback((c: Company) => {
-    setEditingCompany(c);
-    setCompanyFormDefaultCnpj(undefined);
-    setCompanyFormDefaultLegalName(undefined);
-    setIsCompanyFormOpen(true);
-  }, []);
-
-  const closeCompanyForm = useCallback(() => {
-    setIsCompanyFormOpen(false);
-    setEditingCompany(null);
-  }, []);
-
-  const handleSubmitCompany = useCallback(
-    async (data: { legalName: string; tradeName: string | null; cnpj: string }) => {
-      setCompanyFormSaving(true);
+  const handleDeleteContact = useCallback(
+    async (deleteReason?: string) => {
+      if (!contactToDelete) return;
       try {
-        if (editingCompany) {
-          await apiRequest(`/companies/${editingCompany.id}`, { method: 'PUT', body: JSON.stringify(data) });
-          showFeedback('success', 'Empresa actualizada.');
-        } else {
-          const created = await apiRequest<Company>('/companies', { method: 'POST', body: JSON.stringify(data) });
-          // Se vimos pela busca dentro do modal do contacto, vincular imediatamente.
-          if (editingContact && created?.id) {
-            try {
-              await apiRequest(
-                `/companies/${created.id}/contacts/${encodeURIComponent(editingContact.number)}`,
-                { method: 'POST' },
-              );
-            } catch {
-              // ignora — utilizador pode vincular depois
-            }
-          }
-          showFeedback('success', 'Empresa cadastrada.');
-        }
-        await Promise.all([fetchCompanies(), fetchContacts()]);
-        closeCompanyForm();
-      } catch (err) {
-        showFeedback('error', err instanceof Error ? err.message : 'Erro ao guardar empresa.');
-      } finally {
-        setCompanyFormSaving(false);
+        await apiDelete(`/whatsapp/contacts/${encodeURIComponent(contactToDelete.number)}`, deleteReason);
+        setContacts((prev) => prev.filter((c) => c.number !== contactToDelete.number));
+        setContactToDelete(null);
+        showFeedback('success', 'Contato removido da base de dados.');
+      } catch {
+        showFeedback('error', 'Erro de ligação ao servidor.');
+        setContactToDelete(null);
       }
     },
-    [editingCompany, editingContact, fetchCompanies, fetchContacts, showFeedback, closeCompanyForm],
+    [contactToDelete, showFeedback],
   );
 
-  const handleDeleteCompany = useCallback(async (deleteReason?: string) => {
-    if (!companyToDelete) return;
-    try {
-      await apiDelete(`/companies/${companyToDelete.id}`, deleteReason);
-      setCompanyToDelete(null);
-      await Promise.all([fetchCompanies(), fetchContacts()]);
-      showFeedback('success', 'Empresa removida.');
-    } catch (err) {
-      showFeedback('error', err instanceof Error ? err.message : 'Erro ao remover empresa.');
-    }
-  }, [companyToDelete, fetchCompanies, fetchContacts, showFeedback]);
-
-  const linkCompanyToContact = useCallback(
-    async (companyId: string) => {
-      if (!editingContact) return;
-      setLinkBusy(true);
-      try {
-        await apiRequest(
-          `/companies/${companyId}/contacts/${encodeURIComponent(editingContact.number)}`,
-          { method: 'POST' },
-        );
-        await Promise.all([fetchContacts(), fetchCompanies()]);
-        // Atualizar referência interna do contacto em edição
-        setEditingContact((prev) => {
-          if (!prev) return prev;
-          const co = companies.find((x) => x.id === companyId);
-          if (!co) return prev;
-          const existing = prev.companies || [];
-          if (existing.some((x) => x.id === companyId)) return prev;
-          return { ...prev, companies: [...existing, co] };
-        });
-        showFeedback('success', 'Empresa vinculada ao contato.');
-      } catch (err) {
-        showFeedback('error', err instanceof Error ? err.message : 'Erro ao vincular empresa.');
-      } finally {
-        setLinkBusy(false);
-      }
-    },
-    [editingContact, fetchContacts, fetchCompanies, companies, showFeedback],
-  );
-
-  const unlinkCompanyFromContact = useCallback(
-    async (companyId: string, deleteReason?: string) => {
-      if (!editingContact) return;
-      setLinkBusy(true);
-      try {
-        await apiDelete(
-          `/companies/${companyId}/contacts/${encodeURIComponent(editingContact.number)}`,
-          deleteReason,
-        );
-        await Promise.all([fetchContacts(), fetchCompanies()]);
-        setEditingContact((prev) => {
-          if (!prev) return prev;
-          const existing = prev.companies || [];
-          return { ...prev, companies: existing.filter((c) => c.id !== companyId) };
-        });
-        showFeedback('success', 'Empresa desvinculada.');
-      } catch (err) {
-        showFeedback('error', err instanceof Error ? err.message : 'Erro ao desvincular empresa.');
-      } finally {
-        setLinkBusy(false);
-      }
-    },
-    [editingContact, fetchContacts, fetchCompanies, showFeedback],
-  );
-
-  // -------- Derivações --------
-  const kindCounts = useMemo(() => {
-    let customer = 0;
-    let internal = 0;
-    let unknown = 0;
-    let groups = 0;
-    for (const c of contacts) {
-      if (isWhatsAppGroupJid(c.number)) {
-        groups += 1;
-        continue;
-      }
-      const k = normalizeContactKind(c.contactKind);
-      if (k === 'CUSTOMER') customer += 1;
-      else if (k === 'INTERNAL') internal += 1;
-      else unknown += 1;
-    }
-    return { customer, internal, unknown, groups };
-  }, [contacts]);
-
-  const contactsInSection = useMemo(() => {
-    if (listSection === 'companies') return [] as Contact[];
-    if (listSection === 'groups') {
-      return contacts.filter((c) => isWhatsAppGroupJid(c.number));
-    }
-    const want: ContactKind =
-      listSection === 'customer' ? 'CUSTOMER' : listSection === 'internal' ? 'INTERNAL' : 'UNKNOWN';
-    return contacts.filter(
-      (c) => !isWhatsAppGroupJid(c.number) && normalizeContactKind(c.contactKind) === want,
-    );
-  }, [contacts, listSection]);
-
+  const kindCounts = useMemo(() => computeKindCounts(contacts), [contacts]);
+  const contactsInSection = useMemo(() => filterContactsInSection(contacts, listSection), [contacts, listSection]);
   const filteredContacts = useMemo(
-    () =>
-      contactsInSection.filter(
-        (c) =>
-          (c.name && c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          c.number.includes(searchTerm) ||
-          (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())),
-      ),
+    () => filterContactsBySearch(contactsInSection, searchTerm),
     [contactsInSection, searchTerm],
   );
-
-  const filteredCompanies = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return companies;
-    return companies.filter(
-      (c) =>
-        c.legalName.toLowerCase().includes(term) ||
-        (c.tradeName || '').toLowerCase().includes(term) ||
-        c.cnpj.replace(/\D/g, '').includes(term.replace(/\D/g, '')),
-    );
-  }, [companies, searchTerm]);
+  const filteredCompanies = useMemo(
+    () => filterCompaniesBySearch(companies, searchTerm),
+    [companies, searchTerm],
+  );
 
   useEffect(() => {
     setTablePage(0);
   }, [searchTerm, listSection]);
 
-  const totalRows =
-    listSection === 'companies' ? filteredCompanies.length : filteredContacts.length;
+  const totalRows = listSection === 'companies' ? filteredCompanies.length : filteredContacts.length;
 
   useEffect(() => {
     setTablePage((p) => {
-      const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+      const totalPages = Math.max(1, Math.ceil(totalRows / CONTACTS_PAGE_SIZE));
       return Math.min(p, totalPages - 1);
     });
   }, [totalRows]);
 
-  const paginatedContacts = useMemo(() => {
-    const start = tablePage * PAGE_SIZE;
-    return filteredContacts.slice(start, start + PAGE_SIZE);
-  }, [filteredContacts, tablePage]);
-
-  const paginatedCompanies = useMemo(() => {
-    const start = tablePage * PAGE_SIZE;
-    return filteredCompanies.slice(start, start + PAGE_SIZE);
-  }, [filteredCompanies, tablePage]);
-
-  const linkedCompaniesForEditing = useMemo<Company[]>(() => {
-    if (!editingContact) return [];
-    const fromContact = editingContact.companies || [];
-    // garantir tipos completos com cnpj/legalName atualizados do directório
-    return fromContact.map((c) => companies.find((x) => x.id === c.id) || c);
-  }, [editingContact, companies]);
+  const paginatedContacts = useMemo(
+    () => paginateRows(filteredContacts, tablePage, CONTACTS_PAGE_SIZE),
+    [filteredContacts, tablePage],
+  );
+  const paginatedCompanies = useMemo(
+    () => paginateRows(filteredCompanies, tablePage, CONTACTS_PAGE_SIZE),
+    [filteredCompanies, tablePage],
+  );
+  const linkedCompaniesForEditing = useMemo(
+    () => resolveLinkedCompaniesForEditing(editingContact, companies),
+    [editingContact, companies],
+  );
 
   return {
-    PAGE_SIZE,
+    PAGE_SIZE: CONTACTS_PAGE_SIZE,
     contacts,
     searchTerm,
     setSearchTerm,
@@ -367,34 +209,30 @@ export function useContactsPage() {
     handleDeleteContact,
     filteredContacts,
     paginatedContacts,
-
-    // Empresas
     companies,
     filteredCompanies,
     paginatedCompanies,
     companiesLoading,
-    openCreateCompanyModal,
-    openEditCompanyModal,
-    closeCompanyForm,
-    isCompanyFormOpen,
-    editingCompany,
-    companyFormSaving,
-    handleSubmitCompany,
-    companyDetails,
-    setCompanyDetails,
-    companyToDelete,
-    setCompanyToDelete,
-    handleDeleteCompany,
-    companyFormDefaultCnpj,
-    companyFormDefaultLegalName,
+    openCreateCompanyModal: companiesApi.openCreateCompanyModal,
+    openEditCompanyModal: companiesApi.openEditCompanyModal,
+    closeCompanyForm: companiesApi.closeCompanyForm,
+    isCompanyFormOpen: companiesApi.isCompanyFormOpen,
+    editingCompany: companiesApi.editingCompany,
+    companyFormSaving: companiesApi.companyFormSaving,
+    handleSubmitCompany: companiesApi.handleSubmitCompany,
+    companyDetails: companiesApi.companyDetails,
+    setCompanyDetails: companiesApi.setCompanyDetails,
+    companyToDelete: companiesApi.companyToDelete,
+    setCompanyToDelete: companiesApi.setCompanyToDelete,
+    handleDeleteCompany: companiesApi.handleDeleteCompany,
+    companyFormDefaultCnpj: companiesApi.companyFormDefaultCnpj,
+    companyFormDefaultLegalName: companiesApi.companyFormDefaultLegalName,
     fetchCompanies,
     fetchContacts,
-
-    // Vínculos no modal de contacto
     linkedCompaniesForEditing,
-    linkCompanyToContact,
-    unlinkCompanyFromContact,
-    linkBusy,
+    linkCompanyToContact: companiesApi.linkCompanyToContact,
+    unlinkCompanyFromContact: companiesApi.unlinkCompanyFromContact,
+    linkBusy: companiesApi.linkBusy,
   };
 }
 
