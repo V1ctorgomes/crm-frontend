@@ -17,24 +17,9 @@ async function roleFromToken(token: string): Promise<string | null> {
   }
 }
 
-function decodeJwtPayloadUnsafe(token: string): { role?: string } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = b64.length % 4;
-    if (pad) b64 += '='.repeat(4 - pad);
-    return JSON.parse(atob(b64)) as { role?: string };
-  } catch {
-    return null;
-  }
-}
-
-async function resolveRole(token: string | undefined): Promise<string> {
-  if (!token) return 'USER';
-  const verified = await roleFromToken(token);
-  if (verified) return verified;
-  return decodeJwtPayloadUnsafe(token)?.role ?? 'USER';
+function clearSessionCookie(res: NextResponse): void {
+  res.cookies.set('token', '', { path: '/', maxAge: 0 });
+  res.cookies.set('crm_csrf', '', { path: '/', maxAge: 0 });
 }
 
 function isDeveloperOnlyPath(pathname: string): boolean {
@@ -48,11 +33,17 @@ function isDeveloperOnlyPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
-  const role = await resolveRole(token);
+  const role = token ? await roleFromToken(token) : null;
   const moduleCookie = request.cookies.get(MODULE_COOKIE)?.value;
   const activeModule = isCompanyModuleId(moduleCookie) ? moduleCookie : null;
 
-  if (pathname === '/login' && token) {
+  if (token && !role && pathname !== '/login') {
+    const res = NextResponse.redirect(new URL('/login', request.url));
+    clearSessionCookie(res);
+    return res;
+  }
+
+  if (pathname === '/login' && token && role) {
     if (role === 'DEVELOPER') {
       return NextResponse.redirect(new URL('/developer', request.url));
     }
@@ -63,18 +54,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (token && pathname === '/') {
+  if (token && role && pathname === '/') {
     if (role === 'DEVELOPER') {
       return NextResponse.redirect(new URL('/developer', request.url));
     }
     return NextResponse.redirect(new URL('/inicio', request.url));
   }
 
-  if (token && pathname === '/inicio' && role === 'DEVELOPER') {
+  if (token && role && pathname === '/inicio' && role === 'DEVELOPER') {
     return NextResponse.redirect(new URL('/developer', request.url));
   }
 
-  if (token && pathname !== '/login' && isDeveloperOnlyPath(pathname)) {
+  if (token && role && pathname !== '/login' && isDeveloperOnlyPath(pathname)) {
     if (role === 'ADMIN' && pathname.startsWith('/developer')) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -86,7 +77,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (token && pathname !== '/login' && pathname !== '/inicio' && isModuleScopedAppPath(pathname)) {
+  if (token && role && pathname !== '/login' && pathname !== '/inicio' && isModuleScopedAppPath(pathname)) {
     if (role === 'DEVELOPER') {
       return NextResponse.redirect(new URL('/developer', request.url));
     }

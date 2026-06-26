@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { apiRequest, apiDelete } from '@/lib/api-client';
+import { toProxiedStorageUrl } from '@/lib/proxied-storage-url';
 import type { Ticket } from '../types';
 import { formatFileSize } from './format-size';
 
@@ -159,7 +160,7 @@ export function TicketFilesTab({ ticket, onTicketUpdated, showFeedback, setConfi
                 <div className="text-[11px] text-slate-500 mt-0.5 mb-1">{formatFileSize(file.size)}</div>
               </div>
               <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600">
+                <a href={toProxiedStorageUrl(file.fileUrl) || file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                     <path
                       strokeLinecap="round"

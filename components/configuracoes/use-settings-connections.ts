@@ -78,22 +78,14 @@ export function useSettingsConnections(
           showFeedback('error', 'Sessão inválida.');
           return;
         }
-        const payload: Record<string, unknown> = {
-          name: newInstanceName,
-          userId: me.id,
-        };
-
+        const payload: Record<string, unknown> = { name: newInstanceName };
         if (selectedProxyId) {
-          const selectedProxy = availableProxies.find((p) => p.id === selectedProxyId);
-          if (!selectedProxy) {
+          const exists = availableProxies.some((p) => p.id === selectedProxyId);
+          if (!exists) {
             showFeedback('error', 'Proxy inválida. Recarregue a página ou adicione uma em Developer → Proxies.');
             return;
           }
-          payload.proxyHost = selectedProxy.host;
-          payload.proxyPort = String(selectedProxy.port);
-          payload.proxyUser = selectedProxy.username;
-          payload.proxyPass = selectedProxy.password;
-          payload.proxyProto = selectedProxy.protocol;
+          payload.proxyId = selectedProxyId;
         }
 
         await apiRequest('/instances', { method: 'POST', body: JSON.stringify(payload) });

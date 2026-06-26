@@ -2,6 +2,7 @@
 
 import { LogOut } from 'lucide-react';
 import type { SidebarUser } from './sidebar-user-cache';
+import { proxiedMediaUrlOrEmpty } from '@/lib/proxied-storage-url';
 
 function roleLabel(role?: string) {
   if (role === 'ADMIN') return 'Administrador';
@@ -30,7 +31,7 @@ export function SidebarUserProfile({ user, canOpenSettings, onOpenSettings, onLo
           <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-brand-600 font-bold shrink-0 relative shadow-sm">
             {user?.profilePictureUrl ? (
               <img
-                src={user.profilePictureUrl}
+                src={proxiedMediaUrlOrEmpty(user.profilePictureUrl)}
                 alt="Foto de perfil"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

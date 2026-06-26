@@ -1,11 +1,11 @@
 import React from 'react';
 import type { Message } from '../types';
 import { VoiceNotePlayer } from '../VoiceNotePlayer';
-import { safeMediaUrlOrEmpty } from '@/lib/safe-media-url';
+import { proxiedMediaUrlOrEmpty } from '@/lib/proxied-storage-url';
 
 /** Pré-visualização de mídia recebida/enviada (imagem, vídeo, áudio, PDF). */
 export const MediaViewerModal = ({ viewerMessage, onClose }: { viewerMessage: Message; onClose: () => void }) => {
-  const mediaUrl = safeMediaUrlOrEmpty(viewerMessage.mediaData);
+  const mediaUrl = proxiedMediaUrlOrEmpty(viewerMessage.mediaData);
 
   return (
     <div

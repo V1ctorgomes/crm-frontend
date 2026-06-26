@@ -2,6 +2,7 @@ import type { Message } from '../types';
 import { VoiceNotePlayer } from '../VoiceNotePlayer';
 import { RichMessageText } from './RichMessageText';
 import { MessageSendTicks } from './MessageSendTicks';
+import { proxiedMediaUrlOrEmpty } from '@/lib/proxied-storage-url';
 
 interface MessageBubbleProps {
   msg: Message;
@@ -22,6 +23,7 @@ export function MessageBubble({
     msg.messageKind === 'sticker' && Boolean(msg.mediaData) && Boolean(msg.mimeType?.startsWith('image/'));
   const isFilePreview = msg.isMedia && msg.mediaData && !msg.mimeType?.startsWith('audio/') && !isStickerUi;
   const isReactionBubble = msg.messageKind === 'reaction';
+  const mediaSrc = proxiedMediaUrlOrEmpty(msg.mediaData);
 
   return (
     <div
@@ -31,21 +33,21 @@ export function MessageBubble({
       {!msg.fromMe && msg.groupSenderLabel ? (
         <p className="text-[11px] font-semibold text-brand-700 leading-tight mb-1">{msg.groupSenderLabel}</p>
       ) : null}
-      {isStickerUi && msg.mediaData ? (
+      {isStickerUi && mediaSrc ? (
         <div className="mb-1.5 overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={msg.mediaData}
+            src={mediaSrc}
             alt="Figurinha"
             className="max-h-[220px] max-w-full w-auto object-contain"
             loading="lazy"
           />
         </div>
       ) : null}
-      {msg.isMedia && msg.mediaData && !isStickerUi &&
+      {msg.isMedia && mediaSrc && !isStickerUi &&
         (msg.mimeType?.startsWith('audio/') ? (
           <div className="mb-1 w-[260px] max-w-full sm:w-[300px]">
-            <VoiceNotePlayer src={msg.mediaData} mimeType={msg.mimeType} invertControls={msg.fromMe} />
+            <VoiceNotePlayer src={mediaSrc} mimeType={msg.mimeType} invertControls={msg.fromMe} />
           </div>
         ) : (
           <div

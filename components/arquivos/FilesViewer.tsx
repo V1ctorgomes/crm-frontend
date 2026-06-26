@@ -1,6 +1,7 @@
 import React from 'react';
 import { File, UploadCloud, FileBox, Image as ImageIcon, FileText, ExternalLink, Trash2, Loader2 } from 'lucide-react';
 import { TicketFolder } from './types';
+import { toProxiedStorageUrl } from '@/lib/proxied-storage-url';
 
 interface FilesViewerProps {
   selectedTicket: TicketFolder;
@@ -94,7 +95,7 @@ export function FilesViewer({
                 </div>
 
                 <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white pl-1 rounded-md">
-                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors" title="Abrir/Descarregar"><ExternalLink className="w-4 h-4" /></a>
+                   <a href={toProxiedStorageUrl(file.fileUrl) || file.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors" title="Abrir/Descarregar"><ExternalLink className="w-4 h-4" /></a>
                    <button onClick={() => handleDeleteFile(file.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>

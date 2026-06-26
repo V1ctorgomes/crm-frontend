@@ -15,6 +15,7 @@ export function isSafeMediaUrl(raw: string | null | undefined): boolean {
   try {
     const url = new URL(s);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    if (url.pathname.includes('/storage/file')) return true;
     const r2 = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim();
     if (r2) {
       try {
